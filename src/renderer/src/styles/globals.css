@@ -1,0 +1,157 @@
+/* src/renderer/src/styles/globals.css */
+/* Focus Agent — Dark Industrial Aesthetic */
+
+:root {
+  /* Core palette — deep obsidian with amber fire */
+  --bg-base: #0c0c0f;
+  --bg-elevated: #141418;
+  --bg-surface: #1a1a20;
+  --bg-overlay: #202028;
+  --bg-hover: #252530;
+
+  /* Accent — amber/fire for urgency and energy */
+  --accent-primary: #f5a623;
+  --accent-secondary: #e07b1a;
+  --accent-dim: rgba(245, 166, 35, 0.12);
+  --accent-border: rgba(245, 166, 35, 0.25);
+
+  /* Status colors */
+  --status-success: #22c55e;
+  --status-warning: #f59e0b;
+  --status-danger: #ef4444;
+  --status-info: #60a5fa;
+
+  /* Text */
+  --text-primary: #f0eee8;
+  --text-secondary: #9d9b94;
+  --text-muted: #5c5a54;
+  --text-accent: #f5a623;
+
+  /* Borders */
+  --border-subtle: rgba(255, 255, 255, 0.04);
+  --border-default: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.14);
+
+  /* Fonts */
+  --font-display: 'Syne', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* Sizing */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.7);
+  --shadow-accent: 0 0 20px rgba(245, 166, 35, 0.15);
+
+  /* Scrollbar */
+  --scrollbar-track: var(--bg-base);
+  --scrollbar-thumb: var(--bg-hover);
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+body {
+  background: transparent;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  user-select: none;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: var(--scrollbar-track); }
+::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }
+
+/* Selection */
+::selection { background: var(--accent-dim); color: var(--accent-primary); }
+
+/* Focus outline */
+:focus-visible { outline: 1px solid var(--accent-primary); outline-offset: 2px; }
+
+/* Input reset */
+input, textarea, button { font-family: inherit; font-size: inherit; }
+button { cursor: pointer; border: none; background: none; color: inherit; }
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse-accent {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(245, 166, 35, 0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(245, 166, 35, 0); }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* Markdown content styles */
+.md-content { user-select: text; }
+.md-content h1, .md-content h2, .md-content h3 {
+  font-family: var(--font-display);
+  color: var(--text-primary);
+  margin-bottom: 8px;
+  margin-top: 12px;
+}
+.md-content h1 { font-size: 16px; }
+.md-content h2 { font-size: 14px; }
+.md-content h3 { font-size: 13px; }
+.md-content p { margin-bottom: 8px; color: var(--text-secondary); }
+.md-content strong { color: var(--text-primary); font-weight: 700; }
+.md-content em { color: var(--accent-primary); font-style: italic; }
+.md-content code {
+  background: var(--bg-overlay);
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  color: var(--accent-primary);
+}
+.md-content pre {
+  background: var(--bg-overlay);
+  padding: 10px;
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+  margin-bottom: 8px;
+  border-left: 2px solid var(--accent-primary);
+}
+.md-content ul, .md-content ol {
+  padding-left: 16px;
+  margin-bottom: 8px;
+  color: var(--text-secondary);
+}
+.md-content li { margin-bottom: 2px; }
+.md-content a { color: var(--accent-primary); text-decoration: none; }
+.md-content blockquote {
+  border-left: 2px solid var(--accent-border);
+  padding-left: 10px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+.md-content hr { border: none; border-top: 1px solid var(--border-subtle); margin: 12px 0; }

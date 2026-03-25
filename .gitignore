@@ -1,0 +1,26 @@
+node_modules/
+out/
+dist/
+.env
+.env.local
+*.db
+*.db-shm
+*.db-wal
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/settings.json
+.idea/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Build artifacts
+out/
+dist/
+release/

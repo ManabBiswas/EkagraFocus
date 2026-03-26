@@ -61,7 +61,7 @@ export function ChatInterface() {
       >
         {messages.length === 0 ? (
           <div className="flex h-full items-center justify-center">
-            <div className="rounded-2xl border border-white/10 bg-white/5 px-5 py-4 text-center text-sm text-slate-400">
+            <div className="rounded-2xl border border-white/20 bg-black/35 px-5 py-4 text-center text-sm text-slate-300">
               Start a conversation...
             </div>
           </div>
@@ -74,8 +74,8 @@ export function ChatInterface() {
               <div
                 className={`max-w-[78%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-lg ${
                   msg.role === 'user'
-                    ? 'border border-cyan-400/25 bg-cyan-400/10 text-cyan-50'
-                    : 'border border-white/10 bg-slate-900/80 text-slate-100'
+                    ? 'border border-cyan-400/35 bg-cyan-400/20 text-cyan-100'
+                    : 'border border-white/15 bg-slate-900 text-slate-200'
                 }`}
               >
                 {msg.content}
@@ -85,7 +85,7 @@ export function ChatInterface() {
         )}
         {isAgentThinking && (
           <div className="flex justify-start">
-            <div className="animate-pulse-subtle rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-2 text-slate-300 shadow-lg">
+            <div className="animate-pulse-subtle rounded-2xl border border-white/15 bg-slate-900 px-4 py-2 text-slate-200 shadow-lg">
               Processing...
             </div>
           </div>
@@ -93,35 +93,35 @@ export function ChatInterface() {
       </div>
 
       {/* Quick Command Buttons */}
-      <div className="flex flex-wrap gap-2 border-t border-white/10 px-4 py-3">
+      <div className="flex flex-wrap gap-2 border-t border-white/20 px-4 py-3">
         <button
           onClick={() => handleQuickCommand('Status')}
-          className="rounded-full border border-cyan-400/25 bg-cyan-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-cyan-100 transition-colors hover:bg-cyan-400/20"
+          className="rounded-full border border-cyan-400/35 bg-cyan-400/20 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-cyan-200 transition-colors hover:bg-cyan-400/30"
         >
           STATUS
         </button>
         <button
           onClick={() => handleQuickCommand('1h Math')}
-          className="rounded-full border border-slate-200/20 bg-white/5 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-200 transition-colors hover:bg-white/10"
+          className="rounded-full border border-white/20 bg-black/35 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-slate-300 transition-colors hover:bg-black/50"
         >
           1H MATH
         </button>
         <button
           onClick={() => handleQuickCommand('2h DSA')}
-          className="rounded-full border border-emerald-400/25 bg-emerald-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-100 transition-colors hover:bg-emerald-400/20"
+          className="rounded-full border border-emerald-400/35 bg-emerald-400/20 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-emerald-200 transition-colors hover:bg-emerald-400/30"
         >
           2H DSA
         </button>
         <button
           onClick={() => handleQuickCommand('Schedule')}
-          className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-300 transition-colors hover:bg-white/10"
+          className="rounded-full border border-white/20 bg-black/35 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-slate-300 transition-colors hover:bg-black/50"
         >
           SCHEDULE
         </button>
       </div>
 
       {/* Input Area */}
-      <div className="flex gap-3 border-t border-white/10 p-4">
+      <div className="flex gap-3 border-t border-white/20 p-4">
         <textarea
           ref={inputRef}
           value={input}
@@ -134,7 +134,7 @@ export function ChatInterface() {
         />
         <button
           onClick={handleSendMessage}
-          className="rounded-2xl border border-cyan-400/30 bg-cyan-400/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-cyan-100 transition-colors hover:bg-cyan-400/20"
+          className="rounded-2xl border border-cyan-400/35 bg-cyan-400/20 px-4 py-2 text-xs font-bold uppercase tracking-[0.2em] text-cyan-200 transition-colors hover:bg-cyan-400/30"
         >
           SEND
         </button>

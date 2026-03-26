@@ -19,29 +19,29 @@ function NotificationItem({ id, title, message, type, onClose }: NotificationPro
   }, [id, onClose]);
 
   const styleMap = {
-    info: 'border-cyan-400/25 bg-cyan-400/10',
-    success: 'border-emerald-400/25 bg-emerald-400/10',
-    warning: 'border-amber-400/25 bg-amber-400/10',
-    error: 'border-red-400/25 bg-red-400/10',
+    info: 'border-cyan-400/35 bg-cyan-400/20',
+    success: 'border-emerald-400/35 bg-emerald-400/20',
+    warning: 'border-amber-400/35 bg-amber-400/20',
+    error: 'border-red-400/35 bg-red-400/20',
   };
 
   const textMap = {
-    info: 'text-cyan-100',
-    success: 'text-emerald-100',
-    warning: 'text-amber-100',
-    error: 'text-red-100',
+    info: 'text-cyan-200',
+    success: 'text-emerald-200',
+    warning: 'text-amber-200',
+    error: 'text-red-200',
   };
 
   return (
     <div className={`panel-shell animate-slide-in flex items-start gap-3 px-4 py-3 ${styleMap[type]}`}>
-      <div className="mt-0.5 h-2.5 w-2.5 rounded-full bg-current opacity-80" />
+      <div className="mt-0.5 h-2.5 w-2.5 rounded-full bg-current opacity-90" />
       <div className="min-w-0 flex-1">
-        <p className={`text-xs font-semibold uppercase tracking-[0.28em] ${textMap[type]}`}>{title}</p>
-        <p className="mt-1 text-sm text-slate-200">{message}</p>
+        <p className={`text-xs font-bold uppercase tracking-[0.28em] ${textMap[type]}`}>{title}</p>
+        <p className="mt-1 text-sm text-slate-300">{message}</p>
       </div>
       <button
         onClick={() => onClose(id)}
-        className="ml-auto rounded-md border border-white/10 bg-white/5 px-2 py-1 text-xs uppercase tracking-[0.2em] text-slate-300 transition-colors hover:bg-white/10"
+        className="ml-auto rounded-md border border-white/20 bg-black/40 px-2 py-1 text-xs uppercase tracking-[0.2em] text-slate-300 transition-colors hover:bg-black/50"
       >
         Close
       </button>

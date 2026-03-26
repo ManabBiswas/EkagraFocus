@@ -53,15 +53,17 @@ export function ChatInterface() {
   };
 
   return (
-    <div className="h-full flex flex-col bg-slate-900">
+    <div className="flex h-full min-h-0 flex-col bg-transparent">
       {/* Messages Container */}
       <div
         ref={messagesEndRef}
-        className="flex-1 overflow-y-auto p-4 space-y-4"
+        className="flex-1 space-y-3 overflow-y-auto p-4"
       >
         {messages.length === 0 ? (
-          <div className="flex items-center justify-center h-full">
-            <p className="text-slate-500 text-center">Start a conversation...</p>
+          <div className="flex h-full items-center justify-center">
+            <div className="rounded-2xl border border-white/10 bg-white/5 px-5 py-4 text-center text-sm text-slate-400">
+              Start a conversation...
+            </div>
           </div>
         ) : (
           messages.map((msg) => (
@@ -70,10 +72,10 @@ export function ChatInterface() {
               className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
             >
               <div
-                className={`max-w-xs px-4 py-2 rounded-lg ${
+                className={`max-w-[78%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-lg ${
                   msg.role === 'user'
-                    ? 'bg-cyan-900 text-cyan-100 border border-cyan-700'
-                    : 'bg-slate-800 text-slate-100 border border-slate-700'
+                    ? 'border border-cyan-400/25 bg-cyan-400/10 text-cyan-50'
+                    : 'border border-white/10 bg-slate-900/80 text-slate-100'
                 }`}
               >
                 {msg.content}
@@ -83,7 +85,7 @@ export function ChatInterface() {
         )}
         {isAgentThinking && (
           <div className="flex justify-start">
-            <div className="bg-slate-800 text-slate-300 px-4 py-2 rounded-lg animate-pulse-subtle border border-slate-700">
+            <div className="animate-pulse-subtle rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-2 text-slate-300 shadow-lg">
               Processing...
             </div>
           </div>
@@ -91,47 +93,48 @@ export function ChatInterface() {
       </div>
 
       {/* Quick Command Buttons */}
-      <div className="px-4 py-2 bg-slate-800 border-t border-slate-700 space-x-2 flex flex-wrap gap-1">
+      <div className="flex flex-wrap gap-2 border-t border-white/10 px-4 py-3">
         <button
           onClick={() => handleQuickCommand('Status')}
-          className="px-3 py-1 bg-blue-900 text-blue-300 rounded text-sm hover:bg-blue-800 transition-colors border border-blue-700"
+          className="rounded-full border border-cyan-400/25 bg-cyan-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-cyan-100 transition-colors hover:bg-cyan-400/20"
         >
           STATUS
         </button>
         <button
           onClick={() => handleQuickCommand('1h Math')}
-          className="px-3 py-1 bg-purple-900 text-purple-300 rounded text-sm hover:bg-purple-800 transition-colors border border-purple-700"
+          className="rounded-full border border-slate-200/20 bg-white/5 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-200 transition-colors hover:bg-white/10"
         >
           1H MATH
         </button>
         <button
           onClick={() => handleQuickCommand('2h DSA')}
-          className="px-3 py-1 bg-green-900 text-green-300 rounded text-sm hover:bg-green-800 transition-colors border border-green-700"
+          className="rounded-full border border-emerald-400/25 bg-emerald-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-emerald-100 transition-colors hover:bg-emerald-400/20"
         >
           2H DSA
         </button>
         <button
           onClick={() => handleQuickCommand('Schedule')}
-          className="px-3 py-1 bg-slate-700 text-slate-300 rounded text-sm hover:bg-slate-600 transition-colors border border-slate-600"
+          className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-300 transition-colors hover:bg-white/10"
         >
           SCHEDULE
         </button>
       </div>
 
       {/* Input Area */}
-      <div className="p-4 bg-slate-800 border-t border-slate-700 flex gap-2">
+      <div className="flex gap-3 border-t border-white/10 p-4">
         <textarea
           ref={inputRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Ask something..."
-          className="flex-1 p-2 border border-slate-700 bg-slate-900 text-slate-100 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-cyan-500 text-sm"
+          className="metal-input flex-1 resize-none rounded-2xl px-3 py-2 text-sm"
+          style={{ minHeight: '3.5rem' }}
           rows={2}
         />
         <button
           onClick={handleSendMessage}
-          className="px-4 py-2 bg-cyan-700 text-cyan-100 rounded-lg hover:bg-cyan-600 transition-colors font-medium border border-cyan-600"
+          className="rounded-2xl border border-cyan-400/30 bg-cyan-400/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-cyan-100 transition-colors hover:bg-cyan-400/20"
         >
           SEND
         </button>

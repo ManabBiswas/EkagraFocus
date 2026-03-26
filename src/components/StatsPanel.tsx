@@ -13,55 +13,55 @@ export function StatsPanel() {
   const goalsMetCount = weeklyStats.filter((s) => s.goalMet).length;
 
   return (
-    <div className="h-full overflow-y-auto p-4 space-y-4">
+    <div className="h-full space-y-4 overflow-y-auto p-4">
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 gap-2">
-        <div className="bg-slate-800 p-3 rounded border border-blue-700">
-          <p className="text-xs text-blue-400 font-medium uppercase">Weekly H</p>
-          <p className="text-2xl font-bold text-blue-300">
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+        <div className="rounded-2xl border border-cyan-400/25 bg-cyan-400/10 p-4">
+          <p className="section-label">Weekly H</p>
+          <p className="mt-3 text-2xl font-semibold text-cyan-100">
             {totalWeeklyHours.toFixed(1)}h
           </p>
         </div>
 
-        <div className="bg-slate-800 p-3 rounded border border-green-700">
-          <p className="text-xs text-green-400 font-medium uppercase">Goals</p>
-          <p className="text-2xl font-bold text-green-300">
+        <div className="rounded-2xl border border-emerald-400/25 bg-emerald-400/10 p-4">
+          <p className="section-label">Goals</p>
+          <p className="mt-3 text-2xl font-semibold text-emerald-100">
             {goalsMetCount}/7
           </p>
         </div>
 
-        <div className="bg-slate-800 p-3 rounded border border-purple-700">
-          <p className="text-xs text-purple-400 font-medium uppercase">Streak</p>
-          <p className="text-2xl font-bold text-purple-300">
+        <div className="rounded-2xl border border-amber-400/25 bg-amber-400/10 p-4">
+          <p className="section-label">Streak</p>
+          <p className="mt-3 text-2xl font-semibold text-amber-100">
             {currentStreak}
           </p>
         </div>
 
-        <div className="bg-slate-800 p-3 rounded border border-cyan-700">
-          <p className="text-xs text-cyan-400 font-medium uppercase">Total</p>
-          <p className="text-2xl font-bold text-cyan-300">
+        <div className="rounded-2xl border border-white/15 bg-white/5 p-4">
+          <p className="section-label">Total</p>
+          <p className="mt-3 text-2xl font-semibold text-slate-50">
             {userState?.totalHoursStudied.toFixed(0)}h
           </p>
         </div>
       </div>
 
       {/* Weekly Breakdown */}
-      <div className="metal-surface rounded border p-3 border-slate-700">
-        <h3 className="font-semibold text-sm accent-steel mb-3 uppercase">Weekly</h3>
+      <div className="panel-shell p-4">
+        <h3 className="section-label mb-3">Weekly</h3>
 
         {weeklyStats.length === 0 ? (
-          <p className="text-xs text-slate-500">No data</p>
+          <p className="text-sm text-slate-500">No data</p>
         ) : (
           <div className="space-y-2">
             {weeklyStats.map((day) => (
               <div key={day.date} className="flex items-center gap-2">
-                <p className="text-xs font-medium text-slate-400 w-12">
+                <p className="w-12 text-xs font-medium text-slate-400">
                   {new Date(day.date).toLocaleDateString('en-US', { weekday: 'short' })}
                 </p>
-                <div className="flex-1 bg-slate-800 rounded h-6 overflow-hidden border border-slate-700">
+                <div className="flex h-6 flex-1 overflow-hidden rounded-full border border-white/10 bg-slate-950/70">
                   <div
-                    className={`h-full flex items-center justify-center text-xs font-bold text-slate-900 ${
-                      day.goalMet ? 'bg-green-600' : 'bg-orange-600'
+                    className={`flex h-full items-center justify-center text-xs font-bold text-slate-950 ${
+                      day.goalMet ? 'bg-emerald-400' : 'bg-amber-400'
                     }`}
                     style={{ width: `${Math.min((day.hoursStudied / 3) * 100, 100)}%` }}
                   >
@@ -75,16 +75,16 @@ export function StatsPanel() {
       </div>
 
       {/* Subject Breakdown */}
-      <div className="metal-surface rounded border p-3 border-slate-700">
-        <h3 className="font-semibold text-sm accent-steel mb-3 uppercase">Subjects</h3>
+      <div className="panel-shell p-4">
+        <h3 className="section-label mb-3">Subjects</h3>
 
         {subjectBreakdown.length === 0 ? (
-          <p className="text-xs text-slate-500">No subjects</p>
+          <p className="text-sm text-slate-500">No subjects</p>
         ) : (
           <div className="space-y-2">
             {subjectBreakdown.map((subject) => (
               <div key={subject.subject}>
-                <div className="flex justify-between items-center mb-1">
+                <div className="mb-1 flex items-center justify-between">
                   <p className="text-xs font-medium text-slate-300">
                     {subject.subject}
                   </p>
@@ -92,9 +92,9 @@ export function StatsPanel() {
                     {subject.hours.toFixed(1)}h ({subject.sessions})
                   </p>
                 </div>
-                <div className="w-full bg-slate-800 rounded-full h-2 overflow-hidden border border-slate-700">
+                <div className="h-2 w-full overflow-hidden rounded-full border border-white/10 bg-slate-950/70">
                   <div
-                    className="h-full bg-cyan-600"
+                    className="h-full bg-cyan-500"
                     style={{ width: `${subject.percentage}%` }}
                   />
                 </div>
@@ -106,11 +106,11 @@ export function StatsPanel() {
 
       {/* Penalty Status */}
       {userState?.penaltyModeActive && (
-        <div className="bg-red-900 border border-red-700 rounded p-3">
-          <p className="text-xs font-semibold text-red-200 mb-1">
+        <div className="rounded-2xl border border-red-400/20 bg-red-400/10 p-3">
+          <p className="mb-1 text-xs font-semibold text-red-100">
             PENALTY MODE ACTIVE
           </p>
-          <p className="text-xs text-red-300">
+          <p className="text-xs text-red-200">
             Expires: {new Date(userState.penaltyExpirationDate || '').toLocaleDateString()}
           </p>
         </div>

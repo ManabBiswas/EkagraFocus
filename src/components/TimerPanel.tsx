@@ -57,11 +57,11 @@ export function TimerPanel() {
   };
 
   return (
-    <div className="h-full flex flex-col items-center justify-center p-6 bg-slate-900 space-y-6">
+    <div className="flex h-full min-h-0 flex-col items-center justify-center gap-6 bg-transparent p-6 text-center">
       {/* Timer Display */}
-      <div className="metal-surface rounded-3xl p-12 shadow-lg border border-slate-700">
-        <p className="text-slate-400 text-sm mb-2 uppercase tracking-wider">STUDY TIMER</p>
-        <p className="text-7xl font-black text-cyan-400 font-mono">
+      <div className="panel-shell rounded-4xl px-10 py-12">
+        <p className="section-label mb-3">Study timer</p>
+        <p className="font-mono text-6xl font-black tracking-[0.08em] text-cyan-300 md:text-7xl">
           {hours.toString().padStart(2, '0')}:{minutes.toString().padStart(2, '0')}:{seconds.toString().padStart(2, '0')}
         </p>
       </div>
@@ -76,7 +76,7 @@ export function TimerPanel() {
             setTimerSubject(e.target.value);
           }}
           placeholder="Subject"
-          className="flex-1 px-4 py-2 border border-slate-700 bg-slate-800 text-slate-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
+          className="metal-input flex-1 rounded-2xl px-4 py-3 text-sm"
         />
       </div>
 
@@ -84,24 +84,24 @@ export function TimerPanel() {
       <div className="flex gap-3">
         <button
           onClick={handleStartStop}
-          className={`px-6 py-3 rounded-lg font-semibold transition-colors border ${
+          className={`rounded-2xl border px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] transition-colors ${
             timerRunning
-              ? 'bg-red-900 text-red-200 hover:bg-red-800 border-red-700'
-              : 'bg-green-900 text-green-200 hover:bg-green-800 border-green-700'
+              ? 'border-red-400/25 bg-red-400/10 text-red-100 hover:bg-red-400/20'
+              : 'border-emerald-400/25 bg-emerald-400/10 text-emerald-100 hover:bg-emerald-400/20'
           }`}
         >
           {timerRunning ? 'PAUSE' : 'START'}
         </button>
         <button
           onClick={resetTimer}
-          className="px-6 py-3 bg-slate-700 text-slate-200 rounded-lg font-semibold hover:bg-slate-600 transition-colors border border-slate-600"
+          className="rounded-2xl border border-white/10 bg-white/5 px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-slate-200 transition-colors hover:bg-white/10"
         >
           RESET
         </button>
         <button
           onClick={handleSaveSession}
           disabled={timerSeconds === 0 || !currentSessionSubject}
-          className="px-6 py-3 bg-cyan-700 text-cyan-100 rounded-lg font-semibold hover:bg-cyan-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed border border-cyan-600"
+          className="rounded-2xl border border-cyan-400/30 bg-cyan-400/10 px-6 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-cyan-100 transition-colors hover:bg-cyan-400/20 disabled:cursor-not-allowed disabled:opacity-50"
         >
           SAVE
         </button>

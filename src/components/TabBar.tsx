@@ -12,15 +12,15 @@ export function TabBar() {
   ] as const;
 
   return (
-    <div className="flex gap-1 bg-slate-900 p-1 border-b border-slate-700">
+    <div className="flex gap-2 border-b border-white/10 bg-black/20 p-2">
       {tabs.map((tab) => (
         <button
           key={tab.id}
           onClick={() => setActiveTab(tab.id)}
-          className={`px-4 py-2 rounded font-medium transition-colors ${
+          className={`rounded-lg px-4 py-2 text-xs font-semibold uppercase tracking-[0.22em] transition-all ${
             activeTab === tab.id
-              ? 'bg-slate-700 text-cyan-400 shadow-sm border border-cyan-500'
-              : 'bg-transparent accent-steel hover:bg-slate-800'
+              ? 'border border-cyan-400/35 bg-cyan-400/10 text-cyan-100 shadow-[0_0_0_1px_rgba(34,211,238,0.1)]'
+              : 'border border-transparent bg-transparent text-slate-400 hover:border-white/10 hover:bg-white/5 hover:text-slate-100'
           }`}
         >
           {tab.label}

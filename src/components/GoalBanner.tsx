@@ -15,28 +15,28 @@ export function GoalBanner() {
   const goalStatus = dailyStatus.goalMet ? 'Goal Met! 🎉' : `${remaining.toFixed(1)}h remaining`;
 
   return (
-    <div className="metal-surface border-b p-4">
-      <div className="mb-3">
-        <div className="flex justify-between items-center mb-2">
+    <div className="panel-shell p-4">
+      <div className="mb-3 border-b border-white/10 pb-3">
+        <div className="mb-2 flex items-center justify-between">
           <div>
-            <h3 className="font-semibold accent-steel">TODAY'S GOAL</h3>
-            <p className="text-sm text-slate-400">{dailyStatus.date}</p>
+            <h3 className="section-label">Today&apos;s goal</h3>
+            <p className="mt-2 text-sm text-slate-400">{dailyStatus.date}</p>
           </div>
           <div className="text-right">
-            <p className="font-bold text-lg text-cyan-400">
+            <p className="text-lg font-semibold text-cyan-300">
               {dailyStatus.hoursCompleted.toFixed(1)}h / {dailyStatus.totalGoal}h
             </p>
-            <p className={`text-sm font-medium ${dailyStatus.goalMet ? 'text-green-400' : 'text-amber-400'}`}>
+            <p className={`text-sm font-medium ${dailyStatus.goalMet ? 'text-emerald-300' : 'text-amber-300'}`}>
               {dailyStatus.goalMet ? 'COMPLETE' : 'IN PROGRESS'}
             </p>
           </div>
         </div>
 
         {/* Progress Bar */}
-        <div className="w-full bg-slate-800 rounded-full h-3 overflow-hidden border border-slate-700">
+        <div className="h-3 w-full overflow-hidden rounded-full border border-white/10 bg-slate-950/70">
           <div
             className={`h-full transition-all duration-300 ${
-              dailyStatus.goalMet ? 'bg-green-600' : 'bg-cyan-500'
+              dailyStatus.goalMet ? 'bg-emerald-500' : 'bg-cyan-500'
             }`}
             style={{ width: `${progressPercent}%` }}
           />
@@ -45,29 +45,29 @@ export function GoalBanner() {
 
       {/* Goal Breakdown */}
       <div className="grid grid-cols-3 gap-2 text-sm">
-        <div className="bg-blue-50 p-2 rounded">
-          <p className="text-gray-600">Base</p>
-          <p className="font-semibold text-blue-600">{dailyStatus.baseGoal}h</p>
+        <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+          <p className="text-[10px] uppercase tracking-[0.3em] text-slate-500">Base</p>
+          <p className="mt-1 font-semibold text-slate-100">{dailyStatus.baseGoal}h</p>
         </div>
         {dailyStatus.debtAssigned > 0 && (
-          <div className="bg-amber-50 p-2 rounded">
-            <p className="text-gray-600">Debt</p>
-            <p className="font-semibold text-amber-600">+{dailyStatus.debtAssigned}h</p>
+          <div className="rounded-xl border border-amber-400/20 bg-amber-400/10 p-3">
+            <p className="text-[10px] uppercase tracking-[0.3em] text-amber-200">Debt</p>
+            <p className="mt-1 font-semibold text-amber-100">+{dailyStatus.debtAssigned}h</p>
           </div>
         )}
         {dailyStatus.penaltyAssigned > 0 && (
-          <div className="bg-red-50 p-2 rounded">
-            <p className="text-gray-600">Penalty</p>
-            <p className="font-semibold text-red-600">+{dailyStatus.penaltyAssigned}h</p>
+          <div className="rounded-xl border border-red-400/20 bg-red-400/10 p-3">
+            <p className="text-[10px] uppercase tracking-[0.3em] text-red-200">Penalty</p>
+            <p className="mt-1 font-semibold text-red-100">+{dailyStatus.penaltyAssigned}h</p>
           </div>
         )}
       </div>
 
       {/* Penalty Warning */}
       {dailyStatus.penaltyModeActive && (
-        <div className="mt-3 bg-red-50 border border-red-200 rounded p-2 text-sm">
-          <p className="text-red-800 font-medium">
-            ⚠️ Penalty Mode Active - 7 day duration
+        <div className="mt-3 rounded-xl border border-red-400/20 bg-red-400/10 p-3 text-sm">
+          <p className="font-medium text-red-100">
+            Penalty mode active - 7 day duration
           </p>
         </div>
       )}

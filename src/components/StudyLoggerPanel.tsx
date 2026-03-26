@@ -36,17 +36,17 @@ export function StudyLoggerPanel() {
   const totalHours = todaySessions.reduce((sum, s) => sum + s.durationHours, 0);
 
   return (
-    <div className="h-full flex flex-col p-4 gap-4 bg-slate-900 overflow-y-auto">
+    <div className="flex h-full min-h-0 flex-col gap-4 overflow-y-auto bg-transparent p-4">
       {/* Form Section */}
-      <div className="metal-surface rounded-lg p-4 border-l-4 border-cyan-500 shadow">
-        <h3 className="font-semibold accent-steel mb-3 uppercase tracking-wide">Log Session</h3>
+      <div className="panel-shell p-4">
+        <h3 className="section-label mb-3">Log session</h3>
         <div className="space-y-3">
           <input
             type="text"
             placeholder="Subject"
             value={subject}
             onChange={(e) => setSubject(e.target.value)}
-            className="w-full px-3 py-2 border border-slate-700 bg-slate-800 text-slate-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
+            className="metal-input w-full rounded-2xl px-3 py-2 text-sm"
           />
           <input
             type="number"
@@ -55,19 +55,19 @@ export function StudyLoggerPanel() {
             min={0.25}
             value={hours}
             onChange={(e) => setHours(e.target.value)}
-            className="w-full px-3 py-2 border border-slate-700 bg-slate-800 text-slate-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
+            className="metal-input w-full rounded-2xl px-3 py-2 text-sm"
           />
           <textarea
             placeholder="Notes (optional)"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            className="w-full px-3 py-2 border border-slate-700 bg-slate-800 text-slate-100 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-cyan-500"
+            className="metal-input w-full resize-none rounded-2xl px-3 py-2 text-sm"
             rows={2}
           />
           <button
             onClick={handleLogSession}
             disabled={!subject || hours === ''}
-            className="w-full px-4 py-2 bg-cyan-700 text-cyan-100 rounded-lg font-medium hover:bg-cyan-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed border border-cyan-600"
+            className="w-full rounded-2xl border border-cyan-400/30 bg-cyan-400/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-cyan-100 transition-colors hover:bg-cyan-400/20 disabled:cursor-not-allowed disabled:opacity-50"
           >
             LOG SESSION
           </button>
@@ -75,19 +75,19 @@ export function StudyLoggerPanel() {
       </div>
 
       {/* Sessions List */}
-      <div className="metal-surface rounded-lg p-4 shadow flex-1 overflow-y-auto border border-slate-700">
-        <div className="flex justify-between items-center mb-3">
-          <h3 className="font-semibold accent-steel uppercase">Sessions</h3>
-          <p className="text-sm text-cyan-400">TOTAL: {totalHours.toFixed(2)}h</p>
+      <div className="panel-shell flex-1 overflow-y-auto p-4">
+        <div className="mb-3 flex items-center justify-between border-b border-white/10 pb-3">
+          <h3 className="section-label">Sessions</h3>
+          <p className="text-sm text-cyan-300">TOTAL: {totalHours.toFixed(2)}h</p>
         </div>
 
         {todaySessions.length === 0 ? (
-          <p className="text-slate-500 text-center py-4">No sessions logged</p>
+          <p className="py-4 text-center text-slate-500">No sessions logged</p>
         ) : (
           <div className="space-y-2">
             {todaySessions.map((session) => (
-              <div key={session.id} className="bg-slate-800 p-2 rounded border border-slate-700 text-sm">
-                <div className="flex justify-between items-start">
+              <div key={session.id} className="rounded-2xl border border-white/10 bg-white/5 p-3 text-sm">
+                <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="font-medium text-slate-100">{session.subject}</p>
                     <p className="text-slate-400">{session.durationHours}h</p>
@@ -97,7 +97,7 @@ export function StudyLoggerPanel() {
                   </p>
                 </div>
                 {session.notes && (
-                  <p className="text-slate-400 italic mt-1">{session.notes}</p>
+                  <p className="mt-1 italic text-slate-400">{session.notes}</p>
                 )}
               </div>
             ))}

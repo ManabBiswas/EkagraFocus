@@ -1,4 +1,4 @@
-# Focus Agent — Command Deck
+# EkagraFocus — Command Deck
 
 > A dark-themed Electron desktop app for studying smarter: AI-powered chat, a Pomodoro-style timer, manual session logging, debt/penalty goal tracking, and live analytics — all in one place.
 
@@ -19,7 +19,7 @@
 ## Project Structure
 
 ```
-focus-agent/
+EkagraFocus/
 ├── src/
 │   ├── index.ts              # Electron main process
 │   ├── preload.ts            # Preload / IPC bridge (to be expanded)

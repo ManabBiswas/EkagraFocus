@@ -1,4 +1,4 @@
-// Type definitions for Focus Agent
+// Type definitions for EkagraFocus
 
 export interface Goal {
   date: string;

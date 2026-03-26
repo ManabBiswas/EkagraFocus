@@ -6,7 +6,7 @@ export function TitleBar() {
       <div className="flex items-center gap-3">
         <div className="h-3 w-3 rounded-full bg-cyan-400 shadow-[0_0_18px_rgba(34,211,238,0.65)]" />
         <div>
-          <p className="text-[10px] uppercase tracking-[0.45em] text-slate-500">Focus Agent</p>
+          <p className="text-[10px] uppercase tracking-[0.45em] text-slate-500">EkagraFocus</p>
           <p className="text-sm font-semibold tracking-[0.24em] text-slate-100">COMMAND DECK</p>
         </div>
       </div>

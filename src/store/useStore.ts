@@ -7,11 +7,12 @@ import type {
   SubjectBreakdown,
   NotificationItem,
   UserState,
+  SchedulePlan,
 } from '../types';
 
 interface FocusAgentState {
   // ── UI State ──────────────────────────────────────────────
-  activeTab: 'chat' | 'timer' | 'logger' | 'stats';
+  activeTab: 'chat' | 'timer' | 'logger' | 'stats' | 'plan';
   isInitialized: boolean;
 
   // ── Goal & Status ─────────────────────────────────────────
@@ -38,8 +39,11 @@ interface FocusAgentState {
   // ── Notifications ─────────────────────────────────────────
   notifications: NotificationItem[];
 
+  // ── Schedule Plan ─────────────────────────────────────────
+  schedulePlan: SchedulePlan | null;
+
   // ── Actions ───────────────────────────────────────────────
-  setActiveTab: (tab: 'chat' | 'timer' | 'logger' | 'stats') => void;
+  setActiveTab: (tab: 'chat' | 'timer' | 'logger' | 'stats' | 'plan') => void;
   initializeStore: () => void;
   setInitialized: (value: boolean) => void;
 
@@ -68,6 +72,8 @@ interface FocusAgentState {
   addNotification: (notification: NotificationItem) => void;
   removeNotification: (id: string) => void;
   clearNotifications: () => void;
+
+  setSchedulePlan: (plan: SchedulePlan | null) => void;
 }
 
 export const useStore = create<FocusAgentState>((set) => ({
@@ -92,6 +98,8 @@ export const useStore = create<FocusAgentState>((set) => ({
   currentStreak: 0,
 
   notifications: [],
+
+  schedulePlan: null,
 
   // Tab actions
   setActiveTab: (tab) => set({ activeTab: tab }),
@@ -159,4 +167,7 @@ export const useStore = create<FocusAgentState>((set) => ({
       notifications: state.notifications.filter((n) => n.id !== id),
     })),
   clearNotifications: () => set({ notifications: [] }),
+
+  // Schedule plan actions
+  setSchedulePlan: (plan) => set({ schedulePlan: plan }),
 }));

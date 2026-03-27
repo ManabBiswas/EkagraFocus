@@ -77,3 +77,10 @@ export interface SubjectBreakdown {
   sessions: number;
   percentage: number;
 }
+
+export interface SchedulePlan {
+  fileName: string;
+  filePath: string;
+  content: string;
+  importedAt: string;
+}

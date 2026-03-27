@@ -7,6 +7,7 @@ import { ChatInterface } from './components/ChatInterface';
 import { TimerPanel } from './components/TimerPanel';
 import { StudyLoggerPanel } from './components/StudyLoggerPanel';
 import { StatsPanel } from './components/StatsPanel';
+import { PlanViewer } from './components/PlanViewer';
 import { NotificationToast } from './components/NotificationToast';
 
 function DashboardOverview() {
@@ -159,6 +160,8 @@ export function App() {
         return <StudyLoggerPanel />;
       case 'stats':
         return <StatsPanel />;
+      case 'plan':
+        return <PlanViewer />;
       default:
         return <ChatInterface />;
     }

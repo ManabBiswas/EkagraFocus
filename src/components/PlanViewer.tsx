@@ -122,26 +122,46 @@ export function PlanViewer() {
 
     setIsAnalyzing(true);
     try {
+      console.log('📋 Starting schedule analysis...');
+      
       // Analyze schedule
+      console.log('🔄 Calling analyzeSchedule...');
       const analysisResult = await window.electronAPI.analyzeSchedule(schedulePlan.content);
+      console.log('📊 Analysis result:', analysisResult);
+      
       if (analysisResult.success && analysisResult.data) {
+        console.log('✓ Analysis data received:', analysisResult.data);
         setScheduleAnalysis(analysisResult.data);
       } else {
         throw new Error(analysisResult.error || 'Failed to analyze schedule');
       }
 
       // Generate study tips
+      console.log('🔄 Calling generateStudyTips...');
       const tipsResult = await window.electronAPI.generateStudyTips(schedulePlan.content);
+      console.log('💡 Tips result:', tipsResult);
+      
       if (tipsResult.success && tipsResult.data) {
+        console.log('✓ Tips data received:', tipsResult.data);
         setStudyTips(tipsResult.data);
+      } else {
+        console.warn('⚠ Tips generation failed, using empty array');
+        setStudyTips([]);
       }
 
       // Estimate workload
+      console.log('🔄 Calling estimateWorkload...');
       const workloadResult = await window.electronAPI.estimateWorkload(schedulePlan.content);
+      console.log('⚙️  Workload result:', workloadResult);
+      
       if (workloadResult.success && workloadResult.data) {
+        console.log('✓ Workload data received:', workloadResult.data);
         setWorkloadEstimate(workloadResult.data);
+      } else {
+        console.warn('⚠ Workload estimation failed, using defaults');
       }
 
+      console.log('✅ All analyses complete!');
       addNotification({
         id: `notif-${Date.now()}`,
         type: 'success',
@@ -151,6 +171,7 @@ export function PlanViewer() {
       });
       setActiveAnalysisTab('analysis');
     } catch (error) {
+      console.error('❌ Analysis error:', error);
       addNotification({
         id: `notif-${Date.now()}`,
         type: 'error',
@@ -337,14 +358,66 @@ export function PlanViewer() {
                       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-300">
                         Study Plan
                       </p>
-                      <p className="mt-2 text-sm text-slate-100">{scheduleAnalysis.studyPlan}</p>
+                      <div className="mt-2 text-sm text-slate-100">
+                        {typeof scheduleAnalysis.studyPlan === 'string' ? (
+                          <p>{scheduleAnalysis.studyPlan}</p>
+                        ) : (
+                          <div className="space-y-3">
+                            {scheduleAnalysis.studyPlan.phases?.map((phase, idx) => (
+                              <div key={idx} className="rounded-md border border-emerald-400/20 bg-emerald-400/5 p-3">
+                                <h4 className="font-semibold text-emerald-300">{phase.name}</h4>
+                                <p className="mt-1 text-xs text-slate-300"><strong>Focus:</strong> {phase.focus}</p>
+                                <p className="mt-1 text-xs text-slate-300"><strong>Activities:</strong> {phase.activities}</p>
+                                <p className="mt-1 text-xs text-slate-300"><strong>Checkpoint:</strong> {phase.checkpoint}</p>
+                              </div>
+                            ))}
+                            {scheduleAnalysis.studyPlan.key_elements && (
+                              <div>
+                                <h4 className="font-semibold text-emerald-200 mb-2">Key Elements:</h4>
+                                <ul className="space-y-1">
+                                  {scheduleAnalysis.studyPlan.key_elements.map((elem, idx) => (
+                                    <li key={idx} className="flex gap-2 text-xs text-slate-300">
+                                      <span className="text-emerald-400">✓</span>
+                                      <span>{elem}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
 
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-300">
                         Time Management
                       </p>
-                      <p className="mt-2 text-sm text-slate-100">{scheduleAnalysis.timeManagement}</p>
+                      <div className="mt-2 text-sm text-slate-100">
+                        {typeof scheduleAnalysis.timeManagement === 'string' ? (
+                          <p>{scheduleAnalysis.timeManagement}</p>
+                        ) : (
+                          <div className="space-y-3">
+                            <div>
+                              <h4 className="font-semibold text-amber-200">Daily Schedule</h4>
+                              <p className="mt-2 text-xs text-slate-300">{scheduleAnalysis.timeManagement.daily_schedule_template}</p>
+                            </div>
+                            {scheduleAnalysis.timeManagement.tips && (
+                              <div>
+                                <h4 className="font-semibold text-amber-200 mb-2">Tips:</h4>
+                                <ul className="space-y-2">
+                                  {scheduleAnalysis.timeManagement.tips.map((tip, idx) => (
+                                    <li key={idx} className="flex gap-2 text-xs text-slate-300">
+                                      <span className="text-amber-400">→</span>
+                                      <span>{tip}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
 
                     <div>

@@ -88,8 +88,19 @@ export interface SchedulePlan {
 export interface ScheduleAnalysis {
   summary: string;
   recommendations: string[];
-  studyPlan: string;
-  timeManagement: string;
+  studyPlan: string | {
+    phases: Array<{
+      name: string;
+      focus: string;
+      activities: string;
+      checkpoint: string;
+    }>;
+    key_elements: string[];
+  };
+  timeManagement: string | {
+    daily_schedule_template: string;
+    tips: string[];
+  };
   risks: string[];
 }
 

@@ -84,3 +84,17 @@ export interface SchedulePlan {
   content: string;
   importedAt: string;
 }
+
+export interface ScheduleAnalysis {
+  summary: string;
+  recommendations: string[];
+  studyPlan: string;
+  timeManagement: string;
+  risks: string[];
+}
+
+export interface WorkloadEstimate {
+  totalHours: number;
+  difficulty: 'light' | 'moderate' | 'heavy';
+  recommendation: string;
+}

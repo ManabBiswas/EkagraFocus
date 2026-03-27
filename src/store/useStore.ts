@@ -8,6 +8,8 @@ import type {
   NotificationItem,
   UserState,
   SchedulePlan,
+  ScheduleAnalysis,
+  WorkloadEstimate,
 } from '../types';
 
 interface FocusAgentState {
@@ -42,6 +44,13 @@ interface FocusAgentState {
   // ── Schedule Plan ─────────────────────────────────────────
   schedulePlan: SchedulePlan | null;
 
+  // ── AI Analysis & Gemini ────────────────────────────────────
+  scheduleAnalysis: ScheduleAnalysis | null;
+  workloadEstimate: WorkloadEstimate | null;
+  studyTips: string[];
+  geminiApiKey: string | null;
+  isAnalyzing: boolean;
+
   // ── Actions ───────────────────────────────────────────────
   setActiveTab: (tab: 'chat' | 'timer' | 'logger' | 'stats' | 'plan') => void;
   initializeStore: () => void;
@@ -74,6 +83,11 @@ interface FocusAgentState {
   clearNotifications: () => void;
 
   setSchedulePlan: (plan: SchedulePlan | null) => void;
+  setScheduleAnalysis: (analysis: ScheduleAnalysis | null) => void;
+  setWorkloadEstimate: (estimate: WorkloadEstimate | null) => void;
+  setStudyTips: (tips: string[]) => void;
+  setGeminiApiKey: (key: string | null) => void;
+  setIsAnalyzing: (isAnalyzing: boolean) => void;
 }
 
 export const useStore = create<FocusAgentState>((set) => ({
@@ -100,6 +114,11 @@ export const useStore = create<FocusAgentState>((set) => ({
   notifications: [],
 
   schedulePlan: null,
+  scheduleAnalysis: null,
+  workloadEstimate: null,
+  studyTips: [],
+  geminiApiKey: null,
+  isAnalyzing: false,
 
   // Tab actions
   setActiveTab: (tab) => set({ activeTab: tab }),
@@ -170,4 +189,19 @@ export const useStore = create<FocusAgentState>((set) => ({
 
   // Schedule plan actions
   setSchedulePlan: (plan) => set({ schedulePlan: plan }),
+
+  // AI analysis actions
+  setScheduleAnalysis: (analysis) => set({ scheduleAnalysis: analysis }),
+  setWorkloadEstimate: (estimate) => set({ workloadEstimate: estimate }),
+  setStudyTips: (tips) => set({ studyTips: tips }),
+  setGeminiApiKey: (key) => {
+    // Also persist to localStorage
+    if (key) {
+      typeof window !== 'undefined' && localStorage.setItem('geminiApiKey', key);
+    } else {
+      typeof window !== 'undefined' && localStorage.removeItem('geminiApiKey');
+    }
+    return set({ geminiApiKey: key });
+  },
+  setIsAnalyzing: (isAnalyzing) => set({ isAnalyzing }),
 }));

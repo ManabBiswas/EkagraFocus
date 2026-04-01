@@ -3,43 +3,53 @@ declare module '*.css' {
   export default content;
 }
 
-interface ScheduleAnalysis {
-  summary: string;
-  recommendations: string[];
-  studyPlan: string | {
-    phases: Array<{
-      name: string;
-      focus: string;
-      activities: string;
-      checkpoint: string;
-    }>;
-    key_elements: string[];
-  };
-  timeManagement: string | {
-    daily_schedule_template: string;
-    tips: string[];
-  };
-  risks: string[];
+import type {
+  IPCTask,
+  IPCSession,
+  IPCGoal,
+  IPCDayContext,
+  IPCAgentMessage,
+} from './shared/ipc';
+
+/**
+ * Type definitions for the secure IPC bridge
+ * Exposed in src/preload.ts via contextBridge
+ */
+
+interface IPCDB {
+  getTodayTasks: (date: string) => Promise<IPCTask[]>;
+  getActiveGoals: (date: string) => Promise<IPCGoal[]>;
+  getActiveSessions: (date: string) => Promise<IPCSession[]>;
+  getDayContext: (date: string) => Promise<IPCDayContext>;
 }
 
-interface WorkloadEstimate {
-  totalHours: number;
-  difficulty: 'light' | 'moderate' | 'heavy';
-  recommendation: string;
+interface IPCTaskOps {
+  markDone: (taskId: string) => Promise<void>;
+  logSession: (taskId: string | null, minutes: number, notes?: string) => Promise<void>;
+  updateStatus: (taskId: string, status: 'pending' | 'in_progress' | 'done') => Promise<void>;
 }
 
-interface ElectronAPI {
+interface IPCAgent {
+  sendMessage: (message: string) => Promise<IPCAgentMessage>;
+  getTodayContext: () => Promise<IPCDayContext>;
+}
+
+interface IPCFile {
   importPlanFile: () => Promise<{ filePath: string; fileName: string; content: string } | null>;
   readPlanFile: (filePath: string) => Promise<{ filePath: string; fileName: string; content: string } | null>;
-  setGeminiApiKey: (apiKey: string) => Promise<{ success: boolean; message?: string }>;
-  analyzeSchedule: (mdContent: string) => Promise<{ success: boolean; data?: ScheduleAnalysis; error?: string }>;
-  generateStudyTips: (mdContent: string) => Promise<{ success: boolean; data?: string[]; error?: string }>;
-  estimateWorkload: (mdContent: string) => Promise<{ success: boolean; data?: WorkloadEstimate; error?: string }>;
-  getStoredApiKey: () => Promise<{ success: boolean; key?: string | null }>;
+}
+
+interface API {
+  db: IPCDB;
+  task: IPCTaskOps;
+  agent: IPCAgent;
+  file: IPCFile;
 }
 
 declare global {
   interface Window {
-    electronAPI: ElectronAPI;
+    api: API;
   }
 }
+
+export {};

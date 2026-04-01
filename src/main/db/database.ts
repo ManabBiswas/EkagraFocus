@@ -7,6 +7,7 @@ let db: Database.Database | null = null;
 /**
  * Initialize SQLite database with schema
  * Creates tables: tasks, sessions, goals
+ * This runs only in the Main Process (Node.js backend)
  */
 export function initializeDatabase(): Database.Database {
   if (db) return db;
@@ -60,7 +61,7 @@ export function initializeDatabase(): Database.Database {
     CREATE INDEX IF NOT EXISTS idx_goals_date ON goals(date);
   `);
 
-  console.log('✓ Database initialized:', dbPath);
+  console.log(' Database initialized:', dbPath);
   return db;
 }
 
@@ -81,7 +82,7 @@ export function closeDatabase(): void {
   if (db) {
     db.close();
     db = null;
-    console.log('✓ Database closed');
+    console.log(' Database closed');
   }
 }
 
@@ -112,7 +113,7 @@ export function seedDatabase(): void {
     insertGoal.run('goal_01', today, 'Complete all 3 subjects without distractions', 1);
     insertGoal.run('goal_02', today, 'Finish Physics homework by 11 AM', 1);
 
-    console.log('✓ Sample data seeded');
+    console.log(' Sample data seeded');
   } catch (error) {
     console.error('Error seeding database:', error);
   }
@@ -125,7 +126,7 @@ export function clearDatabase(): void {
   const database = getDatabase();
   try {
     database.exec('DELETE FROM sessions; DELETE FROM goals; DELETE FROM tasks;');
-    console.log('✓ Database cleared');
+    console.log(' Database cleared');
   } catch (error) {
     console.error('Error clearing database:', error);
   }

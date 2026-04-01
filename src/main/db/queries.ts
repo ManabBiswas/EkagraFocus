@@ -1,77 +1,55 @@
 import { getDatabase } from './database';
+import type { IPCTask, IPCSession, IPCGoal, IPCDayContext } from '../../shared/ipc';
 
-export interface Task {
-  id: string;
-  date: string;
-  name: string;
-  start_time: string | null;
-  end_time: string | null;
-  status: 'pending' | 'in_progress' | 'done';
-  created_at: string;
-  updated_at: string;
-}
-
-export interface Session {
-  id: string;
-  task_id: string | null;
-  date: string;
-  duration_minutes: number;
-  notes: string | null;
-  created_at: string;
-}
-
-export interface Goal {
-  id: string;
-  date: string;
-  description: string;
-  active: number;
-  created_at: string;
-  updated_at: string;
-}
+/**
+ * Database Query Layer
+ * All queries are executed in the Main Process (Node.js backend)
+ * Results are serialized and sent to Renderer via IPC
+ */
 
 /**
  * Get all tasks for a specific date
  */
-export function getTodayTasks(date: string): Task[] {
+export function getTodayTasks(date: string): IPCTask[] {
   const db = getDatabase();
   const stmt = db.prepare('SELECT * FROM tasks WHERE date = ? ORDER BY start_time');
-  return stmt.all(date) as Task[];
+  return stmt.all(date) as IPCTask[];
 }
 
 /**
  * Get a single task by ID
  */
-export function getTaskById(taskId: string): Task | undefined {
+export function getTaskById(taskId: string): IPCTask | undefined {
   const db = getDatabase();
   const stmt = db.prepare('SELECT * FROM tasks WHERE id = ?');
-  return stmt.get(taskId) as Task | undefined;
+  return stmt.get(taskId) as IPCTask | undefined;
 }
 
 /**
  * Get all active goals for a date
  */
-export function getActiveGoals(date: string): Goal[] {
+export function getActiveGoals(date: string): IPCGoal[] {
   const db = getDatabase();
   const stmt = db.prepare('SELECT * FROM goals WHERE date = ? AND active = 1');
-  return stmt.all(date) as Goal[];
+  return stmt.all(date) as IPCGoal[];
 }
 
 /**
  * Get all sessions for a specific date
  */
-export function getTodaySessions(date: string): Session[] {
+export function getTodaySessions(date: string): IPCSession[] {
   const db = getDatabase();
   const stmt = db.prepare('SELECT * FROM sessions WHERE date = ? ORDER BY created_at');
-  return stmt.all(date) as Session[];
+  return stmt.all(date) as IPCSession[];
 }
 
 /**
  * Get sessions for a specific task
  */
-export function getSessionsForTask(taskId: string): Session[] {
+export function getSessionsForTask(taskId: string): IPCSession[] {
   const db = getDatabase();
   const stmt = db.prepare('SELECT * FROM sessions WHERE task_id = ? ORDER BY created_at DESC');
-  return stmt.all(taskId) as Session[];
+  return stmt.all(taskId) as IPCSession[];
 }
 
 /**
@@ -87,10 +65,10 @@ export function getTotalMinutesToday(date: string): number {
 /**
  * Get all tasks (across all dates) with a specific status
  */
-export function getTasksByStatus(status: 'pending' | 'in_progress' | 'done'): Task[] {
+export function getTasksByStatus(status: 'pending' | 'in_progress' | 'done'): IPCTask[] {
   const db = getDatabase();
   const stmt = db.prepare('SELECT * FROM tasks WHERE status = ? ORDER BY date DESC, start_time');
-  return stmt.all(status) as Task[];
+  return stmt.all(status) as IPCTask[];
 }
 
 /**
@@ -106,7 +84,7 @@ export function updateTaskStatus(taskId: string, status: 'pending' | 'in_progres
 /**
  * Insert a new task
  */
-export function insertTask(task: Omit<Task, 'created_at' | 'updated_at'>): string {
+export function insertTask(task: Omit<IPCTask, 'created_at' | 'updated_at'>): string {
   const db = getDatabase();
   const stmt = db.prepare(`
     INSERT INTO tasks (id, date, name, start_time, end_time, status)
@@ -119,7 +97,7 @@ export function insertTask(task: Omit<Task, 'created_at' | 'updated_at'>): strin
 /**
  * Insert a new session
  */
-export function insertSession(session: Omit<Session, 'created_at'>): string {
+export function insertSession(session: Omit<IPCSession, 'created_at'>): string {
   const db = getDatabase();
   const stmt = db.prepare(`
     INSERT INTO sessions (id, task_id, date, duration_minutes, notes)
@@ -132,7 +110,7 @@ export function insertSession(session: Omit<Session, 'created_at'>): string {
 /**
  * Insert a new goal
  */
-export function insertGoal(goal: Omit<Goal, 'created_at' | 'updated_at'>): string {
+export function insertGoal(goal: Omit<IPCGoal, 'created_at' | 'updated_at'>): string {
   const db = getDatabase();
   const stmt = db.prepare(`
     INSERT INTO goals (id, date, description, active)
@@ -143,9 +121,10 @@ export function insertGoal(goal: Omit<Goal, 'created_at' | 'updated_at'>): strin
 }
 
 /**
- * Get all data for context building (the full state)
+ * Get all data for context building (the full state for a day)
+ * This is what gets passed to the AI context builder
  */
-export function getFullContext(date: string) {
+export function getFullContext(date: string): IPCDayContext {
   return {
     tasks: getTodayTasks(date),
     sessions: getTodaySessions(date),

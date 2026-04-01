@@ -4,7 +4,6 @@ import * as path from 'path';
 import * as dotenv from 'dotenv';
 import { aiService } from './services/aiService';
 import { initializeDatabase, closeDatabase, seedDatabase } from './db/database';
-import { getTodayTasks, getActiveGoals, getTodaySessions } from './db/queries';
 
 // Load environment variables from .env file
 dotenv.config();

@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export interface ScheduleAnalysis {
   summary: string;
@@ -32,9 +32,9 @@ function extractJSON(text: string): string {
   }
 
   // Look for first brace or bracket
-  const firstBrace = trimmed.indexOf('{');
-  const firstBracket = trimmed.indexOf('[');
-  
+  const firstBrace = trimmed.indexOf("{");
+  const firstBracket = trimmed.indexOf("[");
+
   if (firstBrace !== -1) {
     return trimmed.substring(firstBrace);
   }
@@ -50,7 +50,7 @@ function extractJSON(text: string): string {
 async function retryWithBackoff<T>(
   fn: () => Promise<T>,
   maxRetries: number = 3,
-  baseDelay: number = 1000
+  baseDelay: number = 1000,
 ): Promise<T> {
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
@@ -62,7 +62,9 @@ async function retryWithBackoff<T>(
       // If it's a 503 (service unavailable) or 429 (rate limit), retry
       if ((status === 503 || status === 429) && !isLastAttempt) {
         const delay = baseDelay * Math.pow(2, attempt);
-        console.log(`⏳ Service overloaded. Retrying in ${delay}ms... (Attempt ${attempt + 1}/${maxRetries})`);
+        console.log(
+          `⏳ Service overloaded. Retrying in ${delay}ms... (Attempt ${attempt + 1}/${maxRetries})`,
+        );
         await new Promise((resolve) => setTimeout(resolve, delay));
         continue;
       }
@@ -72,7 +74,7 @@ async function retryWithBackoff<T>(
     }
   }
 
-  throw new Error('Max retries exceeded');
+  throw new Error("Max retries exceeded");
 }
 
 class AIService {
@@ -99,7 +101,7 @@ class AIService {
    */
   async analyzeSchedule(mdContent: string): Promise<ScheduleAnalysis> {
     if (!this.client) {
-      throw new Error('AI service not initialized. Please provide an API key.');
+      throw new Error("AI service not initialized. Please provide an API key.");
     }
 
     const prompt = `You are a study planner. Analyze this schedule and provide analysis. Return ONLY valid JSON:
@@ -115,41 +117,44 @@ ${mdContent}
 }`;
 
     try {
-      const model = this.client.getGenerativeModel({ model: 'gemini-2.5-flash' });
+      const model = this.client.getGenerativeModel({
+        model: "gemini-2.5-flash",
+      });
 
       const result = await retryWithBackoff(async () => {
-        console.log('📤 Sending request to Gemini API...');
+        console.log("📤 Sending request to Gemini API...");
         return await model.generateContent(prompt);
       });
 
       const responseText = result.response.text();
-      console.log('Raw API response:', responseText);
+      console.log("Raw API response:", responseText);
 
       // Extract JSON from the response
       const jsonText = extractJSON(responseText);
-      console.log('Extracted JSON:', jsonText);
+      console.log("Extracted JSON:", jsonText);
 
       // Parse the JSON response
       const analysis = JSON.parse(jsonText) as ScheduleAnalysis;
-      console.log('✓ Schedule analysis successful');
+      console.log("✓ Schedule analysis successful");
       return analysis;
     } catch (error) {
-      console.error('Error analyzing schedule with Gemini:', error);
+      console.error("Error analyzing schedule with Gemini:", error);
 
       // Return fallback response if parsing fails
       if (error instanceof SyntaxError) {
-        console.log('⚠ Using fallback analysis response');
+        console.log("⚠ Using fallback analysis response");
         return {
-          summary: 'Unable to parse detailed analysis. Please check your schedule format.',
+          summary:
+            "Unable to parse detailed analysis. Please check your schedule format.",
           recommendations: [
-            'Review your schedule for clarity',
-            'Ensure all sessions have clear time slots',
-            'Add break time between intensive study sessions',
+            "Review your schedule for clarity",
+            "Ensure all sessions have clear time slots",
+            "Add break time between intensive study sessions",
           ],
-          studyPlan: 'Please re-import your schedule and try again.',
+          studyPlan: "Please re-import your schedule and try again.",
           timeManagement:
-            'Consider using time blocks of 50-90 minutes with 10-15 minute breaks.',
-          risks: ['Analysis parsing error - please try again'],
+            "Consider using time blocks of 50-90 minutes with 10-15 minute breaks.",
+          risks: ["Analysis parsing error - please try again"],
         };
       }
 
@@ -162,10 +167,10 @@ ${mdContent}
    */
   async generateStudyTips(mdContent: string): Promise<string[]> {
     if (!this.client) {
-      throw new Error('AI service not initialized. Please provide an API key.');
+      throw new Error("AI service not initialized. Please provide an API key.");
     }
 
-    const model = this.client.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const model = this.client.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     const prompt = `Generate 5 study tips based on this schedule. Return ONLY a JSON array:
 
@@ -179,20 +184,20 @@ ${mdContent}
       });
 
       const responseText = result.response.text();
-      console.log('Study tips raw response:', responseText);
+      console.log("Study tips raw response:", responseText);
 
       const jsonText = extractJSON(responseText);
       const tips = JSON.parse(jsonText) as string[];
-      console.log('✓ Study tips generated successfully');
+      console.log("✓ Study tips generated successfully");
       return tips;
     } catch (error) {
-      console.error('Error generating study tips:', error);
+      console.error("Error generating study tips:", error);
       return [
-        'Study in 50-minute focused sessions',
-        'Take 10-15 minute breaks between sessions',
-        'Review notes within 24 hours of learning',
-        'Use active recall and spaced repetition',
-        'Stay organized with a clear schedule',
+        "Study in 50-minute focused sessions",
+        "Take 10-15 minute breaks between sessions",
+        "Review notes within 24 hours of learning",
+        "Use active recall and spaced repetition",
+        "Stay organized with a clear schedule",
       ];
     }
   }
@@ -202,14 +207,14 @@ ${mdContent}
    */
   async estimateWorkload(mdContent: string): Promise<{
     totalHours: number;
-    difficulty: 'light' | 'moderate' | 'heavy';
+    difficulty: "light" | "moderate" | "heavy";
     recommendation: string;
   }> {
     if (!this.client) {
-      throw new Error('AI service not initialized. Please provide an API key.');
+      throw new Error("AI service not initialized. Please provide an API key.");
     }
 
-    const model = this.client.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const model = this.client.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     const prompt = `Estimate workload for this schedule. Return ONLY valid JSON:
 
@@ -232,14 +237,14 @@ ${mdContent}
       const jsonText = extractJSON(responseText);
 
       const workload = JSON.parse(jsonText);
-      console.log('✓ Workload estimation complete');
+      console.log("✓ Workload estimation complete");
       return workload;
     } catch (error) {
-      console.error('Error estimating workload:', error);
+      console.error("Error estimating workload:", error);
       return {
         totalHours: 0,
-        difficulty: 'moderate',
-        recommendation: 'Unable to estimate. Please check schedule format.',
+        difficulty: "moderate",
+        recommendation: "Unable to estimate. Please check schedule format.",
       };
     }
   }

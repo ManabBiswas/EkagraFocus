@@ -3,9 +3,15 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as dotenv from 'dotenv';
 import { aiService } from './services/aiService';
+import { initializeDatabase, closeDatabase, seedDatabase } from './db/database';
+import { getTodayTasks, getActiveGoals, getTodaySessions } from './db/queries';
 
 // Load environment variables from .env file
 dotenv.config();
+
+// Initialize database on app start
+initializeDatabase();
+seedDatabase();
 
 // Initialize AI service with API key from environment if available
 if (process.env.GEMINI_API_KEY) {
@@ -53,8 +59,13 @@ app.on('ready', createWindow);
 // explicitly with Cmd + Q.
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
+    closeDatabase();
     app.quit();
   }
+});
+
+app.on('before-quit', () => {
+  closeDatabase();
 });
 
 app.on('activate', () => {

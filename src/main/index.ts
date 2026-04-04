@@ -27,7 +27,6 @@ const createWindow = (): void => {
       preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
       nodeIntegration: false,
       contextIsolation: true,
-      enableRemoteModule: false,
     },
   });
 
@@ -112,48 +111,6 @@ ipcMain.handle('read-plan-file', async (event, filePath: string) => {
   } catch (error) {
     console.error('Error reading file:', error);
     return null;
-  }
-});
-
-// ─────────────────────────────────────────────────────────────
-// AI OPERATIONS (Will be implemented in Day 5)
-// ─────────────────────────────────────────────────────────────
-
-/**
- * Handler for agent messages
- * Will integrate with Context Builder + Intent Executor in Day 5
- */
-ipcMain.handle('agent:sendMessage', async (event, message: string) => {
-  try {
-    console.log('Received message:', message);
-    // TODO: Day 5 - Integrate Message Receiver → Context Builder → AI → Intent Executor
-
-    return {
-      success: true,
-      data: {
-        action: 'ask_clarification',
-        data: {},
-        reply: 'Agent pipeline not yet implemented. Coming in Day 5.',
-      },
-    };
-  } catch (error) {
-    console.error('Error processing message:', error);
-    return {
-      success: false,
-      error: 'Failed to process message',
-    };
-  }
-});
-
-ipcMain.handle('agent:getTodayContext', async () => {
-  try {
-    const today = new Date().toISOString().split('T')[0];
-    const { getFullContext } = await import('./db/queries');
-    const context = getFullContext(today);
-    return { success: true, data: context };
-  } catch (error) {
-    console.error('Error getting context:', error);
-    return { success: false, error: 'Failed to get context' };
   }
 });
 

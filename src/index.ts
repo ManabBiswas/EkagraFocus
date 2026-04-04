@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as dotenv from 'dotenv';
 import { aiService } from './services/aiService';
-import { initializeDatabase, closeDatabase, seedDatabase } from './db/database';
+import { initializeDatabase, closeDatabase, seedDatabase } from './main/db/database';
 
 // Load environment variables from .env file
 dotenv.config();

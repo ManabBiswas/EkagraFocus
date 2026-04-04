@@ -8,6 +8,7 @@ import {
   insertSession,
   getTaskById,
 } from '../db/queries';
+import { receiveMessage } from '../services/messageReceiver';
 import type { IPCResponse, IPCDayContext, IPCTask, IPCSession } from '../../shared/ipc';
 
 /**
@@ -136,7 +137,50 @@ export function setupTaskHandlers(): void {
   });
 }
 
+export function setupAgentHandlers(): void {
+  /**
+   * Agent: Send message
+   * Entry point for chat messages from React UI
+   * Routes through Message Receiver → Context Builder → LLM/SLM → Response
+   */
+  ipcMain.handle('agent:sendMessage', async (event, message: string) => {
+    try {
+      if (typeof message !== 'string') {
+        return {
+          success: false,
+          error: 'Message must be a string',
+        } as IPCResponse;
+      }
+
+      const response = await receiveMessage(message);
+      return response;
+    } catch (error) {
+      console.error('Error in agent:sendMessage handler:', error);
+      return {
+        success: false,
+        error: 'Failed to process message',
+      } as IPCResponse;
+    }
+  });
+
+  /**
+   * Agent: Get today context
+   * Returns today's tasks, sessions, and goals for UI display
+   */
+  ipcMain.handle('agent:getTodayContext', async (event) => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const context = getFullContext(today);
+      return { success: true, data: context } as IPCResponse;
+    } catch (error) {
+      console.error('Error in agent:getTodayContext handler:', error);
+      return { success: false, error: 'Failed to fetch context' } as IPCResponse;
+    }
+  });
+}
+
 export function setupAllHandlers(): void {
   setupDatabaseHandlers();
   setupTaskHandlers();
+  setupAgentHandlers();
 }

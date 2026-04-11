@@ -43,6 +43,7 @@ export interface IPCAgentMessage {
   action:
     | 'mark_done'
     | 'log_session'
+    | 'start_timer'
     | 'update_goal'
     | 'start_task'
     | 'pause_task'

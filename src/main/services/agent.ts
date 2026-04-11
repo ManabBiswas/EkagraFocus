@@ -43,42 +43,59 @@ export async function runAgent(userMessage: string): Promise<IPCResponse<IPCAgen
     const step2Start = Date.now();
     
     // Check for timer/study session requests (multiple formats supported)
-    // Formats: "1h Math", "30min DSA", "start timer for 5 minutes", "5 minutes of study", etc.
+    // Formats: "1h Math", "30min DSA", "start timer for 5 minutes", "start the timer", "start 1h math timer", etc.
     
-    // First check for timer-only patterns (no subject extraction)
-    let timerOnlyMatch = null;
+    // First check if user is starting a timer (match messages containing start/begin/run and timer/focus)
+    const isTimerRequest = /\b(start|begin|run|launch)\b.*\b(timer|focus session|focus)\b/i.test(userMessage);
     let timerDuration = null;
+    let timerSubject = 'Focus Session';
     
-    if (userMessage.toLowerCase().includes('timer')) {
-      // "start timer for 5 minutes", "5 minutes timer", "timer 10 min"
-      timerOnlyMatch = userMessage.match(/(\d+)\s*(h|hour|min|minute)s?/i);
-      if (timerOnlyMatch) {
-        const dur = parseInt(timerOnlyMatch[1]);
-        const unit = timerOnlyMatch[2].toLowerCase()[0]; // 'h' or 'm'
+    if (isTimerRequest) {
+      // Try to extract duration and subject from timer request
+      // Patterns: "start 1h math timer", "start 30min DSA focus", etc.
+      const detailedMatch = userMessage.match(/\b(start|begin|run|launch)\s+(\d+)\s*(h|hour|min|minute)s?\s+(.+?)\s+(timer|focus|studying)/i);
+      
+      if (detailedMatch) {
+        // Extracted: [1]="start", [2]="1", [3]="h", [4]="math", [5]="timer"
+        const dur = parseInt(detailedMatch[2]);
+        const unit = detailedMatch[3].toLowerCase()[0]; // 'h' or 'm'
         timerDuration = unit === 'h' ? dur * 60 : dur;
+        timerSubject = detailedMatch[4].trim();
+        console.debug('[Agent] Timer with subject:', { duration: timerDuration, subject: timerSubject });
+      } else {
+        // Try to extract just duration without subject
+        const durationMatch = userMessage.match(/(\d+)\s*(h|hour|min|minute)s?/i);
+        if (durationMatch) {
+          const dur = parseInt(durationMatch[1]);
+          const unit = durationMatch[2].toLowerCase()[0]; // 'h' or 'm'
+          timerDuration = unit === 'h' ? dur * 60 : dur;
+        } else {
+          // No duration specified - use 25-minute Pomodoro default
+          timerDuration = 25;
+        }
       }
     }
     
-    // If no timer pattern, check for "Xh/min Subject" pattern
+    // If no timer request, check for "Xh/min Subject" pattern (e.g., "2h Math")
     let timeLogMatch = null;
-    if (!timerOnlyMatch) {
+    if (!isTimerRequest) {
       timeLogMatch = userMessage.match(/(\d+)\s*(h|hour|min|minute)s?\s+([a-zA-Z].+)/i);
     }
     
     let structuredResponse: IPCAgentMessage;
 
     if (timerDuration) {
-      // User started a timer without explicit subject (e.g., "start timer for 5 minutes")
+      // User started a timer (with explicit duration or default 25min)
       const motivation = await aiService.getMotivation(context.sessions.length + 1);
 
       structuredResponse = {
-        action: 'log_session',
+        action: 'start_timer',
         data: {
-          subject: 'Focus Session',
+          subject: timerSubject,
           durationMinutes: timerDuration,
           notes: userMessage,
         },
-        reply: `Starting ${timerDuration}-minute focus timer! ${motivation}`,
+        reply: `Starting ${timerDuration}-minute ${timerSubject.toLowerCase()} timer! ${motivation}`,
       };
 
       console.log('[Agent] Created timer session response');

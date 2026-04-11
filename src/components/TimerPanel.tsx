@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useRef } from 'react';
+import React, { useState } from 'react';
 import { useStore } from '../store/useStore';
 
 export function TimerPanel() {
@@ -9,40 +9,11 @@ export function TimerPanel() {
     setTimerSubject,
     startTimer,
     stopTimer,
-    tickTimer,
     resetTimer,
     addSession,
   } = useStore();
 
-  const [sessionSubject, setSessionSubject] = React.useState(currentSessionSubject);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Use callback to avoid recreating function on every render
-  const handleTick = useCallback(() => {
-    tickTimer();
-  }, [tickTimer]);
-
-  // Tick timer every second - manage interval carefully
-  useEffect(() => {
-    // Clear any existing interval
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-    }
-
-    // Only set up interval if timer is running
-    if (timerRunning) {
-      intervalRef.current = setInterval(() => {
-        handleTick();
-      }, 1000);
-    }
-
-    // Cleanup on unmount or when timerRunning changes
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-    };
-  }, [timerRunning, handleTick]);
+  const [sessionSubject, setSessionSubject] = useState(currentSessionSubject);
 
   const hours = Math.floor(timerSeconds / 3600);
   const minutes = Math.floor((timerSeconds % 3600) / 60);

@@ -28,6 +28,8 @@ interface FocusAgentState {
   // ── Timer ─────────────────────────────────────────────────
   timerRunning: boolean;
   timerSeconds: number;
+  timerDurationMinutes: number;
+  timerStartedAt: number | null;
   currentSessionSubject: string;
 
   // ── Sessions ──────────────────────────────────────────────
@@ -65,7 +67,7 @@ interface FocusAgentState {
   setAgentThinking: (value: boolean) => void;
   clearMessages: () => void;
 
-  startTimer: (subject: string) => void;
+  startTimer: (subject: string, durationMinutes?: number) => void;
   stopTimer: () => void;
   tickTimer: () => void;
   resetTimer: () => void;
@@ -103,6 +105,8 @@ export const useStore = create<FocusAgentState>((set) => ({
 
   timerRunning: false,
   timerSeconds: 0,
+  timerDurationMinutes: 0,
+  timerStartedAt: null,
   currentSessionSubject: '',
 
   todaySessions: [],
@@ -145,10 +149,12 @@ export const useStore = create<FocusAgentState>((set) => ({
   clearMessages: () => set({ messages: [] }),
 
   // Timer actions
-  startTimer: (subject) =>
+  startTimer: (subject, durationMinutes = 25) =>
     set({
       timerRunning: true,
       timerSeconds: 0,
+      timerDurationMinutes: durationMinutes,
+      timerStartedAt: Date.now(),
       currentSessionSubject: subject,
     }),
   stopTimer: () => set({ timerRunning: false }),
@@ -159,6 +165,8 @@ export const useStore = create<FocusAgentState>((set) => ({
   resetTimer: () =>
     set({
       timerSeconds: 0,
+      timerDurationMinutes: 0,
+      timerStartedAt: null,
       timerRunning: false,
       currentSessionSubject: '',
     }),

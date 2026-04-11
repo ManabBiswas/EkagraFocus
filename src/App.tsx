@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useStore } from './store/useStore';
 import { TitleBar } from './components/TitleBar';
 import { GoalBanner } from './components/GoalBanner';
@@ -141,7 +141,8 @@ function DashboardOverview() {
 }
 
 export function App() {
-  const { activeTab, isInitialized, initializeStore } = useStore();
+  const { activeTab, isInitialized, initializeStore, timerRunning, tickTimer } = useStore();
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     // Initialize store on mount
@@ -149,6 +150,28 @@ export function App() {
       initializeStore();
     }
   }, [isInitialized, initializeStore]);
+
+  // Global timer effect - keeps running even when switching tabs
+  useEffect(() => {
+    // Clear any existing interval
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+    }
+
+    // Only set up interval if timer is running
+    if (timerRunning) {
+      intervalRef.current = setInterval(() => {
+        tickTimer();
+      }, 1000);
+    }
+
+    // Cleanup on unmount or when timerRunning changes
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, [timerRunning, tickTimer]);
 
   const renderActiveTab = () => {
     switch (activeTab) {

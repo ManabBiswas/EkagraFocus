@@ -12,7 +12,7 @@ import { updateTaskStatus, insertSession, getTaskById } from '../db/queries';
  */
 
 interface AIResponse {
-  action: 'log_session' | 'mark_done' | 'update_goal' | 'ask_clarification';
+  action: 'log_session' | 'mark_done' | 'update_goal' | 'start_timer' | 'ask_clarification';
   data: Record<string, unknown>;
   reply: string;
 }
@@ -74,7 +74,7 @@ function isValidAIResponse(obj: unknown): obj is AIResponse {
   if (typeof obj !== 'object' || obj === null) return false;
 
   const response = obj as Record<string, unknown>;
-  const validActions = ['log_session', 'mark_done', 'update_goal', 'ask_clarification'];
+  const validActions = ['log_session', 'mark_done', 'update_goal', 'start_timer', 'ask_clarification'];
 
   return (
     typeof response.action === 'string' &&
@@ -139,6 +139,60 @@ function executeLogSession(data: Record<string, unknown>, reply: string): IPCAge
       action: 'ask_clarification',
       data: { error: 'Failed to log session' },
       reply: 'I encountered an error saving your session. Please try again.',
+    };
+  }
+}
+
+/**
+ * Executes start_timer action
+ * Logs session immediately + sends data to UI for timer display
+ */
+function executeStartTimer(data: Record<string, unknown>, reply: string): IPCAgentMessage {
+  try {
+    // Same as log_session but with start_timer action
+    const minutes = typeof data.minutes === 'number' ? data.minutes : 
+                    (typeof data.durationMinutes === 'number' ? data.durationMinutes : 0);
+    const subject = typeof data.subject === 'string' ? data.subject : 'Focus Session';
+    const notes = typeof data.notes === 'string' ? data.notes : null;
+
+    if (minutes <= 0) {
+      return {
+        action: 'ask_clarification',
+        data: { error: 'Invalid duration' },
+        reply: 'Please specify a valid timer duration in minutes.',
+      };
+    }
+
+    // Log the session to database immediately
+    const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const today = new Date().toISOString().split('T')[0];
+
+    insertSession({
+      id: sessionId,
+      task_id: null,
+      date: today,
+      duration_minutes: minutes,
+      notes: notes || subject,
+    });
+
+    console.info('[IntentExecutor] Timer started', { sessionId, minutes, subject });
+
+    return {
+      action: 'start_timer',
+      data: {
+        sessionId,
+        durationMinutes: minutes,
+        subject,
+        startTime: Date.now(),
+      },
+      reply: reply || `Starting ${minutes}-minute timer! 🎯`,
+    };
+  } catch (error) {
+    console.error('[IntentExecutor] Error starting timer:', error);
+    return {
+      action: 'ask_clarification',
+      data: { error: 'Failed to start timer' },
+      reply: 'I encountered an error starting the timer. Please try again.',
     };
   }
 }
@@ -239,6 +293,9 @@ export function executeIntent(aiResponseText: string): IPCAgentMessage {
     switch (parsedResponse.action) {
       case 'log_session':
         return executeLogSession(parsedResponse.data, parsedResponse.reply);
+
+      case 'start_timer':
+        return executeStartTimer(parsedResponse.data, parsedResponse.reply);
 
       case 'mark_done':
         return executeMarkDone(parsedResponse.data, parsedResponse.reply);

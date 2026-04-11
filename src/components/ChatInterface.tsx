@@ -15,6 +15,8 @@ export function ChatInterface() {
     addMessage,
     setAgentThinking,
     isAgentThinking,
+    setActiveTab,
+    startTimer,
   } = useStore();
 
   const [input, setInput] = useState('');
@@ -79,6 +81,18 @@ export function ChatInterface() {
         });
         
         console.log('[ChatInterface] Action executed:', aiMsg.action);
+
+        // Trigger timer if action is start_timer
+        if (aiMsg.action === 'start_timer' && aiMsg.data) {
+          const duration = (aiMsg.data.durationMinutes as number) || 25;
+          const subject = (aiMsg.data.subject as string) || 'Focus Session';
+          console.log('[ChatInterface] Starting timer:', { subject, duration });
+          
+          setTimeout(() => {
+            startTimer(subject, duration);
+            setActiveTab('timer');
+          }, 500);
+        }
       } else {
         console.error('[ChatInterface] Invalid response format:', response);
         addMessage({

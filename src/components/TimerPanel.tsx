@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback, useRef } from 'react';
 import { useStore } from '../store/useStore';
 
 export function TimerPanel() {
@@ -15,17 +15,34 @@ export function TimerPanel() {
   } = useStore();
 
   const [sessionSubject, setSessionSubject] = React.useState(currentSessionSubject);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Tick timer every second
+  // Use callback to avoid recreating function on every render
+  const handleTick = useCallback(() => {
+    tickTimer();
+  }, [tickTimer]);
+
+  // Tick timer every second - manage interval carefully
   useEffect(() => {
-    if (!timerRunning) return;
+    // Clear any existing interval
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+    }
 
-    const interval = setInterval(() => {
-      tickTimer();
-    }, 1000);
+    // Only set up interval if timer is running
+    if (timerRunning) {
+      intervalRef.current = setInterval(() => {
+        handleTick();
+      }, 1000);
+    }
 
-    return () => clearInterval(interval);
-  }, [timerRunning, tickTimer]);
+    // Cleanup on unmount or when timerRunning changes
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, [timerRunning, handleTick]);
 
   const hours = Math.floor(timerSeconds / 3600);
   const minutes = Math.floor((timerSeconds % 3600) / 60);
@@ -40,20 +57,33 @@ export function TimerPanel() {
     }
   };
 
-  const handleSaveSession = () => {
+  const handleSaveSession = async () => {
     if (timerSeconds === 0) return;
-    const durationHours = timerSeconds / 3600;
-    addSession({
-      id: Date.now().toString(),
-      date: new Date().toISOString().split('T')[0],
-      subject: currentSessionSubject || 'Unknown',
-      durationHours,
-      notes: '',
-      loggedVia: 'timer',
-      timestamp: new Date().toISOString(),
-    });
-    resetTimer();
-    setSessionSubject('');
+    
+    try {
+      const minutes = Math.round((timerSeconds / 60) * 4) / 4; // Round to nearest 15 mins
+      
+      // Call backend to save session
+      await (window as any).api.task.logSession(null, minutes, `${currentSessionSubject} (${timerSeconds}s)`);
+      
+      // Also add to local store for display
+      addSession({
+        id: Date.now().toString(),
+        date: new Date().toISOString().split('T')[0],
+        subject: currentSessionSubject || 'Unknown',
+        durationHours: minutes / 60,
+        notes: '',
+        loggedVia: 'timer',
+        timestamp: new Date().toISOString(),
+      });
+      
+      resetTimer();
+      setSessionSubject('');
+      alert(`✓ Saved ${minutes} minutes!`);
+    } catch (error) {
+      console.error('[TimerPanel] Error saving session:', error);
+      alert('Error saving session');
+    }
   };
 
   return (

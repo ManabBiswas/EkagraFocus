@@ -1,6 +1,16 @@
 # EkagraFocus — Command Deck
 
 > A dark-themed Electron desktop app for studying smarter: AI-powered chat, a Pomodoro-style timer, manual session logging, debt/penalty goal tracking, and live analytics — all in one place.
+---
+
+## Quick Start
+
+```bash
+# Start the development server
+npm start
+
+# Expected: Electron window opens with React UI, database initialized, sample data seeded
+```
 
 ---
 
@@ -21,33 +31,50 @@
 ```
 EkagraFocus/
 ├── src/
-│   ├── index.ts              # Electron main process
-│   ├── preload.ts            # Preload / IPC bridge (to be expanded)
-│   ├── main.tsx              # React renderer entry point
-│   ├── index.html            # HTML shell
-│   ├── index.css             # Global styles + Tailwind + custom utilities
-│   ├── App.tsx               # Root layout: DashboardOverview + tab routing
-│   ├── types/
-│   │   └── index.ts          # All shared TypeScript interfaces
-│   ├── store/
-│   │   └── useStore.ts       # Zustand global store
-│   └── components/
-│       ├── TitleBar.tsx          # Custom title bar (MIN / MAX / CLOSE)
-│       ├── GoalBanner.tsx        # Today's goal progress bar + breakdown
-│       ├── TabBar.tsx            # Chat / Timer / Log / Stats switcher
-│       ├── ChatInterface.tsx     # AI chat panel (placeholder logic)
-│       ├── TimerPanel.tsx        # Study timer with save-to-session
-│       ├── StudyLoggerPanel.tsx  # Manual session logger
-│       ├── StatsPanel.tsx        # Weekly stats + subject breakdown
-│       └── NotificationToast.tsx # Auto-dismissing toast notifications
-├── forge.config.ts
-├── webpack.main.config.ts
-├── webpack.renderer.config.ts
-├── webpack.rules.ts
-├── webpack.plugins.ts
-├── tailwind.config.js
-├── postcss.config.js
-└── tsconfig.json
+│   ├── main/                      # Backend (Node.js process)
+│   │   ├── index.ts              # Main process entry
+│   │   ├── db/
+│   │   │   ├── database.ts       # SQLite initialization + schema
+│   │   │   └── queries.ts        # Type-safe database queries
+│   │   ├── handlers/
+│   │   │   └── ipcHandlers.ts    # IPC message handlers
+│   │   └── services/             # Coming Days 2-5
+│   │
+│   ├── renderer/                  # Frontend (React process)
+│   │   ├── App.tsx               # Root React component
+│   │   ├── main.tsx              # React entry point
+│   │   ├── components/
+│   │   │   ├── ChatInterface.tsx     # AI chat panel
+│   │   │   ├── TimerPanel.tsx       # Study timer
+│   │   │   ├── StatsPanel.tsx       # Weekly analytics
+│   │   │   ├── TitleBar.tsx         # Custom title bar
+│   │   │   ├── GoalBanner.tsx       # Goal progress bar
+│   │   │   ├── TabBar.tsx           # Tab switcher
+│   │   │   ├── StudyLoggerPanel.tsx # Manual logger
+│   │   │   └── NotificationToast.tsx # Toast notifications
+│   │   ├── store/
+│   │   │   └── useStore.ts       # Zustand global state
+│   │   └── services/
+│   │       └── apiClient.ts      # IPC API wrapper for React
+│   │
+│   ├── shared/                    # Shared type definitions
+│   │   └── ipc.ts               # All IPC message types
+│   ├── preload.ts               # IPC bridge (contextBridge security)
+│   ├── index.html               # HTML shell
+│   ├── index.css                # Global styles + Tailwind
+│   ├── index.d.ts               # TypeScript definitions for window.api
+│   └── types/
+│       └── index.ts             # Frontend type definitions
+│
+├── forge.config.js              # Electron Forge config (fixed, single plugin)
+├── webpack.main.config.js       # Main process webpack
+├── webpack.renderer.config.js   # Renderer webpack (with CSS)
+├── webpack.rules.js             # Import rules (exports { rules })
+├── webpack.plugins.js           # Webpack plugins (exports { plugins })
+├── tailwind.config.js           # Tailwind CSS config
+├── postcss.config.js            # PostCSS config
+└── tsconfig.json                # TypeScript config
+```
 ```
 
 ---

@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import type { IPCDayContext, IPCTask, IPCSession, IPCGoal, IPCAgentMessage } from './shared/ipc';
+import type { IPCDayContext, IPCTask, IPCSession, IPCGoal } from './shared/ipc';
 
 /**
  * SECURE IPC BRIDGE
@@ -95,10 +95,9 @@ const api = {
      * Send a message to the AI agent
      * Receives parsed response with action + reply
      */
-    sendMessage: async (message: string): Promise<IPCAgentMessage> => {
+    sendMessage: async (message: string) => {
       const result = await ipcRenderer.invoke('agent:sendMessage', message);
-      if (!result.success) throw new Error(result.error);
-      return result.data;
+      return result;
     },
 
     /**

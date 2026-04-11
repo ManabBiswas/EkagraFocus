@@ -8,29 +8,40 @@ export function StudyLoggerPanel() {
   const [hours, setHours] = useState('');
   const [notes, setNotes] = useState('');
 
-  const handleLogSession = () => {
+  const handleLogSession = async () => {
     if (!subject.trim() || !hours || parseFloat(hours) <= 0) {
       alert('Please fill in all fields');
       return;
     }
 
-    const session = {
-      id: Date.now().toString(),
-      date: new Date().toISOString().split('T')[0],
-      subject,
-      durationHours: parseFloat(hours),
-      notes,
-      loggedVia: 'manual' as const,
-      timestamp: new Date().toISOString(),
-    };
+    try {
+      const minutes = Math.round(parseFloat(hours) * 60);
+      
+      // Call backend to save session
+      await (window as any).api.task.logSession(null, minutes, `${subject} - ${notes}`);
+      
+      // Also add to local store for display
+      const session = {
+        id: Date.now().toString(),
+        date: new Date().toISOString().split('T')[0],
+        subject,
+        durationHours: parseFloat(hours),
+        notes,
+        loggedVia: 'manual' as const,
+        timestamp: new Date().toISOString(),
+      };
 
-    addSession(session);
-    alert(`Logged ${hours} hours of ${subject}`);
+      addSession(session);
+      alert(`✓ Logged ${hours} hours of ${subject}`);
 
-    // Reset form
-    setSubject('');
-    setHours('');
-    setNotes('');
+      // Reset form
+      setSubject('');
+      setHours('');
+      setNotes('');
+    } catch (error) {
+      console.error('[StudyLoggerPanel] Error:', error);
+      alert('Error logging session. Check console.');
+    }
   };
 
   const totalHours = todaySessions.reduce((sum, s) => sum + s.durationHours, 0);

@@ -1,4 +1,6 @@
-import { ipcMain } from 'electron';
+import { ipcMain, dialog, BrowserWindow } from 'electron';
+import * as fs from 'fs';
+import * as path from 'path';
 import {
   getTodayTasks,
   getActiveGoals,
@@ -9,6 +11,7 @@ import {
   getTaskById,
 } from '../db/queries';
 import { receiveMessage } from '../services/messageReceiver';
+import { processPlanFile } from '../services/planParser';
 import type { IPCResponse, IPCDayContext, IPCTask, IPCSession } from '../../shared/ipc';
 
 /**
@@ -16,6 +19,33 @@ import type { IPCResponse, IPCDayContext, IPCTask, IPCSession } from '../../shar
  * All handlers receive data from Renderer via IPC and return responses
  * The bridge between Main Process (backend) and Renderer Process (frontend)
  */
+
+// Handler channel names for cleanup
+// const HANDLER_CHANNELS = [
+//   'db:getTodayTasks',
+//   'db:getActiveSessions',
+//   'db:getActiveGoals',
+//   'db:getDayContext',
+//   'task:markDone',
+//   'task:logSession',
+//   'task:updateStatus',
+//   'agent:sendMessage',
+//   'agent:getTodayContext',
+//   'import-plan-file',
+//   'read-plan-file',
+// ];
+
+// Guard to prevent duplicate handler registration
+let handlersInitialized = false;
+
+/**
+ * Remove all existing handlers to prevent duplicates
+ */
+// function clearExistingHandlers(): void {
+//   // Note: ipcMain doesn't expose a way to list/remove handlers directly,
+//   // so we just proceed with registration. The guard flag handles most cases.
+//   // For webpack hot reload, the app restart should clear handlers naturally.
+// }
 
 export function setupDatabaseHandlers(): void {
   /**
@@ -167,7 +197,7 @@ export function setupAgentHandlers(): void {
    * Agent: Get today context
    * Returns today's tasks, sessions, and goals for UI display
    */
-  ipcMain.handle('agent:getTodayContext', async (event) => {
+  ipcMain.handle('agent:getTodayContext', async () => {
     try {
       const today = new Date().toISOString().split('T')[0];
       const context = getFullContext(today);
@@ -179,8 +209,124 @@ export function setupAgentHandlers(): void {
   });
 }
 
+/**
+ * File Operation Handlers (Markdown/Text file import)
+ * Handles importing study plans from files
+ */
+export function setupFileHandlers(): void {
+  console.log('[FileHandler] Registering import-plan-file...');
+  /**
+   * Import plan file: Open file picker, read file, and parse into database
+   */
+  ipcMain.handle('import-plan-file', async () => {
+    try {
+      const mainWindow = BrowserWindow.getFocusedWindow();
+      if (!mainWindow) {
+        return { success: false, error: 'No active window' } as IPCResponse;
+      }
+
+      const result = await dialog.showOpenDialog(mainWindow, {
+        title: 'Import Study Plan',
+        properties: ['openFile'],
+        filters: [
+          { name: 'Markdown', extensions: ['md', 'markdown'] },
+          { name: 'Text', extensions: ['txt'] },
+          { name: 'All Files', extensions: ['*'] },
+        ],
+      });
+
+      if (result.canceled || result.filePaths.length === 0) {
+        return { success: false, error: 'No file selected' } as IPCResponse;
+      }
+
+      const filePath = result.filePaths[0];
+      const fileName = path.basename(filePath);
+      
+      try {
+        const content = await fs.promises.readFile(filePath, 'utf-8');
+        console.log(`[FileHandler] Read file: ${fileName} (${content.length} bytes)`);
+        
+        // Parse markdown and import to database
+        const parseResult = processPlanFile(content);
+        console.log(`[FileHandler] Parse result:`, parseResult);
+        
+        return {
+          success: parseResult.success,
+          data: {
+            fileName,
+            filePath,
+            content,
+            parseResult: {
+              tasksImported: parseResult.tasksCount,
+              details: parseResult.details,
+            },
+          },
+        } as IPCResponse;
+      } catch (readError) {
+        console.error(`[FileHandler] Error reading file: ${readError}`);
+        return { success: false, error: 'Failed to read file' } as IPCResponse;
+      }
+    } catch (error) {
+      console.error('[FileHandler] Error in import-plan-file:', error);
+      return { success: false, error: 'File operation failed' } as IPCResponse;
+    }
+  });
+
+  /**
+   * Read plan file: Read from a given path
+   */
+  ipcMain.handle('read-plan-file', async (event, filePath: string) => {
+    try {
+      if (!filePath || typeof filePath !== 'string') {
+        return { success: false, error: 'Invalid file path' } as IPCResponse;
+      }
+
+      const content = await fs.promises.readFile(filePath, 'utf-8');
+      const fileName = path.basename(filePath);
+      
+      console.log(`[FileHandler] Read file: ${fileName} (${content.length} bytes)`);
+      
+      return {
+        success: true,
+        data: {
+          fileName,
+          filePath,
+          content,
+        },
+      } as IPCResponse<{ fileName: string; filePath: string; content: string }>;
+    } catch (error) {
+      console.error('[FileHandler] Error in read-plan-file:', error);
+      return { success: false, error: 'Failed to read file' } as IPCResponse;
+    }
+  });
+  console.log('[FileHandler] ✓ All file handlers registered');
+}
+
 export function setupAllHandlers(): void {
+  // Prevent duplicate handler registration
+  if (handlersInitialized) {
+    console.log('[IPC] Handlers already initialized, skipping setup');
+    return;
+  }
+
+  console.log('[IPC] Setting up IPC handlers...');
+  
+  console.log('[IPC] Setting up database handlers...');
   setupDatabaseHandlers();
+  console.log('[IPC] ✓ Database handlers done');
+  
+  console.log('[IPC] Setting up task handlers...');
   setupTaskHandlers();
+  console.log('[IPC] ✓ Task handlers done');
+  
+  console.log('[IPC] Setting up agent handlers...');
   setupAgentHandlers();
+  console.log('[IPC] ✓ Agent handlers done');
+  
+  console.log('[IPC] Setting up file handlers...');
+  setupFileHandlers();
+  console.log('[IPC] ✓ File handlers done');
+
+  handlersInitialized = true;
+  console.log('[IPC] ✅ All handlers initialized successfully');
 }

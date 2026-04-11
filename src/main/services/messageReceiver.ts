@@ -150,10 +150,9 @@ export async function receiveMessage(
       };
     }
 
-    // STEP 3: Route to Context Builder
-    // TODO (Day 3): Replace this stub with contextBuilder.buildPrompt()
-    // For now, return acknowledgment that message was received
-    const response = await routeToContextBuilder(validatedMsg, context);
+    // STEP 3: Route to Agent Pipeline
+    // The agent pipeline (runAgent) gets its own context internally
+    const response = await routeToContextBuilder(validatedMsg);
 
     console.info('[MessageReceiver] Route complete', {
       action: response.data?.action,
@@ -171,52 +170,36 @@ export async function receiveMessage(
 }
 
 /**
- * Routes message to Context Builder (stub)
+ * Routes message to Agent Pipeline (Days 3-5)
  * 
- * TODO (Day 3): This will be replaced by actual contextBuilder.buildPrompt()
- * which will:
- * 1. Build a prompt from the validated message and context
- * 2. Call the LLM API (via agent orchestrator)
- * 3. Parse the response
- * 4. Execute any intents
- * 5. Return the result
- * 
- * For now, it provides a stub response that acknowledges the message.
+ * Orchestrates the complete AI pipeline:
+ * 1. Context Builder: Build prompt from message + context
+ * 2. Agent Orchestrator: Call Gemini API with prompt
+ * 3. Intent Executor: Parse response and execute actions
+ * 4. Return structured result with AI response
  */
 async function routeToContextBuilder(
   message: ValidatedMessage,
-  context: IPCDayContext,
+  // context is passed but used internally by agent pipeline
 ): Promise<IPCResponse<IPCAgentMessage>> {
   try {
-    // TODO (Day 3): Call contextBuilder.buildPrompt(message.content, context)
-    // For now, return a stub response that confirms message reception
+    // Import agent pipeline
+    const { runAgent } = await import('./agent');
 
-    const stubResponse: IPCAgentMessage = {
-      action: 'ask_clarification',
-      data: {
-        originalMessage: message.content,
-        contextTaskCount: context.tasks.length,
-      },
-      reply: `I've received your message: "${message.content}".\n\n` +
-        `Today you have ${context.tasks.length} tasks, ` +
-        `${context.sessions.length} logged study sessions, ` +
-        `and ${context.goals.length} active goals.\n\n` +
-        `[Agent Pipeline Not Yet Implemented - Day 3-5 Work In Progress]`,
-    };
+    // Call complete agent pipeline
+    const agentResponse = await runAgent(message.content);
 
-    console.debug('[MessageReceiver] Stub response generated', {
-      action: stubResponse.action,
-    });
+    if (!agentResponse.success) {
+      console.warn('[MessageReceiver] Agent pipeline failed:', agentResponse.error);
+      return agentResponse;
+    }
 
-    return {
-      success: true,
-      data: stubResponse,
-    };
+    return agentResponse;
   } catch (error) {
     console.error('[MessageReceiver] Route to context builder failed:', error);
     return {
       success: false,
-      error: 'Failed to route message for processing',
+      error: 'Failed to process message through agent pipeline',
     };
   }
 }

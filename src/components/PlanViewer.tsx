@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import { useStore } from '../store/useStore';
-import type { ScheduleAnalysis, WorkloadEstimate } from '../types';
 
 declare global {
   interface Window {
-    electronAPI: any;
+    electronAPI: Record<string, unknown>;
   }
 }
 
@@ -59,6 +58,8 @@ export function PlanViewer() {
     loadApiKey();
   }, [setGeminiApiKey]);
 
+  // Note: handleSetApiKey is disabled - using local Ollama AI instead
+  /*
   const handleSetApiKey = async () => {
     if (!apiKeyInput.trim()) {
       addNotification({
@@ -95,6 +96,7 @@ export function PlanViewer() {
       });
     }
   };
+  */
 
   const handleAnalyzeSchedule = async () => {
     if (!schedulePlan) {
@@ -185,7 +187,8 @@ export function PlanViewer() {
   };
 
   const importPlan = async () => {
-    if (!window.electronAPI) {
+    if (!window.api || !window.api.file) {
+      console.error('[PlanViewer] API not available');
       addNotification({
         id: `notif-${Date.now()}`,
         type: 'error',
@@ -197,13 +200,17 @@ export function PlanViewer() {
     }
 
     try {
-      const result = await window.electronAPI.importPlanFile();
+      console.log('[PlanViewer] Starting file import...');
+      const result = await window.api.file.importPlanFile();
 
-      if (result) {
+      if (result && result.success && result.data) {
+        const { fileName, filePath, content } = result.data;
+        console.log(`[PlanViewer] File imported: ${fileName}`);
+        
         const plan = {
-          fileName: result.fileName,
-          filePath: result.filePath,
-          content: result.content,
+          fileName,
+          filePath,
+          content,
           importedAt: new Date().toISOString(),
         };
 
@@ -217,17 +224,19 @@ export function PlanViewer() {
           id: `notif-${Date.now()}`,
           type: 'success',
           title: 'Plan imported',
-          message: `Successfully imported "${result.fileName}"`,
+          message: `Successfully imported "${fileName}"`,
           duration: 5000,
         });
+      } else {
+        throw new Error(result?.error || 'Failed to import plan');
       }
     } catch (error) {
-      console.error('Error importing plan:', error);
+      console.error('[PlanViewer] Error importing plan:', error);
       addNotification({
         id: `notif-${Date.now()}`,
         type: 'error',
         title: 'Import failed',
-        message: 'Failed to import plan file',
+        message: error instanceof Error ? error.message : 'Failed to import plan file',
         duration: 5000,
       });
     }
@@ -270,32 +279,13 @@ export function PlanViewer() {
                   onClick={() => setShowApiKeyInput(!showApiKeyInput)}
                   className="mt-3 rounded-md border border-amber-400/40 bg-amber-400/10 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.25em] text-amber-100 transition-colors hover:border-amber-400/60 hover:bg-amber-400/20"
                 >
-                  {showApiKeyInput ? 'Cancel' : '+ Set API Key'}
+                  🤖 Using Local AI
                 </button>
-
-                {showApiKeyInput && (
-                  <div className="mt-3 space-y-2">
-                    <input
-                      type="password"
-                      placeholder="Enter your Gemini API key..."
-                      value={apiKeyInput}
-                      onChange={(e) => setApiKeyInput(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && handleSetApiKey()}
-                      className="w-full rounded-md border border-white/20 bg-black/40 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-amber-400/40"
-                    />
-                    <button
-                      onClick={handleSetApiKey}
-                      className="w-full rounded-md border border-emerald-400/40 bg-emerald-400/10 px-3 py-2 text-xs font-semibold uppercase tracking-[0.22em] text-emerald-100 transition-colors hover:border-emerald-400/60 hover:bg-emerald-400/20"
-                    >
-                      Confirm
-                    </button>
-                  </div>
-                )}
               </div>
             )}
 
-            {/* Analyze Button */}
-            {geminiApiKey && !scheduleAnalysis && (
+            {/* Analyze Button - Using Local Ollama */}
+            {!scheduleAnalysis && (
               <button
                 onClick={handleAnalyzeSchedule}
                 disabled={isAnalyzing}
@@ -455,7 +445,7 @@ export function PlanViewer() {
                     <ul className="space-y-2">
                       {studyTips.map((tip, idx) => (
                         <li key={idx} className="flex gap-3 text-sm text-slate-100">
-                          <span className="text-emerald-400 font-bold flex-shrink-0">{idx + 1}.</span>
+                          <span className="text-emerald-400 font-bold shrink-0">{idx + 1}.</span>
                           <span>{tip}</span>
                         </li>
                       ))}

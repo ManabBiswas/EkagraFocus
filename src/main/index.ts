@@ -1,9 +1,8 @@
-import { app, BrowserWindow, ipcMain, dialog } from 'electron';
-import * as fs from 'fs';
-import * as path from 'path';
+import { app, BrowserWindow } from 'electron';
 import * as dotenv from 'dotenv';
 import { initializeDatabase, closeDatabase, seedDatabase } from './db/database';
 import { setupAllHandlers } from './handlers/ipcHandlers';
+import { aiService } from '../services/aiService';
 
 // Load environment variables
 dotenv.config();
@@ -46,6 +45,11 @@ app.on('ready', () => {
   // Setup IPC handlers (database + task operations)
   setupAllHandlers();
 
+  // Check for Ollama availability
+  aiService.checkOllamaAvailability().catch((error) => {
+    console.log('[AIService] Ollama check failed:', error);
+  });
+
   // Create main window
   createWindow();
 
@@ -66,51 +70,6 @@ app.on('before-quit', () => {
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow();
-  }
-});
-
-// ─────────────────────────────────────────────────────────────
-// FILE OPERATIONS (IPC Handlers)
-// ─────────────────────────────────────────────────────────────
-
-ipcMain.handle('import-plan-file', async () => {
-  const result = await dialog.showOpenDialog({
-    properties: ['openFile'],
-    filters: [
-      { name: 'Markdown Files', extensions: ['md'] },
-      { name: 'All Files', extensions: ['*'] },
-    ],
-  });
-
-  if (result.canceled || !result.filePaths[0]) {
-    return null;
-  }
-
-  try {
-    const filePath = result.filePaths[0];
-    const content = fs.readFileSync(filePath, 'utf-8');
-    return {
-      filePath,
-      fileName: path.basename(filePath),
-      content,
-    };
-  } catch (error) {
-    console.error('Error reading file:', error);
-    return null;
-  }
-});
-
-ipcMain.handle('read-plan-file', async (event, filePath: string) => {
-  try {
-    const content = fs.readFileSync(filePath, 'utf-8');
-    return {
-      filePath,
-      fileName: path.basename(filePath),
-      content,
-    };
-  } catch (error) {
-    console.error('Error reading file:', error);
-    return null;
   }
 });
 

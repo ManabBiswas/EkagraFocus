@@ -1,6 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useStore } from '../store/useStore';
 
+type WindowWithApi = Window & {
+  api?: {
+    agent?: {
+      sendMessage: (message: string) => Promise<any>;
+    };
+  };
+};
+
 export function ChatInterface() {
   const {
     messages,
@@ -10,35 +18,87 @@ export function ChatInterface() {
   } = useStore();
 
   const [input, setInput] = useState('');
+  const [hasApiError, setHasApiError] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Check if API is available
+  useEffect(() => {
+    const hasApi = !!(window as WindowWithApi).api?.agent?.sendMessage;
+    if (!hasApi) {
+      console.warn('[ChatInterface] API not available yet');
+      setHasApiError(true);
+    } else {
+      console.log('[ChatInterface] API is available');
+      setHasApiError(false);
+    }
+  }, []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!input.trim() || isAgentThinking) return;
 
+    const userMessage = input.trim();
+
+    // Add user message to chat
     addMessage({
       id: Date.now().toString(),
       role: 'user',
-      content: input,
+      content: userMessage,
       timestamp: new Date().toISOString(),
     });
 
     setInput('');
-
     setAgentThinking(true);
-    setTimeout(() => {
+
+    try {
+      console.log('[ChatInterface] Sending message:', userMessage);
+      
+      const api = (window as WindowWithApi).api;
+      if (!api?.agent?.sendMessage) {
+        throw new Error('API not available');
+      }
+
+      // Call the real AI pipeline
+      const response = await api.agent.sendMessage(userMessage);
+
+      console.log('[ChatInterface] Response received:', response);
+
+      if (response && response.success && response.data) {
+        const aiMsg = response.data;
+        
+        // Add AI response
+        addMessage({
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: aiMsg.reply || 'No response',
+          timestamp: new Date().toISOString(),
+        });
+        
+        console.log('[ChatInterface] Action executed:', aiMsg.action);
+      } else {
+        console.error('[ChatInterface] Invalid response format:', response);
+        addMessage({
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: `Error: ${response?.error || 'Invalid response format'}`,
+          timestamp: new Date().toISOString(),
+        });
+      }
+    } catch (error) {
+      console.error('[ChatInterface] Error:', error);
       addMessage({
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: 'Agent response will be implemented with AI logic',
+        content: `Error: ${error instanceof Error ? error.message : 'Could not connect to AI service'}`,
         timestamp: new Date().toISOString(),
       });
+    } finally {
       setAgentThinking(false);
-    }, 1000);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -91,6 +151,12 @@ export function ChatInterface() {
           </div>
         )}
       </div>
+
+      {hasApiError && (
+        <div className="border-t border-red-400/30 bg-red-400/10 px-4 py-2 text-xs text-red-200">
+          ⚠ API not available - check console for details
+        </div>
+      )}
 
       {/* Quick Command Buttons */}
       <div className="flex flex-wrap gap-2 border-t border-white/20 px-4 py-3">

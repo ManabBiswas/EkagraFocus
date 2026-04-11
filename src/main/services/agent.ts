@@ -7,7 +7,7 @@ import { getFullContext } from '../db/queries';
  * Agent Orchestrator Service (Day 5)
  *
  * Wires together the complete AI pipeline:
- * Message → Context Builder → Gemini API → Intent Executor → Result
+ * Message → Intent Detection → Ollama (TinyLLaMA) → Intent Executor → Result
  *
  * This is the conductor that orchestrates all pieces working together.
  */
@@ -42,12 +42,48 @@ export async function runAgent(userMessage: string): Promise<IPCResponse<IPCAgen
     // STEP 2: Parse user message to detect intent
     const step2Start = Date.now();
     
-    // Check if user is logging study time (e.g., "1h Math", "30min DSA")
-    const timeLogMatch = userMessage.match(/(\d+)\s*(h|hour|min|minute)s?\s+(.+)/i);
+    // Check for timer/study session requests (multiple formats supported)
+    // Formats: "1h Math", "30min DSA", "start timer for 5 minutes", "5 minutes of study", etc.
+    
+    // First check for timer-only patterns (no subject extraction)
+    let timerOnlyMatch = null;
+    let timerDuration = null;
+    
+    if (userMessage.toLowerCase().includes('timer')) {
+      // "start timer for 5 minutes", "5 minutes timer", "timer 10 min"
+      timerOnlyMatch = userMessage.match(/(\d+)\s*(h|hour|min|minute)s?/i);
+      if (timerOnlyMatch) {
+        const dur = parseInt(timerOnlyMatch[1]);
+        const unit = timerOnlyMatch[2].toLowerCase()[0]; // 'h' or 'm'
+        timerDuration = unit === 'h' ? dur * 60 : dur;
+      }
+    }
+    
+    // If no timer pattern, check for "Xh/min Subject" pattern
+    let timeLogMatch = null;
+    if (!timerOnlyMatch) {
+      timeLogMatch = userMessage.match(/(\d+)\s*(h|hour|min|minute)s?\s+([a-zA-Z].+)/i);
+    }
+    
     let structuredResponse: IPCAgentMessage;
 
-    if (timeLogMatch) {
-      // User is logging study session
+    if (timerDuration) {
+      // User started a timer without explicit subject (e.g., "start timer for 5 minutes")
+      const motivation = await aiService.getMotivation(context.sessions.length + 1);
+
+      structuredResponse = {
+        action: 'log_session',
+        data: {
+          subject: 'Focus Session',
+          durationMinutes: timerDuration,
+          notes: userMessage,
+        },
+        reply: `Starting ${timerDuration}-minute focus timer! ${motivation}`,
+      };
+
+      console.log('[Agent] Created timer session response');
+    } else if (timeLogMatch) {
+      // User is logging study session (explicit subject provided)
       const durationStr = timeLogMatch[1];
       const unit = timeLogMatch[2].toLowerCase()[0]; // 'h' or 'm'
       const subject = timeLogMatch[3].trim();
@@ -165,12 +201,12 @@ export async function runAgent(userMessage: string): Promise<IPCResponse<IPCAgen
  */
 export function getAgentStatus(): {
   initialized: boolean;
-  apiKeySet: boolean;
-  defaultModel: string;
+  aiServiceReady: boolean;
+  model: string;
 } {
   return {
     initialized: aiService.isInitialized(),
-    apiKeySet: !!process.env.GEMINI_API_KEY,
-    defaultModel: 'gemini-2.5-flash',
+    aiServiceReady: aiService.isInitialized(),
+    model: 'TinyLLaMA (Ollama - Local)',
   };
 }

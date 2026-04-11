@@ -18,8 +18,8 @@ interface AIResponse {
 }
 
 /**
- * Parses AI response from Gemini API
- * Handles various response formats and extracts JSON
+ * Parses AI response from Ollama (Local LLM)
+ * Handles various response formats and extracts structured data
  */
 function parseAIResponse(responseText: string): AIResponse {
   try {

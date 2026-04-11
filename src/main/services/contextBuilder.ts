@@ -4,10 +4,10 @@ import type { IPCDayContext } from '../../shared/ipc';
  * Context Builder Service (Day 3)
  *
  * Converts user message + database context into a rich prompt for the LLM.
- * Takes structured data and formats it into natural language that the AI understands.
+ * Takes structured data and formats it into natural language that Ollama understands.
  *
  * Input:  message + context
- * Output: Complete prompt string ready for Gemini API
+ * Output: Complete prompt string ready for Ollama (TinyLLaMA)
  */
 
 /**

@@ -173,8 +173,8 @@ export async function receiveMessage(
  * Routes message to Agent Pipeline (Days 3-5)
  * 
  * Orchestrates the complete AI pipeline:
- * 1. Context Builder: Build prompt from message + context
- * 2. Agent Orchestrator: Call Gemini API with prompt
+ * 1. Intent Detection: Parse message for patterns
+ * 2. Agent Orchestrator: Call Ollama (TinyLLaMA) with context
  * 3. Intent Executor: Parse response and execute actions
  * 4. Return structured result with AI response
  */

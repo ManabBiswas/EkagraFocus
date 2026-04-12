@@ -36,8 +36,18 @@ interface IPCAgent {
 }
 
 interface IPCFile {
-  importPlanFile: () => Promise<{ filePath: string; fileName: string; content: string } | null>;
-  readPlanFile: (filePath: string) => Promise<{ filePath: string; fileName: string; content: string } | null>;
+  importPlanFile: () => Promise<
+    IPCResponse<{
+      filePath: string;
+      fileName: string;
+      content: string;
+      parseResult?: {
+        tasksImported: number;
+        details: string;
+      };
+    }>
+  >;
+  readPlanFile: (filePath: string) => Promise<IPCResponse<{ filePath: string; fileName: string; content: string }>>;
 }
 
 interface DBStateChangedPayload {

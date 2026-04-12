@@ -34,26 +34,15 @@ export function TimerPanel() {
     try {
       const minutes = Math.round((timerSeconds / 60) * 4) / 4; // Round to nearest 15 mins
       
-      // Call backend to save session
+      // Call backend to save session ONLY - let db-state-changed event refresh UI
       await (window as any).api.task.logSession(null, minutes, `${currentSessionSubject} (${timerSeconds}s)`);
-      
-      // Also add to local store for display
-      addSession({
-        id: Date.now().toString(),
-        date: new Date().toISOString().split('T')[0],
-        subject: currentSessionSubject || 'Unknown',
-        durationHours: minutes / 60,
-        notes: '',
-        loggedVia: 'timer',
-        timestamp: new Date().toISOString(),
-      });
       
       resetTimer();
       setSessionSubject('');
-      alert(`✓ Saved ${minutes} minutes!`);
+      // Toast notification would go here if available
+      console.log(`✓ Saved ${minutes} minutes of ${currentSessionSubject}`);
     } catch (error) {
       console.error('[TimerPanel] Error saving session:', error);
-      alert('Error saving session');
     }
   };
 

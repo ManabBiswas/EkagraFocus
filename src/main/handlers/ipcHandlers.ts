@@ -9,6 +9,9 @@ import {
   updateTaskStatus,
   insertSession,
   getTaskById,
+  getWeeklySessions,
+  getWeeklyStatsByDate,
+  getWeeklySubjectBreakdown,
 } from '../db/queries';
 import { receiveMessage } from '../services/messageReceiver';
 import { processPlanFile } from '../services/planParser';
@@ -112,6 +115,45 @@ export function setupDatabaseHandlers(): void {
     } catch (error) {
       console.error('Error getting day context:', error);
       return { success: false, error: 'Failed to fetch context' } as IPCResponse;
+    }
+  });
+
+  /**
+   * Get weekly sessions (last 7 days)
+   */
+  ipcMain.handle('db:getWeeklySessions', async (event, endDate?: string) => {
+    try {
+      const sessions = getWeeklySessions(endDate);
+      return { success: true, data: sessions } as IPCResponse<IPCSession[]>;
+    } catch (error) {
+      console.error('Error getting weekly sessions:', error);
+      return { success: false, error: 'Failed to fetch weekly sessions' } as IPCResponse;
+    }
+  });
+
+  /**
+   * Get weekly stats aggregated by date
+   */
+  ipcMain.handle('db:getWeeklyStats', async (event, endDate?: string) => {
+    try {
+      const stats = getWeeklyStatsByDate(endDate);
+      return { success: true, data: stats } as IPCResponse;
+    } catch (error) {
+      console.error('Error getting weekly stats:', error);
+      return { success: false, error: 'Failed to fetch weekly stats' } as IPCResponse;
+    }
+  });
+
+  /**
+   * Get subject breakdown for last 7 days
+   */
+  ipcMain.handle('db:getSubjectBreakdown', async (event, endDate?: string) => {
+    try {
+      const breakdown = getWeeklySubjectBreakdown(endDate);
+      return { success: true, data: breakdown } as IPCResponse;
+    } catch (error) {
+      console.error('Error getting subject breakdown:', error);
+      return { success: false, error: 'Failed to fetch subject breakdown' } as IPCResponse;
     }
   });
 }

@@ -22,6 +22,9 @@ interface IPCDB {
   getActiveGoals: (date: string) => Promise<IPCGoal[]>;
   getActiveSessions: (date: string) => Promise<IPCSession[]>;
   getDayContext: (date: string) => Promise<IPCDayContext>;
+  getWeeklySessions: (endDate?: string) => Promise<IPCSession[]>;
+  getWeeklyStats: (endDate?: string) => Promise<Array<{ date: string; total_minutes: number; session_count: number }>>;
+  getSubjectBreakdown: (endDate?: string) => Promise<Array<{ subject: string; sessions: number; total_minutes: number }>>;
 }
 
 interface IPCTaskOps {
@@ -60,12 +63,19 @@ interface IPCEvents {
   onDbStateChanged: (callback: (payload: DBStateChangedPayload) => void) => () => void;
 }
 
+interface IPCWindow {
+  minimize: () => Promise<boolean>;
+  maximize: () => Promise<boolean>;
+  close: () => Promise<boolean>;
+}
+
 interface API {
   db: IPCDB;
   task: IPCTaskOps;
   agent: IPCAgent;
   file: IPCFile;
   events: IPCEvents;
+  window: IPCWindow;
 }
 
 declare global {

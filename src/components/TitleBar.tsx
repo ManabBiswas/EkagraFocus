@@ -1,6 +1,30 @@
 import React from 'react';
 
 export function TitleBar() {
+  const handleMinimize = async () => {
+    try {
+      await (window as any).api.window?.minimize?.();
+    } catch (error) {
+      console.error('[TitleBar] Error minimizing window:', error);
+    }
+  };
+
+  const handleMaximize = async () => {
+    try {
+      await (window as any).api.window?.maximize?.();
+    } catch (error) {
+      console.error('[TitleBar] Error maximizing window:', error);
+    }
+  };
+
+  const handleClose = async () => {
+    try {
+      await (window as any).api.window?.close?.();
+    } catch (error) {
+      console.error('[TitleBar] Error closing window:', error);
+    }
+  };
+
   return (
     <div className="flex h-14 items-center justify-between border-b border-white/10 bg-black/30 px-5 select-none backdrop-blur-md">
       <div className="flex items-center gap-3">
@@ -11,13 +35,22 @@ export function TitleBar() {
         </div>
       </div>
       <div className="flex gap-2 text-xs uppercase tracking-[0.25em] text-slate-300">
-        <button className="rounded-md border border-white/10 bg-white/5 px-3 py-1.5 transition-colors hover:border-cyan-400/40 hover:bg-cyan-400/10">
+        <button
+          onClick={handleMinimize}
+          className="rounded-md border border-white/10 bg-white/5 px-3 py-1.5 transition-colors hover:border-cyan-400/40 hover:bg-cyan-400/10"
+        >
           MIN
         </button>
-        <button className="rounded-md border border-white/10 bg-white/5 px-3 py-1.5 transition-colors hover:border-cyan-400/40 hover:bg-cyan-400/10">
+        <button
+          onClick={handleMaximize}
+          className="rounded-md border border-white/10 bg-white/5 px-3 py-1.5 transition-colors hover:border-cyan-400/40 hover:bg-cyan-400/10"
+        >
           MAX
         </button>
-        <button className="rounded-md border border-red-400/20 bg-red-400/10 px-3 py-1.5 text-red-100 transition-colors hover:bg-red-400/20">
+        <button
+          onClick={handleClose}
+          className="rounded-md border border-red-400/20 bg-red-400/10 px-3 py-1.5 text-red-100 transition-colors hover:bg-red-400/20"
+        >
           CLOSE
         </button>
       </div>

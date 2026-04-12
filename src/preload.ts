@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import type { IPCDayContext, IPCTask, IPCSession, IPCGoal } from './shared/ipc';
+import type { IPCDayContext, IPCTask, IPCSession, IPCGoal, IPCResponse } from './shared/ipc';
 
 interface DBStateChangedPayload {
   event: 'SESSION_LOGGED' | 'TASK_UPDATED' | 'PLAN_IMPORTED';
@@ -124,14 +124,16 @@ const api = {
     /**
      * Open file picker and read markdown plan
      */
-    importPlanFile: async () => {
+    importPlanFile: async (): Promise<IPCResponse<unknown>> => {
+      // Returns IPCResponse directly from handler
       return await ipcRenderer.invoke('import-plan-file');
     },
 
     /**
      * Read a plan file from a given path
      */
-    readPlanFile: async (filePath: string) => {
+    readPlanFile: async (filePath: string): Promise<IPCResponse<unknown>> => {
+      // Returns IPCResponse directly from handler
       return await ipcRenderer.invoke('read-plan-file', filePath);
     },
   },
@@ -147,6 +149,21 @@ const api = {
       return () => {
         ipcRenderer.removeListener('db-state-changed', listener);
       };
+    },
+  },
+
+  // ─────────────────────────────────────────────────────────────
+  // WINDOW CONTROLS
+  // ─────────────────────────────────────────────────────────────
+  window: {
+    minimize: async () => {
+      return await ipcRenderer.invoke('window:minimize');
+    },
+    maximize: async () => {
+      return await ipcRenderer.invoke('window:maximize');
+    },
+    close: async () => {
+      return await ipcRenderer.invoke('window:close');
     },
   },
 };

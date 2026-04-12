@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, ipcMain } from 'electron';
 import * as dotenv from 'dotenv';
 import { initializeDatabase, closeDatabase, seedDatabase } from './db/database';
 import { setupAllHandlers } from './handlers/ipcHandlers';
@@ -65,6 +65,26 @@ const bootstrap = (): void => {
 
   // Setup IPC handlers (database + task operations)
   setupAllHandlers();
+
+  // Add window control IPC handlers
+  ipcMain.handle('window:minimize', () => {
+    mainWindow?.minimize();
+    return true;
+  });
+
+  ipcMain.handle('window:maximize', () => {
+    if (mainWindow?.isMaximized()) {
+      mainWindow.unmaximize();
+    } else {
+      mainWindow?.maximize();
+    }
+    return true;
+  });
+
+  ipcMain.handle('window:close', () => {
+    mainWindow?.close();
+    return true;
+  });
 
   // Initialize embedded LLM if model path is configured.
   llmService

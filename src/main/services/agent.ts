@@ -15,7 +15,7 @@
 import type { IPCResponse, IPCAgentMessage } from '../../shared/ipc';
 import { executeIntent } from './intentExecutor';
 import { buildPrompt } from './contextBuilder';
-import { llmService, generateViaOllama } from './llmService';
+import { llmService } from './llmService';
 import { getFullContext } from '../db/queries';
 
 interface AgentPipelineMetrics {
@@ -172,7 +172,7 @@ export async function runAgent(userMessage: string): Promise<IPCResponse<IPCAgen
  * Detects patterns in user message and generates JSON response.
  * Fast (no LLM/Ollama timeout), pragmatic, and actually useful.
  */
-function getSimpleResponse(userMessage: string, context: any): string {
+function getSimpleResponse(userMessage: string, context: ReturnType<typeof getFullContext>): string {
   const lower = userMessage.toLowerCase();
 
   console.debug('[Agent] Using pattern matching for:', userMessage.substring(0, 50));
@@ -255,7 +255,7 @@ function getSimpleResponse(userMessage: string, context: any): string {
     // Format tasks with times and duration for clarity
     const taskLines = context.tasks
       .slice(0, 5)
-      .map((t: any) => {
+      .map((t: typeof context.tasks[number]) => {
         const time = t.start_time && t.end_time 
           ? ` (${t.start_time}–${t.end_time})`
           : '';

@@ -195,19 +195,30 @@ export function App() {
         const date = getTodayDate();
         const context = await window.api.db.getDayContext(date);
         const hoursCompleted = context.totalMinutes / 60;
-        const totalGoal = GOAL_CONFIG.BASE_GOAL_HOURS;
+
+        // Compute daily goal: base + debt + penalty
+        // TODO: Get persisted debt and penalty from DB when goal persistence is implemented
+        const baseGoal = GOAL_CONFIG.BASE_GOAL_HOURS;
+        const debtAssigned = 0; // Future: Get from DB
+        const penaltyModeActive = false; // Future: Check if penalty active
+        const penaltyAssigned = penaltyModeActive ? GOAL_CONFIG.PENALTY_EXTRA_HOURS : 0;
+        const totalGoal = baseGoal + debtAssigned + penaltyAssigned;
+        
+        const remaining = Math.max(totalGoal - hoursCompleted, 0);
+        const progressPercent = totalGoal > 0 ? Math.min((hoursCompleted / totalGoal) * 100, 100) : 0;
+        const goalMet = hoursCompleted >= totalGoal;
 
         setDailyStatus({
           date,
-          baseGoal: GOAL_CONFIG.BASE_GOAL_HOURS,
-          debtAssigned: 0,
-          penaltyAssigned: 0,
+          baseGoal,
+          debtAssigned,
+          penaltyAssigned,
           totalGoal,
-          hoursCompleted,
-          remaining: Math.max(totalGoal - hoursCompleted, 0),
-          progressPercent: Math.min((hoursCompleted / totalGoal) * 100, 100),
-          goalMet: hoursCompleted >= totalGoal,
-          penaltyModeActive: false,
+          hoursCompleted: Math.round(hoursCompleted * 100) / 100,
+          remaining: Math.round(remaining * 100) / 100,
+          progressPercent: Math.round(progressPercent),
+          goalMet,
+          penaltyModeActive,
           streakBreaks: 0,
         });
 
@@ -225,8 +236,8 @@ export function App() {
 
         setUserState({
           currentStreakBreaks: 0,
-          penaltyModeActive: false,
-          penaltyExpirationDate: null,
+          penaltyModeActive: false, // Future: Set from persisted DB state
+          penaltyExpirationDate: null, // Future: Set from persisted DB state
           totalHoursStudied: hoursCompleted,
           baseGoal: GOAL_CONFIG.BASE_GOAL_HOURS,
         });

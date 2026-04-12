@@ -17,21 +17,9 @@ export function StudyLoggerPanel() {
     try {
       const minutes = Math.round(parseFloat(hours) * 60);
       
-      // Call backend to save session
+      // Call backend to save session ONLY - let db-state-changed event refresh UI
       await (window as any).api.task.logSession(null, minutes, `${subject} - ${notes}`);
       
-      // Also add to local store for display
-      const session = {
-        id: Date.now().toString(),
-        date: new Date().toISOString().split('T')[0],
-        subject,
-        durationHours: parseFloat(hours),
-        notes,
-        loggedVia: 'manual' as const,
-        timestamp: new Date().toISOString(),
-      };
-
-      addSession(session);
       alert(`✓ Logged ${hours} hours of ${subject}`);
 
       // Reset form

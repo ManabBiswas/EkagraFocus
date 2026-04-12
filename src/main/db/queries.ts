@@ -132,3 +132,70 @@ export function getFullContext(date: string): IPCDayContext {
     totalMinutes: getTotalMinutesToday(date),
   };
 }
+
+/**
+ * Get sessions for the last 7 days (for weekly stats)
+ */
+export function getWeeklySessions(endDate? : string): IPCSession[] {
+  const db = getDatabase();
+  
+  // Calculate 7 days ago
+  const end = endDate || new Date().toISOString().split('T')[0];
+  const startDateObj = new Date(end);
+  startDateObj.setDate(startDateObj.getDate() - 7);
+  const start = startDateObj.toISOString().split('T')[0];
+  
+  const stmt = db.prepare(`
+    SELECT * FROM sessions 
+    WHERE date >= ? AND date <= ? 
+    ORDER BY date DESC, created_at DESC
+  `);
+  return stmt.all(start, end) as IPCSession[];
+}
+
+/**
+ * Get aggregated stats by date for last 7 days
+ */
+export function getWeeklyStatsByDate(endDate?: string) {
+  const db = getDatabase();
+  
+  // Calculate 7 days ago
+  const end = endDate || new Date().toISOString().split('T')[0];
+  const startDateObj = new Date(end);
+  startDateObj.setDate(startDateObj.getDate() - 7);
+  const start = startDateObj.toISOString().split('T')[0];
+  
+  const stmt = db.prepare(`
+    SELECT date, SUM(duration_minutes) as total_minutes, COUNT(*) as session_count
+    FROM sessions 
+    WHERE date >= ? AND date <= ?
+    GROUP BY date
+    ORDER BY date DESC
+  `);
+  return stmt.all(start, end) as Array<{ date: string; total_minutes: number; session_count: number }>;
+}
+
+/**
+ * Get subject breakdown for last 7 days
+ */
+export function getWeeklySubjectBreakdown(endDate?: string) {
+  const db = getDatabase();
+  
+  // Calculate 7 days ago
+  const end = endDate || new Date().toISOString().split('T')[0];
+  const startDateObj = new Date(end);
+  startDateObj.setDate(startDateObj.getDate() - 7);
+  const start = startDateObj.toISOString().split('T')[0];
+  
+  const stmt = db.prepare(`
+    SELECT 
+      COALESCE(notes, 'Untagged') as subject,
+      COUNT(*) as sessions,
+      SUM(duration_minutes) as total_minutes
+    FROM sessions
+    WHERE date >= ? AND date <= ? AND notes IS NOT NULL
+    GROUP BY subject
+    ORDER BY total_minutes DESC
+  `);
+  return stmt.all(start, end) as Array<{ subject: string; sessions: number; total_minutes: number }>;
+}

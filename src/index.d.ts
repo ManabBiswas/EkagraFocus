@@ -9,6 +9,7 @@ import type {
   IPCGoal,
   IPCDayContext,
   IPCAgentMessage,
+  IPCResponse,
 } from './shared/ipc';
 
 /**
@@ -30,7 +31,7 @@ interface IPCTaskOps {
 }
 
 interface IPCAgent {
-  sendMessage: (message: string) => Promise<IPCAgentMessage>;
+  sendMessage: (message: string) => Promise<IPCResponse<IPCAgentMessage>>;
   getTodayContext: () => Promise<IPCDayContext>;
 }
 
@@ -39,11 +40,22 @@ interface IPCFile {
   readPlanFile: (filePath: string) => Promise<{ filePath: string; fileName: string; content: string } | null>;
 }
 
+interface DBStateChangedPayload {
+  event: 'SESSION_LOGGED' | 'TASK_UPDATED' | 'PLAN_IMPORTED';
+  data: unknown;
+  timestamp: string;
+}
+
+interface IPCEvents {
+  onDbStateChanged: (callback: (payload: DBStateChangedPayload) => void) => () => void;
+}
+
 interface API {
   db: IPCDB;
   task: IPCTaskOps;
   agent: IPCAgent;
   file: IPCFile;
+  events: IPCEvents;
 }
 
 declare global {

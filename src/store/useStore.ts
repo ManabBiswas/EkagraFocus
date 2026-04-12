@@ -11,6 +11,31 @@ import type {
   ScheduleAnalysis,
   WorkloadEstimate,
 } from '../types';
+import { GOAL_CONFIG } from '../shared/goalConfig';
+
+const getTodayIsoDate = () => new Date().toISOString().split('T')[0];
+
+const getInitialDailyStatus = (): DailyStatus => ({
+  date: getTodayIsoDate(),
+  baseGoal: GOAL_CONFIG.BASE_GOAL_HOURS,
+  debtAssigned: 0,
+  penaltyAssigned: 0,
+  totalGoal: GOAL_CONFIG.BASE_GOAL_HOURS,
+  hoursCompleted: 0,
+  remaining: GOAL_CONFIG.BASE_GOAL_HOURS,
+  progressPercent: 0,
+  goalMet: false,
+  penaltyModeActive: false,
+  streakBreaks: 0,
+});
+
+const getInitialUserState = (): UserState => ({
+  currentStreakBreaks: 0,
+  penaltyModeActive: false,
+  penaltyExpirationDate: null,
+  totalHoursStudied: 0,
+  baseGoal: GOAL_CONFIG.BASE_GOAL_HOURS,
+});
 
 interface FocusAgentState {
   // ── UI State ──────────────────────────────────────────────
@@ -97,8 +122,8 @@ export const useStore = create<FocusAgentState>((set) => ({
   activeTab: 'chat',
   isInitialized: false,
 
-  dailyStatus: null,
-  userState: null,
+  dailyStatus: getInitialDailyStatus(),
+  userState: getInitialUserState(),
 
   messages: [],
   isAgentThinking: false,

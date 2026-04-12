@@ -2,7 +2,7 @@ import { app, BrowserWindow } from 'electron';
 import * as dotenv from 'dotenv';
 import { initializeDatabase, closeDatabase, seedDatabase } from './db/database';
 import { setupAllHandlers } from './handlers/ipcHandlers';
-import { aiService } from '../services/aiService';
+import { llmService } from './services/llmService';
 
 // Load environment variables
 dotenv.config();
@@ -45,10 +45,20 @@ app.on('ready', () => {
   // Setup IPC handlers (database + task operations)
   setupAllHandlers();
 
-  // Check for Ollama availability
-  aiService.checkOllamaAvailability().catch((error) => {
-    console.log('[AIService] Ollama check failed:', error);
-  });
+  // Initialize embedded LLM if model path is configured.
+  llmService
+    .initialize({
+      modelPath: process.env.LLM_MODEL_PATH,
+      nThreads: 4,
+    })
+    .then((loaded) => {
+      if (!loaded) {
+        console.log('[Main] Embedded LLM unavailable, using fallback modes');
+      }
+    })
+    .catch((error) => {
+      console.log('[Main] LLM init failed, fallback will be used:', error);
+    });
 
   // Create main window
   createWindow();
@@ -64,6 +74,9 @@ app.on('window-all-closed', () => {
 });
 
 app.on('before-quit', () => {
+  llmService.shutdown().catch(() => {
+    // ignore shutdown errors during quit
+  });
   closeDatabase();
 });
 

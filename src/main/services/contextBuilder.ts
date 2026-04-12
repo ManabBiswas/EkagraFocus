@@ -24,10 +24,12 @@ Your role:
 
 IMPORTANT: Always respond with ONLY valid JSON (no markdown, no backticks, just raw JSON):
 {
-  "action": "log_session" | "mark_done" | "update_goal" | "ask_clarification",
+  "action": "log_session" | "start_timer" | "mark_done" | "update_goal" | "ask_clarification",
   "data": {
     "task_id": "optional - which task",
-    "minutes": "optional - for log_session",
+    "minutes": "optional - for log_session/start_timer",
+    "durationMinutes": "optional - alternate duration field",
+    "subject": "optional - study subject for timer/session",
     "notes": "optional - for log_session",
     "status": "optional - new status for task"
   },
@@ -35,6 +37,7 @@ IMPORTANT: Always respond with ONLY valid JSON (no markdown, no backticks, just 
 }
 
 When user mentions:
+- Starting focus/timer session → action: "start_timer" with duration
 - Study duration → action: "log_session" with minutes
 - Task completion → action: "mark_done"
 - Goal updates → action: "update_goal"

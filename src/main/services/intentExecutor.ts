@@ -1,5 +1,6 @@
 import type { IPCAgentMessage } from '../../shared/ipc';
-import { updateTaskStatus, insertSession, getTaskById } from '../db/queries';
+import { BrowserWindow } from 'electron';
+import { updateTaskStatus, insertSession, getTaskById, getFullContext } from '../db/queries';
 
 /**
  * Intent Executor Service (Day 4)
@@ -15,6 +16,20 @@ interface AIResponse {
   action: 'log_session' | 'mark_done' | 'update_goal' | 'start_timer' | 'ask_clarification';
   data: Record<string, unknown>;
   reply: string;
+}
+
+type DBStateEvent = 'SESSION_LOGGED' | 'TASK_UPDATED';
+
+function notifyDbStateChanged(eventName: DBStateEvent, data: Record<string, unknown>): void {
+  const payload = {
+    event: eventName,
+    data,
+    timestamp: new Date().toISOString(),
+  };
+
+  for (const window of BrowserWindow.getAllWindows()) {
+    window.webContents.send('db-state-changed', payload);
+  }
 }
 
 /**
@@ -125,6 +140,13 @@ function executeLogSession(data: Record<string, unknown>, reply: string): IPCAge
       notes: notes,
     });
 
+    notifyDbStateChanged('SESSION_LOGGED', {
+      sessionId,
+      taskId,
+      minutes,
+      context: getFullContext(today),
+    });
+
     const subjectText = notes || (taskId ? `task ${taskId}` : 'study');
     console.info('[IntentExecutor] Session logged', { sessionId, minutes, taskId, notes });
 
@@ -175,6 +197,13 @@ function executeStartTimer(data: Record<string, unknown>, reply: string): IPCAge
       notes: notes || subject,
     });
 
+    notifyDbStateChanged('SESSION_LOGGED', {
+      sessionId,
+      taskId: null,
+      minutes,
+      context: getFullContext(today),
+    });
+
     console.info('[IntentExecutor] Timer started', { sessionId, minutes, subject });
 
     return {
@@ -223,6 +252,14 @@ function executeMarkDone(data: Record<string, unknown>, reply: string): IPCAgent
     }
 
     const task = getTaskById(taskId);
+    const today = new Date().toISOString().split('T')[0];
+
+    notifyDbStateChanged('TASK_UPDATED', {
+      taskId,
+      status: 'done',
+      context: getFullContext(today),
+    });
+
     console.info('[IntentExecutor] Task marked done', { taskId, taskName: task?.name });
 
     return {

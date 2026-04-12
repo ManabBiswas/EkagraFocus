@@ -4,40 +4,6 @@
  * Type-safe and error-handling included
  */
 
-import type {
-  IPCTask,
-  IPCSession,
-  IPCGoal,
-  IPCDayContext,
-  IPCAgentMessage,
-} from '../../shared/ipc';
-
-declare global {
-  interface Window {
-    api: {
-      db: {
-        getTodayTasks: (date: string) => Promise<IPCTask[]>;
-        getActiveGoals: (date: string) => Promise<IPCGoal[]>;
-        getActiveSessions: (date: string) => Promise<IPCSession[]>;
-        getDayContext: (date: string) => Promise<IPCDayContext>;
-      };
-      task: {
-        markDone: (taskId: string) => Promise<void>;
-        logSession: (taskId: string | null, minutes: number, notes?: string) => Promise<void>;
-        updateStatus: (taskId: string, status: string) => Promise<void>;
-      };
-      agent: {
-        sendMessage: (message: string) => Promise<IPCAgentMessage>;
-        getTodayContext: () => Promise<IPCDayContext>;
-      };
-      file: {
-        importPlanFile: () => Promise<unknown>;
-        readPlanFile: (path: string) => Promise<unknown>;
-      };
-    };
-  }
-}
-
 /**
  * Get today's date in YYYY-MM-DD format
  */

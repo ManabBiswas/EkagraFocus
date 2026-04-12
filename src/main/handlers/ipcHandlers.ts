@@ -38,6 +38,20 @@ import type { IPCResponse, IPCDayContext, IPCTask, IPCSession } from '../../shar
 // Guard to prevent duplicate handler registration
 let handlersInitialized = false;
 
+type DBStateEvent = 'SESSION_LOGGED' | 'TASK_UPDATED' | 'PLAN_IMPORTED';
+
+function notifyRendererStateChange(eventName: DBStateEvent, data: unknown): void {
+  const payload = {
+    event: eventName,
+    data,
+    timestamp: new Date().toISOString(),
+  };
+
+  for (const window of BrowserWindow.getAllWindows()) {
+    window.webContents.send('db-state-changed', payload);
+  }
+}
+
 /**
  * Remove all existing handlers to prevent duplicates
  */
@@ -113,6 +127,14 @@ export function setupTaskHandlers(): void {
         throw new Error('Task not found');
       }
       const updated = getTaskById(taskId);
+
+      const today = new Date().toISOString().split('T')[0];
+      notifyRendererStateChange('TASK_UPDATED', {
+        taskId,
+        status: 'done',
+        context: getFullContext(today),
+      });
+
       return { success: true, data: updated } as IPCResponse;
     } catch (error) {
       console.error('Error marking task done:', error);
@@ -138,6 +160,13 @@ export function setupTaskHandlers(): void {
           notes: notes || null,
         });
 
+        notifyRendererStateChange('SESSION_LOGGED', {
+          sessionId,
+          taskId: taskId || null,
+          minutes,
+          context: getFullContext(today),
+        });
+
         return { success: true, data: { sessionId } } as IPCResponse;
       } catch (error) {
         console.error('Error logging session:', error);
@@ -159,6 +188,14 @@ export function setupTaskHandlers(): void {
       if (!success) {
         throw new Error('Task not found');
       }
+
+      const today = new Date().toISOString().split('T')[0];
+      notifyRendererStateChange('TASK_UPDATED', {
+        taskId,
+        status,
+        context: getFullContext(today),
+      });
+
       return { success: true } as IPCResponse;
     } catch (error) {
       console.error('Error updating task status:', error);
@@ -249,6 +286,16 @@ export function setupFileHandlers(): void {
         // Parse markdown and import to database
         const parseResult = processPlanFile(content);
         console.log(`[FileHandler] Parse result:`, parseResult);
+
+        if (parseResult.success) {
+          const today = new Date().toISOString().split('T')[0];
+          notifyRendererStateChange('PLAN_IMPORTED', {
+            fileName,
+            filePath,
+            tasksImported: parseResult.tasksCount,
+            context: getFullContext(today),
+          });
+        }
         
         return {
           success: parseResult.success,

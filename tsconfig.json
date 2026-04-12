@@ -21,6 +21,7 @@
     "declaration": true,
     "declarationMap": true,
     "paths": {
+      "node-llama-cpp": ["types/node-llama-cpp-shim.d.ts"],
       "*": ["node_modules/*"],
       "@/*": ["./*"]
     }

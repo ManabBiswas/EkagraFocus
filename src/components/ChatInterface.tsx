@@ -17,6 +17,7 @@ export function ChatInterface() {
     isAgentThinking,
     setActiveTab,
     startTimer,
+    addSession,
   } = useStore();
 
   const [input, setInput] = useState('');
@@ -69,30 +70,21 @@ export function ChatInterface() {
 
       console.log('[ChatInterface] Response received:', response);
 
-      if (response && response.success && response.data) {
-        const aiMsg = response.data;
-        
+      if (response?.success && response?.data) {
+        const agentMsg = response.data;
+
         // Add AI response
         addMessage({
           id: (Date.now() + 1).toString(),
           role: 'assistant',
-          content: aiMsg.reply || 'No response',
+          content: agentMsg.reply || 'No response',
           timestamp: new Date().toISOString(),
         });
-        
-        console.log('[ChatInterface] Action executed:', aiMsg.action);
 
-        // Trigger timer if action is start_timer
-        if (aiMsg.action === 'start_timer' && aiMsg.data) {
-          const duration = (aiMsg.data.durationMinutes as number) || 25;
-          const subject = (aiMsg.data.subject as string) || 'Focus Session';
-          console.log('[ChatInterface] Starting timer:', { subject, duration });
-          
-          setTimeout(() => {
-            startTimer(subject, duration);
-            setActiveTab('timer');
-          }, 500);
-        }
+        console.log('[ChatInterface] Action received:', agentMsg.action);
+
+        // Execute action based on AI response
+        executeAgentAction(agentMsg);
       } else {
         console.error('[ChatInterface] Invalid response format:', response);
         addMessage({
@@ -124,6 +116,49 @@ export function ChatInterface() {
 
   const handleQuickCommand = (cmd: string) => {
     setInput(cmd);
+  };
+
+  const executeAgentAction = (agentMsg: any): void => {
+    if (!agentMsg?.action) return;
+
+    switch (agentMsg.action) {
+      case 'start_timer': {
+        const duration = Number(agentMsg.data?.durationMinutes) || 25;
+        const subject = String(agentMsg.data?.subject || 'Focus Session');
+
+        console.log('[ChatInterface] Starting timer:', { subject, duration });
+        setTimeout(() => {
+          startTimer(subject, duration);
+          setActiveTab('timer');
+        }, 300);
+        break;
+      }
+
+      case 'log_session': {
+        const duration = Number(agentMsg.data?.durationMinutes) || 0;
+        const subject = String(agentMsg.data?.subject || 'Study Session');
+        const notes = String(agentMsg.data?.notes || '');
+
+        if (duration > 0) {
+          addSession({
+            id: Date.now().toString(),
+            date: new Date().toISOString().split('T')[0],
+            subject,
+            durationHours: Math.round((duration / 60) * 100) / 100,
+            notes,
+            loggedVia: 'chat',
+            timestamp: new Date().toISOString(),
+          });
+          console.log('[ChatInterface] Session logged:', { subject, duration });
+        }
+        break;
+      }
+
+      case 'ask_clarification':
+      default:
+        // No direct UI action needed
+        break;
+    }
   };
 
   return (

@@ -9,6 +9,7 @@ import { StudyLoggerPanel } from './components/StudyLoggerPanel';
 import { StatsPanel } from './components/StatsPanel';
 import { PlanViewer } from './components/PlanViewer';
 import { NotificationToast } from './components/NotificationToast';
+import { GOAL_CONFIG } from './shared/goalConfig';
 
 function DashboardOverview() {
   const {
@@ -141,8 +142,19 @@ function DashboardOverview() {
 }
 
 export function App() {
-  const { activeTab, isInitialized, initializeStore, timerRunning, tickTimer } = useStore();
+  const {
+    activeTab,
+    isInitialized,
+    initializeStore,
+    timerRunning,
+    tickTimer,
+    setDailyStatus,
+    setTodaySessions,
+    setUserState,
+  } = useStore();
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  const getTodayDate = () => new Date().toISOString().split('T')[0];
 
   useEffect(() => {
     // Initialize store on mount
@@ -172,6 +184,70 @@ export function App() {
       }
     };
   }, [timerRunning, tickTimer]);
+
+  useEffect(() => {
+    const refreshContext = async () => {
+      try {
+        if (!window.api?.db?.getDayContext) {
+          return;
+        }
+
+        const date = getTodayDate();
+        const context = await window.api.db.getDayContext(date);
+        const hoursCompleted = context.totalMinutes / 60;
+        const totalGoal = GOAL_CONFIG.BASE_GOAL_HOURS;
+
+        setDailyStatus({
+          date,
+          baseGoal: GOAL_CONFIG.BASE_GOAL_HOURS,
+          debtAssigned: 0,
+          penaltyAssigned: 0,
+          totalGoal,
+          hoursCompleted,
+          remaining: Math.max(totalGoal - hoursCompleted, 0),
+          progressPercent: Math.min((hoursCompleted / totalGoal) * 100, 100),
+          goalMet: hoursCompleted >= totalGoal,
+          penaltyModeActive: false,
+          streakBreaks: 0,
+        });
+
+        setTodaySessions(
+          context.sessions.map((session) => ({
+            id: session.id,
+            date: session.date,
+            subject: session.notes || 'Study Session',
+            durationHours: Math.round((session.duration_minutes / 60) * 100) / 100,
+            notes: session.notes || '',
+            loggedVia: 'manual' as const,
+            timestamp: session.created_at,
+          }))
+        );
+
+        setUserState({
+          currentStreakBreaks: 0,
+          penaltyModeActive: false,
+          penaltyExpirationDate: null,
+          totalHoursStudied: hoursCompleted,
+          baseGoal: GOAL_CONFIG.BASE_GOAL_HOURS,
+        });
+      } catch (error) {
+        console.error('[App] Failed to refresh day context:', error);
+      }
+    };
+
+    refreshContext();
+
+    const unsubscribe = window.api?.events?.onDbStateChanged((payload) => {
+      console.log('[App] DB state changed:', payload.event);
+      refreshContext();
+    });
+
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
+  }, [setDailyStatus, setTodaySessions, setUserState]);
 
   const renderActiveTab = () => {
     switch (activeTab) {

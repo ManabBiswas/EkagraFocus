@@ -1,6 +1,12 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import type { IPCDayContext, IPCTask, IPCSession, IPCGoal } from './shared/ipc';
 
+interface DBStateChangedPayload {
+  event: 'SESSION_LOGGED' | 'TASK_UPDATED' | 'PLAN_IMPORTED';
+  data: unknown;
+  timestamp: string;
+}
+
 /**
  * SECURE IPC BRIDGE
  *
@@ -127,6 +133,20 @@ const api = {
      */
     readPlanFile: async (filePath: string) => {
       return await ipcRenderer.invoke('read-plan-file', filePath);
+    },
+  },
+
+  events: {
+    onDbStateChanged: (callback: (payload: DBStateChangedPayload) => void) => {
+      const listener = (_event: Electron.IpcRendererEvent, payload: DBStateChangedPayload) => {
+        callback(payload);
+      };
+
+      ipcRenderer.on('db-state-changed', listener);
+
+      return () => {
+        ipcRenderer.removeListener('db-state-changed', listener);
+      };
     },
   },
 };

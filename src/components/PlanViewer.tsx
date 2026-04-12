@@ -5,14 +5,15 @@ import { useStore } from '../store/useStore';
  * PlanViewer Component
  * 
  * Simplified to show imported study plans.
- * Schedule analysis is now handled by the AI agent in the chat (Local Ollama).
+ * Schedule analysis is now handled by the AI agent in the chat.
  * 
- * NO MORE GEMINI API - Everything uses local Ollama now!
+ * No external hosted AI is required for the default flow.
  */
 export function PlanViewer() {
   const {
     schedulePlan,
     setSchedulePlan,
+    setScheduleAnalysis,
     addNotification,
   } = useStore();
 
@@ -49,9 +50,49 @@ export function PlanViewer() {
           id: `notif-${Date.now()}`,
           type: 'success',
           title: 'Plan Imported!',
-          message: `Successfully imported "${fileName}". Ask me about it in the chat!`,
+          message: `Successfully imported "${fileName}". Running analysis...`,
           duration: 5000,
         });
+
+        // Trigger analysis automatically through the agent pipeline.
+        try {
+          const analysisPrompt = [
+            `I just imported a study plan named "${fileName}".`,
+            'Analyze it and return practical guidance.',
+            'Include:',
+            '1) total study hours estimate',
+            '2) subject/topic breakdown',
+            '3) suggested daily pacing',
+            '4) major risks and adjustments',
+            '',
+            'Plan content:',
+            content.slice(0, 2500),
+          ].join('\n');
+
+          const agentResponse = await window.api.agent.sendMessage(analysisPrompt);
+
+          if (agentResponse?.success && agentResponse?.data) {
+            const summary = agentResponse.data.reply || 'Analysis completed.';
+
+            setScheduleAnalysis({
+              summary,
+              recommendations: [],
+              studyPlan: content,
+              timeManagement: summary,
+              risks: [],
+            });
+
+            addNotification({
+              id: `notif-analysis-${Date.now()}`,
+              type: 'success',
+              title: 'Plan Analyzed',
+              message: summary.slice(0, 120),
+              duration: 6000,
+            });
+          }
+        } catch (analysisError) {
+          console.error('[PlanViewer] Analysis trigger failed:', analysisError);
+        }
       } else {
         throw new Error(result?.error || 'Failed to import plan');
       }
@@ -168,7 +209,7 @@ export function PlanViewer() {
             <div className="mt-3 space-y-2 text-xs text-slate-300">
               <div className="flex items-start gap-2">
                 <span className="text-emerald-400 mt-1">✓</span>
-                <span><strong>Ollama + TinyLLaMA</strong> - No API keys needed</span>
+                <span><strong>Embedded LLM</strong> - No API keys needed</span>
               </div>
               <div className="flex items-start gap-2">
                 <span className="text-emerald-400 mt-1">✓</span>

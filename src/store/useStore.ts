@@ -71,11 +71,10 @@ interface FocusAgentState {
   // ── Schedule Plan ─────────────────────────────────────────
   schedulePlan: SchedulePlan | null;
 
-  // ── AI Analysis & Gemini ────────────────────────────────────
+  // ── AI Analysis ─────────────────────────────────────────────
   scheduleAnalysis: ScheduleAnalysis | null;
   workloadEstimate: WorkloadEstimate | null;
   studyTips: string[];
-  geminiApiKey: string | null;
   isAnalyzing: boolean;
 
   // ── Actions ───────────────────────────────────────────────
@@ -113,7 +112,6 @@ interface FocusAgentState {
   setScheduleAnalysis: (analysis: ScheduleAnalysis | null) => void;
   setWorkloadEstimate: (estimate: WorkloadEstimate | null) => void;
   setStudyTips: (tips: string[]) => void;
-  setGeminiApiKey: (key: string | null) => void;
   setIsAnalyzing: (isAnalyzing: boolean) => void;
 }
 
@@ -146,7 +144,6 @@ export const useStore = create<FocusAgentState>((set) => ({
   scheduleAnalysis: null,
   workloadEstimate: null,
   studyTips: [],
-  geminiApiKey: null,
   isAnalyzing: false,
 
   // Tab actions
@@ -227,14 +224,5 @@ export const useStore = create<FocusAgentState>((set) => ({
   setScheduleAnalysis: (analysis) => set({ scheduleAnalysis: analysis }),
   setWorkloadEstimate: (estimate) => set({ workloadEstimate: estimate }),
   setStudyTips: (tips) => set({ studyTips: tips }),
-  setGeminiApiKey: (key) => {
-    // Also persist to localStorage
-    if (key) {
-      typeof window !== 'undefined' && localStorage.setItem('geminiApiKey', key);
-    } else {
-      typeof window !== 'undefined' && localStorage.removeItem('geminiApiKey');
-    }
-    return set({ geminiApiKey: key });
-  },
   setIsAnalyzing: (isAnalyzing) => set({ isAnalyzing }),
 }));

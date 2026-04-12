@@ -154,11 +154,4 @@ const api = {
 // Expose API to React context
 contextBridge.exposeInMainWorld('api', api);
 
-// TypeScript declaration
-declare global {
-  interface Window {
-    api: typeof api;
-  }
-}
-
 export {};

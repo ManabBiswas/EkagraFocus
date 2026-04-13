@@ -26,6 +26,14 @@ npm start
 
 ---
 
+## Documentation
+
+- [Documentation index](docs/guide/README.md)
+- [Imported file analysis](docs/guide/IMPORTED_FILE_ANALYSIS.md)
+- [Corrected architecture](docs/guide/CORRECTED_ARCHITECTURE.md)
+
+---
+
 ## Project Structure
 
 ```

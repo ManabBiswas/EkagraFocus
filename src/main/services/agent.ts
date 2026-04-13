@@ -216,19 +216,25 @@ function getSimpleResponse(userMessage: string, context: ReturnType<typeof getFu
   // UPDATED: Now includes task_id from schedule
   // ─────────────────────────────────────────────────────────────
   if (/^(ok|let'?s|alright|sure|go|begin|start|launch|go go)(?:\s+it)?$/i.test(lower) && context.tasks.length > 0) {
-    const firstTask = context.tasks[0];
-    const durationMinutes = firstTask.end_time && firstTask.start_time 
-      ? calculateDuration(firstTask.start_time, firstTask.end_time)
+    const currentTime = new Date().toTimeString().slice(0, 5);
+    const targetTask = context.tasks.find((task) =>
+      task.status === 'pending' &&
+      task.start_time &&
+      task.start_time >= currentTime
+    ) || context.tasks.find((task) => task.status === 'pending') || context.tasks[0];
+
+    const durationMinutes = targetTask.end_time && targetTask.start_time
+      ? calculateDuration(targetTask.start_time, targetTask.end_time)
       : 60; // Default 60 min
 
     return JSON.stringify({
       action: 'start_timer',
       data: {
-        task_id: firstTask.id, // CRITICAL: Include task ID
+        task_id: targetTask.id, // CRITICAL: Include task ID
         durationMinutes,
-        subject: firstTask.name,
+        subject: targetTask.name,
       },
-      reply: `Starting "${firstTask.name}" (${durationMinutes} min)! Let's go! 🚀`,
+      reply: `Starting "${targetTask.name}" (${durationMinutes} min)! Let's go! 🚀`,
     });
   }
 
@@ -264,6 +270,29 @@ function getSimpleResponse(userMessage: string, context: ReturnType<typeof getFu
         action: 'ask_clarification',
         data: { taskCount: 0 },
         reply: '📅 No tasks scheduled yet. Try importing a study plan to see your schedule!',
+      });
+    }
+
+    const asksForScheduleList =
+      /(?:today'?s?|todays)?\s*(?:full\s*)?(?:schedule|plan)/i.test(lower) ||
+      /what(?:'s| is)?\s+(?:my\s+)?schedule/i.test(lower) ||
+      /show\s+(?:my\s+)?(?:schedule|tasks)/i.test(lower);
+
+    if (asksForScheduleList) {
+      const taskLines = context.tasks
+        .slice(0, 8)
+        .map((t: typeof context.tasks[number]) => {
+          const time = t.start_time && t.end_time ? ` (${t.start_time}–${t.end_time})` : ' (time not fixed)';
+          const statusBadge = t.status === 'done' ? '✓' : t.status === 'in_progress' ? '⏳' : '○';
+          return `  ${statusBadge} ${t.name}${time}`;
+        })
+        .join('\n');
+
+      const hint = context.tasks.length > 8 ? `\n...and ${context.tasks.length - 8} more tasks` : '';
+      return JSON.stringify({
+        action: 'ask_clarification',
+        data: { taskCount: context.tasks.length },
+        reply: `📋 Today's schedule:\n${taskLines}${hint}\n\nSay "start it" to begin the next pending task.`,
       });
     }
 

@@ -37,7 +37,7 @@ export function PlanAnalysisView() {
       <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
         <div className="rounded-xl border border-white/15 bg-black/30 p-3">
           <p className="text-xs uppercase tracking-[0.2em] text-slate-300">Subject Breakdown</p>
-          <div className="mt-3 space-y-2">
+          <div className="mt-3 max-h-64 space-y-2 overflow-y-auto pr-2">
             {subjectRows.map(([subject, hours]) => {
               const pct = planInsight.totalHours > 0 ? (hours / planInsight.totalHours) * 100 : 0;
               return (
@@ -57,7 +57,7 @@ export function PlanAnalysisView() {
 
         <div className="rounded-xl border border-white/15 bg-black/30 p-3">
           <p className="text-xs uppercase tracking-[0.2em] text-slate-300">Risks</p>
-          <ul className="mt-3 space-y-2 text-sm text-slate-200">
+          <ul className="mt-3 max-h-64 space-y-2 overflow-y-auto pr-2 text-sm text-slate-200">
             {planInsight.risks.length === 0 ? (
               <li className="text-slate-400">No major risks detected.</li>
             ) : (
@@ -73,7 +73,7 @@ export function PlanAnalysisView() {
 
       <div className="mt-4 rounded-xl border border-white/15 bg-black/30 p-3">
         <p className="text-xs uppercase tracking-[0.2em] text-slate-300">Suggestions</p>
-        <ul className="mt-2 space-y-2 text-sm text-slate-200">
+        <ul className="mt-2 max-h-56 space-y-2 overflow-y-auto pr-2 text-sm text-slate-200">
           {planInsight.suggestions.map((suggestion) => (
             <li key={suggestion} className="rounded-lg border border-emerald-300/25 bg-emerald-300/10 p-2">
               {suggestion}

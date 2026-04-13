@@ -19,7 +19,6 @@ export function ChatInterface() {
     setActiveTab,
     startTimer,
     addSession,
-    planSummary,
     weeklyProgress,
   } = useStore();
 
@@ -168,8 +167,7 @@ export function ChatInterface() {
     <div className="flex h-full min-h-0 flex-col bg-transparent">
       {/* Messages Container */}
       <div
-        ref={messagesEndRef}
-        className="flex-1 space-y-3 overflow-y-auto p-4"
+        className="flex-1 space-y-3 overflow-y-auto p-4 pr-3"
       >
         {messages.length === 0 ? (
           <div className="flex h-full items-center justify-center">
@@ -189,6 +187,7 @@ export function ChatInterface() {
                     ? 'border border-cyan-400/35 bg-cyan-400/20 text-cyan-100'
                     : 'border border-white/15 bg-slate-900 text-slate-200'
                 }`}
+                style={{ wordBreak: 'break-word' }}
               >
                 {msg.content}
               </div>
@@ -202,6 +201,7 @@ export function ChatInterface() {
             </div>
           </div>
         )}
+        <div ref={messagesEndRef} />
       </div>
 
       {hasApiError && (
@@ -245,7 +245,8 @@ export function ChatInterface() {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder={`Ask about ${planSummary ? planSummary.title : 'your schedule'}...`}
+          // placeholder={`Ask about ${planSummary ? planSummary.title : 'your schedule'}...`}
+          placeholder={`Ask about your schedule ...`}
           className="metal-input flex-1 resize-none rounded-2xl px-3 py-2 text-sm"
           style={{ minHeight: '3.5rem' }}
           rows={2}

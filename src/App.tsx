@@ -64,7 +64,7 @@ function DashboardOverview() {
   ];
 
   return (
-    <aside className="flex min-h-0 flex-col gap-4 overflow-y-auto pr-2">
+    <aside className="flex min-h-0 flex-col gap-4 xl:overflow-y-auto xl:pr-2">
       <section className="panel-shell p-5">
         <div className="flex items-start justify-between gap-4 border-b border-white/20 pb-4">
           <div>
@@ -362,14 +362,14 @@ export function App() {
       <div className="relative z-10 flex h-full w-full flex-col overflow-hidden">
         <TitleBar />
 
-        <div className="flex-1 min-h-0 overflow-hidden p-4 lg:p-5">
-          <div className="grid h-full min-h-0 gap-4 lg:grid-cols-[360px_minmax(0,1fr)]">
+        <div className="flex-1 min-h-0 overflow-hidden p-3 md:p-4 xl:p-5">
+          <div className="grid h-full min-h-0 gap-4 overflow-y-auto pr-1 xl:grid-cols-[420px_minmax(0,1fr)] xl:overflow-hidden xl:pr-0">
             <DashboardOverview />
 
             <main className="flex min-h-0 flex-col gap-4">
-              <section className="panel-shell flex min-h-0 flex-1 flex-col overflow-hidden">
+              <section className="panel-shell flex min-h-140 flex-col overflow-hidden xl:min-h-0 xl:flex-1">
                 <TabBar />
-                <div className="min-h-0 flex-1 overflow-hidden">
+                <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden pr-1">
                   {renderActiveTab()}
                 </div>
               </section>

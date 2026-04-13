@@ -15,7 +15,7 @@ export function MilestoneTracker() {
     <section className="panel-shell p-4">
       <h3 className="section-label text-cyan-300">Milestone Tracker</h3>
 
-      <div className="mt-3 space-y-2">
+      <div className="mt-3 max-h-80 space-y-2 overflow-y-auto pr-2">
         {milestones.length === 0 ? (
           <p className="text-sm text-slate-400">No milestones available yet.</p>
         ) : (

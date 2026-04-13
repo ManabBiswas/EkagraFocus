@@ -91,6 +91,28 @@ function createId(prefix: string): string {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
+function toTaskDisplayName(subject: string, description?: string | null): string {
+  const cleanSubject = (subject || '').replace(/\s+/g, ' ').trim();
+  const cleanDescription = (description || '').replace(/\*\*/g, '').replace(/\s+/g, ' ').trim();
+
+  if (!cleanDescription) return cleanSubject || 'Study Task';
+  if (!cleanSubject) return cleanDescription;
+
+  const subjectLower = cleanSubject.toLowerCase();
+  const descriptionLower = cleanDescription.toLowerCase();
+
+  // Avoid duplicates like "Math: Math (2h)" in the today task list used by chat responses.
+  if (
+    descriptionLower === subjectLower ||
+    descriptionLower.includes(subjectLower) ||
+    subjectLower.includes(descriptionLower)
+  ) {
+    return cleanSubject;
+  }
+
+  return `${cleanSubject} - ${cleanDescription}`;
+}
+
 function getWeekDateRangeFromStart(startDate: string, weekNumber: number): { start: string; end: string } {
   const base = new Date(startDate);
   base.setDate(base.getDate() + (weekNumber - 1) * 7);
@@ -430,7 +452,7 @@ export function savePlanImport(bundle: PlanImportBundle): PlanImportResult {
       ).run(
         `plan_${planId}_${idx + 1}`,
         taskDate,
-        `${task.subject}: ${task.description || task.task_type}`
+        toTaskDisplayName(task.subject, task.description || task.task_type)
       );
     });
   });

@@ -45,9 +45,11 @@ const TITLE_RE = /^#\s+(.+)/;
 const PHASE_RE = /^##+\s*(?:phase\s*(\d+)\s*[:-]?\s*)?(.*)$/i;
 const WEEK_RE = /week\s*(\d+)(?:\s*[-–]\s*(\d+))?/i;
 const TASK_BULLET_RE = /^[-*•]\s*(?:\[\s?\]\s*)?(?:\*\*)?(.+?)(?:\*\*)?$/i;
-const DURATION_RE = /(\d+(?:\.\d+)?)\s*(h|hr|hrs|hour|hours|min|mins|minute|minutes)(?:\s*\/\s*day|\s*per\s*day)?/i;
-const DURATION_PER_DAY_RE = /(\d+(?:\.\d+)?)\s*(h|hr|hrs|hour|hours|min|mins|minute|minutes)\s*(?:\/\s*day|per\s*day)/i;
+const DURATION_RE = /(\d+(?:\.\d+)?)\s*(hours?|hrs?|hr|h|minutes?|mins?|min)(?:\s*\/\s*day|\s*per\s*day)?/i;
+const DURATION_PER_DAY_RE = /(\d+(?:\.\d+)?)\s*(hours?|hrs?|hr|h|minutes?|mins?|min)\s*(?:\/\s*day|per\s*day)/i;
 const MILESTONE_RE = /week\s*(\d+)\s*(?:checkpoint|milestone)?\s*[:-]\s*(.+)/i;
+const HEADER_RE = /^#{1,6}\s+/;
+const NOISE_LINE_RE = /^(?:phase\s*\d+|week\s*\d+|day\s*\d+)\s*:?$/i;
 
 function getWeekDateRange(startDate: string, weekNumber: number): { start: string; end: string } {
   const base = new Date(startDate);
@@ -89,11 +91,76 @@ function inferTaskType(text: string): PlanImportTaskInput['task_type'] {
 }
 
 function inferSubject(text: string): string {
-  return text
+  const cleaned = text
+    .replace(/\*\*/g, '')
     .replace(DURATION_RE, '')
+    .replace(DURATION_PER_DAY_RE, '')
+    .replace(/\b(?:per\s*day|\/\s*day)\b/gi, '')
     .replace(/[()]/g, '')
+    .replace(/^[\s:;,\-|]+/, '')
+    .replace(/[\s:;,\-|]+$/, '')
     .replace(/\s+/g, ' ')
     .trim();
+
+  if (!cleaned) return '';
+
+  const colonParts = cleaned
+    .split(':')
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  if (colonParts.length > 1) {
+    const preferred = colonParts.find((part) => !/^(study|task|session|revision|practice)$/i.test(part));
+    return (preferred || colonParts[colonParts.length - 1]).trim();
+  }
+
+  return cleaned;
+}
+
+function extractTaskText(line: string): string | null {
+  const trimmed = line.trim();
+  if (!trimmed) return null;
+
+  const bulletMatch = trimmed.match(TASK_BULLET_RE);
+  if (bulletMatch?.[1]) {
+    return bulletMatch[1].trim();
+  }
+
+  if (HEADER_RE.test(trimmed) || NOISE_LINE_RE.test(trimmed)) {
+    return null;
+  }
+
+  if (!DURATION_RE.test(trimmed)) {
+    return null;
+  }
+
+  return trimmed;
+}
+
+function addParsedTask(
+  rawText: string,
+  metadata: ParsedMetadata,
+  context: ParseContext,
+  tasks: PlanImportTaskInput[]
+): void {
+  const durationHours = parseDurationHours(rawText);
+  if (!durationHours || durationHours <= 0) return;
+
+  const { start, end } = getWeekDateRange(metadata.startDate, context.currentWeek);
+  const subject = inferSubject(rawText) || `Week ${context.currentWeek} Task`;
+
+  tasks.push({
+    phase_number: context.currentPhaseNumber,
+    week_number: context.currentWeek,
+    date_start: start,
+    date_end: end,
+    subject,
+    task_type: inferTaskType(rawText),
+    hours_allocated: Math.round(durationHours * 100) / 100,
+    description: rawText,
+    deliverables: null,
+    checkpoint: null,
+  });
 }
 
 function parseMetadata(markdownContent: string, fallbackStartDate: string): ParsedMetadata {
@@ -195,6 +262,15 @@ function parseStructure(markdownContent: string, metadata: ParsedMetadata): {
           success_criteria: null,
         });
       }
+
+      // Support lines like "Week 2: Study (3 hrs/day)" by parsing the inline part as task text.
+      const colonIndex = trimmed.indexOf(':');
+      if (colonIndex > -1) {
+        const inlineText = trimmed.slice(colonIndex + 1).trim();
+        if (inlineText && DURATION_RE.test(inlineText)) {
+          addParsedTask(inlineText, metadata, context, tasks);
+        }
+      }
       continue;
     }
 
@@ -208,27 +284,9 @@ function parseStructure(markdownContent: string, metadata: ParsedMetadata): {
       continue;
     }
 
-    if (!TASK_BULLET_RE.test(trimmed)) continue;
-
-    const bulletText = trimmed.match(TASK_BULLET_RE)?.[1]?.trim() || '';
-    const durationHours = parseDurationHours(bulletText);
-    if (!durationHours || durationHours <= 0) continue;
-
-    const { start, end } = getWeekDateRange(metadata.startDate, context.currentWeek);
-    const subject = inferSubject(bulletText) || `Week ${context.currentWeek} Task`;
-
-    tasks.push({
-      phase_number: context.currentPhaseNumber,
-      week_number: context.currentWeek,
-      date_start: start,
-      date_end: end,
-      subject,
-      task_type: inferTaskType(bulletText),
-      hours_allocated: Math.round(durationHours * 100) / 100,
-      description: bulletText,
-      deliverables: null,
-      checkpoint: null,
-    });
+    const taskText = extractTaskText(trimmed);
+    if (!taskText) continue;
+    addParsedTask(taskText, metadata, context, tasks);
   }
 
   const detectedPhaseNumbers = Object.keys(phaseWeekBounds).map(Number);

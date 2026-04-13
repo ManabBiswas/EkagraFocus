@@ -20,12 +20,28 @@ if (app.isPackaged && require('electron-squirrel-startup')) {
 // Global window reference
 let mainWindow: BrowserWindow | null = null;
 
+const setZoomFactor = (nextFactor: number): number => {
+  if (!mainWindow) return 1;
+  const clamped = Math.max(0.7, Math.min(1.8, Math.round(nextFactor * 100) / 100));
+  mainWindow.webContents.setZoomFactor(clamped);
+  return clamped;
+};
+
+const stepZoom = (delta: number): number => {
+  if (!mainWindow) return 1;
+  const current = mainWindow.webContents.getZoomFactor();
+  return setZoomFactor(current + delta);
+};
+
 const createWindow = (): void => {
   mainWindow = new BrowserWindow({
-    height: 800,
-    width: 1200,
+    height: 950,
+    width: 1500,
+    minHeight: 760,
+    minWidth: 1180,
     title: 'EkagraFocus',
     show: false,
+    autoHideMenuBar: true,
     webPreferences: {
       preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
       nodeIntegration: false,
@@ -34,6 +50,7 @@ const createWindow = (): void => {
   });
 
   mainWindow.once('ready-to-show', () => {
+    mainWindow?.maximize();
     mainWindow?.show();
     mainWindow?.focus();
     console.log('[Main] Window ready and shown');
@@ -53,7 +70,11 @@ const createWindow = (): void => {
   });
 
   mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
-  mainWindow.webContents.openDevTools();
+
+  const shouldOpenDevTools = !app.isPackaged && process.env.OPEN_DEVTOOLS === '1';
+  if (shouldOpenDevTools) {
+    mainWindow.webContents.openDevTools({ mode: 'detach' });
+  }
 };
 
 const bootstrap = (): void => {
@@ -84,6 +105,18 @@ const bootstrap = (): void => {
   ipcMain.handle('window:close', () => {
     mainWindow?.close();
     return true;
+  });
+
+  ipcMain.handle('window:zoomIn', () => {
+    return stepZoom(0.1);
+  });
+
+  ipcMain.handle('window:zoomOut', () => {
+    return stepZoom(-0.1);
+  });
+
+  ipcMain.handle('window:zoomReset', () => {
+    return setZoomFactor(1);
   });
 
   // Initialize embedded LLM if model path is configured.

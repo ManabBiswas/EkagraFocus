@@ -246,6 +246,15 @@ const api = {
     close: async () => {
       return await ipcRenderer.invoke('window:close');
     },
+    zoomIn: async () => {
+      return await ipcRenderer.invoke('window:zoomIn');
+    },
+    zoomOut: async () => {
+      return await ipcRenderer.invoke('window:zoomOut');
+    },
+    zoomReset: async () => {
+      return await ipcRenderer.invoke('window:zoomReset');
+    },
   },
 };
 

@@ -18,9 +18,9 @@ export function StatsPanel() {
     : 0;
 
   return (
-    <div className="h-full space-y-4 overflow-y-auto p-4">
+    <div className="h-full space-y-4 overflow-y-auto p-4 pr-3">
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <div className="rounded-2xl border border-cyan-400/35 bg-cyan-400/20 p-4">
           <p className="section-label text-cyan-300">Weekly H</p>
           <p className="mt-3 text-2xl font-bold text-cyan-200">

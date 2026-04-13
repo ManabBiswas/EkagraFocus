@@ -94,6 +94,9 @@ interface IPCWindow {
   minimize: () => Promise<boolean>;
   maximize: () => Promise<boolean>;
   close: () => Promise<boolean>;
+  zoomIn: () => Promise<number>;
+  zoomOut: () => Promise<number>;
+  zoomReset: () => Promise<number>;
 }
 
 interface API {

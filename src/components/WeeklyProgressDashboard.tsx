@@ -39,7 +39,7 @@ export function WeeklyProgressDashboard() {
 
       <div className="mt-4 rounded-xl border border-white/15 bg-black/30 p-3">
         <p className="text-xs uppercase tracking-[0.2em] text-slate-300">Current Week Tasks</p>
-        <div className="mt-2 space-y-2">
+        <div className="mt-2 max-h-72 space-y-2 overflow-y-auto pr-2">
           {weekTasks.length === 0 ? (
             <p className="text-sm text-slate-400">No tasks parsed for the current week.</p>
           ) : (

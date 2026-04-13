@@ -1,28 +1,42 @@
 import React from 'react';
+import { useStore } from '../store/useStore';
 
 export function TitleBar() {
-  const handleMinimize = async () => {
+  const { setActiveTab, addNotification } = useStore();
+
+  const handleZoomOut = async () => {
     try {
-      await window.api.window.minimize();
+      await window.api.window.zoomOut();
     } catch (error) {
-      console.error('[TitleBar] Error minimizing window:', error);
+      console.error('[TitleBar] Error zooming out:', error);
     }
   };
 
-  const handleMaximize = async () => {
+  const handleZoomReset = async () => {
     try {
-      await window.api.window.maximize();
+      await window.api.window.zoomReset();
     } catch (error) {
-      console.error('[TitleBar] Error maximizing window:', error);
+      console.error('[TitleBar] Error resetting zoom:', error);
     }
   };
 
-  const handleClose = async () => {
+  const handleZoomIn = async () => {
     try {
-      await window.api.window.close();
+      await window.api.window.zoomIn();
     } catch (error) {
-      console.error('[TitleBar] Error closing window:', error);
+      console.error('[TitleBar] Error zooming in:', error);
     }
+  };
+
+  const handleProfile = () => {
+    setActiveTab('stats');
+    addNotification({
+      id: `notif-profile-${Date.now()}`,
+      type: 'info',
+      title: 'Profile',
+      message: 'Profile workspace opened in Stats tab.',
+      duration: 2600,
+    });
   };
 
   return (
@@ -34,25 +48,41 @@ export function TitleBar() {
           <p className="text-sm font-semibold tracking-[0.24em] text-slate-100">COMMAND DECK</p>
         </div>
       </div>
-      <div className="flex gap-2 text-xs uppercase tracking-[0.25em] text-slate-300">
+      <div className="flex items-center gap-2 text-xs uppercase tracking-[0.22em] text-slate-300">
         <button
-          onClick={handleMinimize}
-          className="rounded-md border border-white/10 bg-white/5 px-3 py-1.5 transition-colors hover:border-cyan-400/40 hover:bg-cyan-400/10"
+          onClick={handleProfile}
+          className="flex items-center gap-2 rounded-md border border-emerald-400/30 bg-emerald-400/10 px-3 py-1.5 transition-colors hover:border-emerald-400/50 hover:bg-emerald-400/20"
         >
-          MIN
+          <span className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-emerald-300/50 text-[10px] font-bold text-emerald-200">
+            P
+          </span>
+          PROFILE
         </button>
-        <button
-          onClick={handleMaximize}
-          className="rounded-md border border-white/10 bg-white/5 px-3 py-1.5 transition-colors hover:border-cyan-400/40 hover:bg-cyan-400/10"
-        >
-          MAX
-        </button>
-        <button
-          onClick={handleClose}
-          className="rounded-md border border-red-400/20 bg-red-400/10 px-3 py-1.5 text-red-100 transition-colors hover:bg-red-400/20"
-        >
-          CLOSE
-        </button>
+
+        <div className="flex items-center gap-1 rounded-md border border-white/10 bg-white/5 px-1.5 py-1">
+          <button
+            onClick={handleZoomOut}
+            className="rounded border border-white/10 px-2 py-1 text-[10px] font-semibold tracking-[0.18em] text-slate-200 transition-colors hover:border-cyan-400/40 hover:bg-cyan-400/10"
+            title="Zoom out"
+          >
+            -
+          </button>
+          <button
+            onClick={handleZoomReset}
+            className="rounded border border-white/10 px-2 py-1 text-[10px] font-semibold tracking-widest text-slate-200 transition-colors hover:border-cyan-400/40 hover:bg-cyan-400/10"
+            title="Reset zoom"
+          >
+            100%
+          </button>
+          <button
+            onClick={handleZoomIn}
+            className="rounded border border-white/10 px-2 py-1 text-[10px] font-semibold tracking-[0.18em] text-slate-200 transition-colors hover:border-cyan-400/40 hover:bg-cyan-400/10"
+            title="Zoom in"
+          >
+            +
+          </button>
+        </div>
+
       </div>
     </div>
   );

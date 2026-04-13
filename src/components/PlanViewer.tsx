@@ -192,7 +192,7 @@ export function PlanViewer() {
 
   if (!schedulePlan) {
     return (
-      <aside className="flex min-h-0 flex-col gap-4 overflow-y-auto pr-2">
+      <aside className="flex h-full min-h-0 flex-col gap-4 overflow-y-auto px-2 pb-3">
         <section className="panel-shell p-5">
           <div className="flex flex-col gap-4 text-center">
             <p className="section-label text-slate-400">Study Plan</p>
@@ -212,7 +212,7 @@ export function PlanViewer() {
   }
 
   return (
-    <aside className="flex min-h-0 flex-col gap-4 overflow-y-auto pr-2">
+    <aside className="flex h-full min-h-0 flex-col gap-4 overflow-y-auto px-2 pb-3">
       <section className="panel-shell p-5">
         <div className="flex items-start justify-between gap-4 border-b border-white/20 pb-4">
           <div>
@@ -230,8 +230,8 @@ export function PlanViewer() {
           </button>
         </div>
 
-        <div className="mt-4 max-h-52 overflow-y-auto rounded-lg border border-white/10 bg-black/40 p-4">
-          <pre className="whitespace-pre-wrap wrap-break-word text-xs text-slate-300 font-mono">
+        <div className="mt-4 max-h-64 overflow-y-auto rounded-lg border border-white/10 bg-black/40 p-4">
+          <pre className="whitespace-pre-wrap wrap-break-word text-sm leading-6 text-slate-300 font-mono">
             {schedulePlan.content.substring(0, 1200)}
             {schedulePlan.content.length > 1200 && '\n... (truncated)'}
           </pre>

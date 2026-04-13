@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron';
+import { contextBridge, ipcRenderer, webFrame } from 'electron';
 import type {
   IPCDayContext,
   IPCGoal,
@@ -247,13 +247,21 @@ const api = {
       return await ipcRenderer.invoke('window:close');
     },
     zoomIn: async () => {
-      return await ipcRenderer.invoke('window:zoomIn');
+      const nextLevel = Math.min(4, webFrame.getZoomLevel() + 0.5);
+      webFrame.setZoomLevel(nextLevel);
+      return webFrame.getZoomFactor();
     },
     zoomOut: async () => {
-      return await ipcRenderer.invoke('window:zoomOut');
+      const nextLevel = Math.max(-3, webFrame.getZoomLevel() - 0.5);
+      webFrame.setZoomLevel(nextLevel);
+      return webFrame.getZoomFactor();
     },
     zoomReset: async () => {
-      return await ipcRenderer.invoke('window:zoomReset');
+      webFrame.setZoomLevel(0);
+      return webFrame.getZoomFactor();
+    },
+    getZoomFactor: async () => {
+      return webFrame.getZoomFactor();
     },
   },
 };

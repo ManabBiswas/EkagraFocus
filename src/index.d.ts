@@ -97,6 +97,7 @@ interface IPCWindow {
   zoomIn: () => Promise<number>;
   zoomOut: () => Promise<number>;
   zoomReset: () => Promise<number>;
+  getZoomFactor: () => Promise<number>;
 }
 
 interface API {

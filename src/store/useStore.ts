@@ -10,6 +10,11 @@ import type {
   SchedulePlan,
   ScheduleAnalysis,
   WorkloadEstimate,
+  PlanSummary,
+  PlanInsight,
+  PlanWeekTask,
+  MilestoneStatus,
+  WeeklyProgressView,
 } from '../types';
 import { GOAL_CONFIG } from '../shared/goalConfig';
 
@@ -77,6 +82,13 @@ interface FocusAgentState {
   studyTips: string[];
   isAnalyzing: boolean;
 
+  // ── Plan Architecture State ─────────────────────────────────
+  planSummary: PlanSummary | null;
+  planInsight: PlanInsight | null;
+  weekTasks: PlanWeekTask[];
+  milestones: MilestoneStatus[];
+  weeklyProgress: WeeklyProgressView | null;
+
   // ── Actions ───────────────────────────────────────────────
   setActiveTab: (tab: 'chat' | 'timer' | 'logger' | 'stats' | 'plan') => void;
   initializeStore: () => void;
@@ -113,6 +125,11 @@ interface FocusAgentState {
   setWorkloadEstimate: (estimate: WorkloadEstimate | null) => void;
   setStudyTips: (tips: string[]) => void;
   setIsAnalyzing: (isAnalyzing: boolean) => void;
+  setPlanSummary: (summary: PlanSummary | null) => void;
+  setPlanInsight: (insight: PlanInsight | null) => void;
+  setWeekTasks: (tasks: PlanWeekTask[]) => void;
+  setMilestones: (milestones: MilestoneStatus[]) => void;
+  setWeeklyProgressView: (progress: WeeklyProgressView | null) => void;
 }
 
 export const useStore = create<FocusAgentState>((set) => ({
@@ -145,6 +162,12 @@ export const useStore = create<FocusAgentState>((set) => ({
   workloadEstimate: null,
   studyTips: [],
   isAnalyzing: false,
+
+  planSummary: null,
+  planInsight: null,
+  weekTasks: [],
+  milestones: [],
+  weeklyProgress: null,
 
   // Tab actions
   setActiveTab: (tab) => set({ activeTab: tab }),
@@ -225,4 +248,10 @@ export const useStore = create<FocusAgentState>((set) => ({
   setWorkloadEstimate: (estimate) => set({ workloadEstimate: estimate }),
   setStudyTips: (tips) => set({ studyTips: tips }),
   setIsAnalyzing: (isAnalyzing) => set({ isAnalyzing }),
+
+  setPlanSummary: (summary) => set({ planSummary: summary }),
+  setPlanInsight: (insight) => set({ planInsight: insight }),
+  setWeekTasks: (tasks) => set({ weekTasks: tasks }),
+  setMilestones: (milestones) => set({ milestones }),
+  setWeeklyProgressView: (progress) => set({ weeklyProgress: progress }),
 }));

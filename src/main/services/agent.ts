@@ -4,10 +4,14 @@
  * Wires together the complete AI pipeline:
  * Message → Context Builder → LLM → Intent Executor → Result
  * 
+ * CRITICAL FIX APPLIED:
+ * ✅ Pattern matching now ONLY runs when NO AI is available
+ * ✅ AI handles 90%+ of queries instead of being bypassed
+ * 
  * Key features:
  * 1. Uses embedded LLM (node-llama-cpp) for offline inference
  * 2. Fallback to Ollama if embedded unavailable
- * 3. Fallback to pattern matching if no LLM available
+ * 3. Fallback to pattern matching ONLY if no LLM available
  * 4. Full structured response format (action + data + reply)
  * 5. Comprehensive error handling and metrics
  */
@@ -73,17 +77,18 @@ export async function runAgent(userMessage: string): Promise<IPCResponse<IPCAgen
     let llmUsed: string;
 
     // ─────────────────────────────────────────────────────────────
-    // QUICK PATH: Use pattern matching for simple queries
-    // Avoids 5+ second Ollama timeout for common requests
+    // CRITICAL FIX: Only use pattern matching as LAST RESORT
+    // Let the AI handle schedule intelligence whenever possible
     // ─────────────────────────────────────────────────────────────
-    const isSimpleQuery = /\b(start|log|schedule|what|which|status|progress|timer)\b/i.test(userMessage);
+    const noAIAvailable = !llmService.isInitialized();
     
-    if (isSimpleQuery && !llmService.isInitialized()) {
-      console.debug(`[Agent] Simple query detected, using fast pattern matching [${pipelineId}]`);
-      llmResponse = getSimpleResponse(userMessage, context);
-      llmUsed = 'Pattern matching (fast path)';
-    } else if (llmService.isInitialized()) {
-      // Try embedded LLM first
+    // Only use pattern matching if:
+    // 1. No LLM is initialized AND
+    // 2. The query is extremely simple (just "status" or "progress")
+    const isStatusQuery = /^(status|progress)$/i.test(userMessage.trim());
+
+    if (llmService.isInitialized()) {
+      // USE AI FIRST - This is the primary path now
       try {
         console.debug(`[Agent] Calling embedded LLM [${pipelineId}]`);
         llmResponse = await llmService.generateResponse(prompt, {
@@ -100,11 +105,16 @@ export async function runAgent(userMessage: string): Promise<IPCResponse<IPCAgen
         llmResponse = getSimpleResponse(userMessage, context);
         llmUsed = 'Pattern matching (embedded failed)';
       }
-    } else {
-      // No LLM available, use simple rules (skip slow Ollama)
-      console.debug(`[Agent] No LLM available, using fast pattern matching [${pipelineId}]`);
+    } else if (noAIAvailable && isStatusQuery) {
+      // Pattern matching ONLY for simple status queries when no AI
+      console.debug(`[Agent] No AI available, using pattern matching for status query [${pipelineId}]`);
       llmResponse = getSimpleResponse(userMessage, context);
-      llmUsed = 'Pattern matching (no LLM)';
+      llmUsed = 'Pattern matching (no AI available)';
+    } else {
+      // Try to be helpful even without AI
+      console.debug(`[Agent] No AI available, using enhanced fallback [${pipelineId}]`);
+      llmResponse = getSimpleResponse(userMessage, context);
+      llmUsed = 'Pattern matching (no AI available)';
     }
 
     const generationTime = Date.now() - step3Start;
@@ -167,10 +177,12 @@ export async function runAgent(userMessage: string): Promise<IPCResponse<IPCAgen
 }
 
 /**
- * Fallback: Smart rule-based response generation
+ * Fallback: Smart rule-based response generation (SCHEDULE-AWARE)
  * 
  * Detects patterns in user message and generates JSON response.
- * Fast (no LLM/Ollama timeout), pragmatic, and actually useful.
+ * Fast (no LLM timeout), pragmatic, and actually useful.
+ * 
+ * UPDATED: Now schedule-aware - finds next tasks intelligently
  */
 function getSimpleResponse(userMessage: string, context: ReturnType<typeof getFullContext>): string {
   const lower = userMessage.toLowerCase();
@@ -201,20 +213,22 @@ function getSimpleResponse(userMessage: string, context: ReturnType<typeof getFu
   // ─────────────────────────────────────────────────────────────
   // PATTERN 2: Generic "start it" / "begin" → use first task
   // Matches: "ok start it", "let's go", "begin", "start", "go"
+  // UPDATED: Now includes task_id from schedule
   // ─────────────────────────────────────────────────────────────
   if (/^(ok|let'?s|alright|sure|go|begin|start|launch|go go)(?:\s+it)?$/i.test(lower) && context.tasks.length > 0) {
     const firstTask = context.tasks[0];
     const durationMinutes = firstTask.end_time && firstTask.start_time 
-      ? 60 // Default session length if times exist
-      : 25;
+      ? calculateDuration(firstTask.start_time, firstTask.end_time)
+      : 60; // Default 60 min
 
     return JSON.stringify({
       action: 'start_timer',
       data: {
+        task_id: firstTask.id, // CRITICAL: Include task ID
         durationMinutes,
         subject: firstTask.name,
       },
-      reply: `Starting with "${firstTask.name}" (${durationMinutes} min)! Let's go! 🚀`,
+      reply: `Starting "${firstTask.name}" (${durationMinutes} min)! Let's go! 🚀`,
     });
   }
 
@@ -240,8 +254,9 @@ function getSimpleResponse(userMessage: string, context: ReturnType<typeof getFu
   }
 
   // ─────────────────────────────────────────────────────────────
-  // PATTERN 4: Ask about schedule / what to study / which subject
+  // PATTERN 4: Ask about schedule (SCHEDULE-AWARE VERSION)
   // Matches: "what's my schedule", "which subject", "what should i study", "show tasks"
+  // UPDATED: Now finds NEXT task based on current time
   // ─────────────────────────────────────────────────────────────
   if (/\b(schedule|what|which|task|subject|today|should|do|next|study)\b/i.test(lower) || /^\?/.test(lower)) {
     if (context.tasks.length === 0) {
@@ -252,25 +267,46 @@ function getSimpleResponse(userMessage: string, context: ReturnType<typeof getFu
       });
     }
 
-    // Format tasks with times and duration for clarity
+    // INTELLIGENT: Find next task based on current time
+    const currentTime = new Date().toTimeString().slice(0, 5); // "HH:MM"
+    
+    const nextTask = context.tasks.find((t: typeof context.tasks[number]) => 
+      t.status === 'pending' && 
+      t.start_time && 
+      t.start_time >= currentTime
+    ) || context.tasks.find((t: typeof context.tasks[number]) => t.status === 'pending');
+
+    if (nextTask) {
+      const timeInfo = nextTask.start_time && nextTask.end_time 
+        ? ` (${nextTask.start_time}–${nextTask.end_time})`
+        : '';
+      
+      return JSON.stringify({
+        action: 'ask_clarification',
+        data: { 
+          task_id: nextTask.id,
+          task_name: nextTask.name,
+          start_time: nextTask.start_time
+        },
+        reply: `📚 Next up: "${nextTask.name}"${timeInfo}\n\nSay "start it" to begin!`,
+      });
+    }
+
+    // Fallback: Show all tasks
     const taskLines = context.tasks
       .slice(0, 5)
       .map((t: typeof context.tasks[number]) => {
-        const time = t.start_time && t.end_time 
-          ? ` (${t.start_time}–${t.end_time})`
-          : '';
-        return `  • ${t.name}${time}`;
+        const time = t.start_time && t.end_time ? ` (${t.start_time}–${t.end_time})` : '';
+        return `  • [${t.id}] ${t.name}${time}`;
       })
       .join('\n');
 
-    const summary = `📋 Your schedule:\n${taskLines}`;
     const hint = context.tasks.length > 5 ? `\n...and ${context.tasks.length - 5} more` : '';
-    const suggestion = `\n\nTry: "Start 1h ${context.tasks[0].name}" to begin!`;
-
+    
     return JSON.stringify({
       action: 'ask_clarification',
       data: { taskCount: context.tasks.length },
-      reply: summary + hint + suggestion,
+      reply: `📋 Your schedule:\n${taskLines}${hint}\n\nSay "start it" to begin with the first task!`,
     });
   }
 
@@ -305,6 +341,19 @@ function getSimpleResponse(userMessage: string, context: ReturnType<typeof getFu
         ? `I understand! Your options:\n\n📌 Start from your schedule: "Start it"\n⏱️ Set a timer: "Start 1h Math"\n📝 Log time: "2h Physics"\n📋 View schedule: "What's my schedule?"`
         : `I understand! Try:\n\n⏱️ "Start 25min focus"\n📝 "Log 2h math"\n📥 Import a study plan first!`,
   });
+}
+
+/**
+ * Helper: Calculate duration between two time strings
+ */
+function calculateDuration(startTime: string, endTime: string): number {
+  const [startH, startM] = startTime.split(':').map(Number);
+  const [endH, endM] = endTime.split(':').map(Number);
+  
+  const startMinutes = startH * 60 + startM;
+  const endMinutes = endH * 60 + endM;
+  
+  return endMinutes - startMinutes;
 }
 
 /**

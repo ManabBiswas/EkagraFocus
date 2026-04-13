@@ -17,7 +17,7 @@ export function TabBar() {
       {tabs.map((tab) => (
         <button
           key={tab.id}
-          onClick={() => setActiveTab(tab.id as any)}
+          onClick={() => setActiveTab(tab.id)}
           className={`rounded-lg px-4 py-2 text-xs font-semibold uppercase tracking-[0.22em] transition-all ${
             activeTab === tab.id
               ? 'border border-cyan-400/35 bg-cyan-400/10 text-cyan-100 shadow-[0_0_0_1px_rgba(34,211,238,0.1)]'

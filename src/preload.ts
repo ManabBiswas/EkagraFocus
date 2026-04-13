@@ -1,5 +1,17 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import type { IPCDayContext, IPCTask, IPCSession, IPCGoal, IPCResponse } from './shared/ipc';
+import type {
+  IPCDayContext,
+  IPCGoal,
+  IPCPlanAnalysis,
+  IPCPlanMetadata,
+  IPCPlanMilestone,
+  IPCPlanTask,
+  IPCResponse,
+  IPCSession,
+  IPCTask,
+  IPCUserState,
+  IPCWeeklyProgress,
+} from './shared/ipc';
 
 interface DBStateChangedPayload {
   event: 'SESSION_LOGGED' | 'TASK_UPDATED' | 'PLAN_IMPORTED';
@@ -55,6 +67,75 @@ const api = {
       const result = await ipcRenderer.invoke('db:getDayContext', date);
       if (!result.success) throw new Error(result.error);
       return result.data || { tasks: [], sessions: [], goals: [], totalMinutes: 0 };
+    },
+
+    getWeeklySessions: async (endDate?: string): Promise<IPCSession[]> => {
+      const result = await ipcRenderer.invoke('db:getWeeklySessions', endDate);
+      if (!result.success) throw new Error(result.error);
+      return result.data || [];
+    },
+
+    getWeeklyStats: async (
+      endDate?: string,
+    ): Promise<Array<{ date: string; total_minutes: number; session_count: number }>> => {
+      const result = await ipcRenderer.invoke('db:getWeeklyStats', endDate);
+      if (!result.success) throw new Error(result.error);
+      return result.data || [];
+    },
+
+    getSubjectBreakdown: async (
+      endDate?: string,
+    ): Promise<Array<{ subject: string; sessions: number; total_minutes: number }>> => {
+      const result = await ipcRenderer.invoke('db:getSubjectBreakdown', endDate);
+      if (!result.success) throw new Error(result.error);
+      return result.data || [];
+    },
+  },
+
+  // ─────────────────────────────────────────────────────────────
+  // PLAN & PROGRESS (Read mostly)
+  // ─────────────────────────────────────────────────────────────
+  plan: {
+    getActiveMetadata: async (): Promise<IPCPlanMetadata | null> => {
+      const result = await ipcRenderer.invoke('plan:getActiveMetadata');
+      if (!result.success) throw new Error(result.error);
+      return result.data || null;
+    },
+
+    getAnalysis: async (): Promise<IPCPlanAnalysis | null> => {
+      const result = await ipcRenderer.invoke('plan:getAnalysis');
+      if (!result.success) throw new Error(result.error);
+      return result.data || null;
+    },
+
+    getMilestones: async (): Promise<IPCPlanMilestone[]> => {
+      const result = await ipcRenderer.invoke('plan:getMilestones');
+      if (!result.success) throw new Error(result.error);
+      return result.data || [];
+    },
+
+    getCurrentWeekTasks: async (): Promise<IPCPlanTask[]> => {
+      const result = await ipcRenderer.invoke('plan:getCurrentWeekTasks');
+      if (!result.success) throw new Error(result.error);
+      return result.data || [];
+    },
+
+    getWeeklyProgress: async (): Promise<IPCWeeklyProgress | null> => {
+      const result = await ipcRenderer.invoke('plan:getWeeklyProgress');
+      if (!result.success) throw new Error(result.error);
+      return result.data || null;
+    },
+
+    getUserState: async (): Promise<IPCUserState | null> => {
+      const result = await ipcRenderer.invoke('plan:getUserState');
+      if (!result.success) throw new Error(result.error);
+      return result.data || null;
+    },
+
+    recalculateWeeklyProgress: async (): Promise<IPCWeeklyProgress | null> => {
+      const result = await ipcRenderer.invoke('plan:recalculateWeeklyProgress');
+      if (!result.success) throw new Error(result.error);
+      return result.data || null;
     },
   },
 

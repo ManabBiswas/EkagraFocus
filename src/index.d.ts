@@ -10,6 +10,12 @@ import type {
   IPCDayContext,
   IPCAgentMessage,
   IPCResponse,
+  IPCPlanMetadata,
+  IPCPlanAnalysis,
+  IPCPlanMilestone,
+  IPCPlanTask,
+  IPCWeeklyProgress,
+  IPCUserState,
 } from './shared/ipc';
 
 /**
@@ -47,10 +53,31 @@ interface IPCFile {
       parseResult?: {
         tasksImported: number;
         details: string;
+        planId?: string;
+        metadata?: {
+          title: string;
+          durationDays: number;
+          weeks: number;
+        };
+        analysis?: {
+          totalHours: number;
+          weeklyAverage: number;
+          feasibilityScore?: number;
+        };
       };
     }>
   >;
   readPlanFile: (filePath: string) => Promise<IPCResponse<{ filePath: string; fileName: string; content: string }>>;
+}
+
+interface IPCPlan {
+  getActiveMetadata: () => Promise<IPCPlanMetadata | null>;
+  getAnalysis: () => Promise<IPCPlanAnalysis | null>;
+  getMilestones: () => Promise<IPCPlanMilestone[]>;
+  getCurrentWeekTasks: () => Promise<IPCPlanTask[]>;
+  getWeeklyProgress: () => Promise<IPCWeeklyProgress | null>;
+  getUserState: () => Promise<IPCUserState | null>;
+  recalculateWeeklyProgress: () => Promise<IPCWeeklyProgress | null>;
 }
 
 interface DBStateChangedPayload {
@@ -74,6 +101,7 @@ interface API {
   task: IPCTaskOps;
   agent: IPCAgent;
   file: IPCFile;
+  plan: IPCPlan;
   events: IPCEvents;
   window: IPCWindow;
 }

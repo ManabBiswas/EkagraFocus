@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useStore } from '../store/useStore';
+import type { IPCAgentMessage, IPCResponse } from '../shared/ipc';
 
 type WindowWithApi = Window & {
   api?: {
     agent?: {
-      sendMessage: (message: string) => Promise<any>;
+      sendMessage: (message: string) => Promise<IPCResponse<IPCAgentMessage>>;
     };
   };
 };
@@ -18,6 +19,8 @@ export function ChatInterface() {
     setActiveTab,
     startTimer,
     addSession,
+    planSummary,
+    weeklyProgress,
   } = useStore();
 
   const [input, setInput] = useState('');
@@ -118,7 +121,7 @@ export function ChatInterface() {
     setInput(cmd);
   };
 
-  const executeAgentAction = (agentMsg: any): void => {
+  const executeAgentAction = (agentMsg: IPCAgentMessage): void => {
     if (!agentMsg?.action) return;
 
     switch (agentMsg.action) {
@@ -135,7 +138,7 @@ export function ChatInterface() {
       }
 
       case 'log_session': {
-        const duration = Number(agentMsg.data?.durationMinutes) || 0;
+        const duration = Number((agentMsg.data as Record<string, unknown>)?.durationMinutes) || 0;
         const subject = String(agentMsg.data?.subject || 'Study Session');
         const notes = String(agentMsg.data?.notes || '');
 
@@ -210,16 +213,16 @@ export function ChatInterface() {
       {/* Quick Command Buttons */}
       <div className="flex flex-wrap gap-2 border-t border-white/20 px-4 py-3">
         <button
-          onClick={() => handleQuickCommand('Status')}
+          onClick={() => handleQuickCommand(`Status Week ${weeklyProgress?.weekNumber || 1}`)}
           className="rounded-full border border-cyan-400/35 bg-cyan-400/20 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-cyan-200 transition-colors hover:bg-cyan-400/30"
         >
           STATUS
         </button>
         <button
-          onClick={() => handleQuickCommand('1h Math')}
+          onClick={() => handleQuickCommand('1h DBMS')}
           className="rounded-full border border-white/20 bg-black/35 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-slate-300 transition-colors hover:bg-black/50"
         >
-          1H MATH
+          1H DBMS
         </button>
         <button
           onClick={() => handleQuickCommand('2h DSA')}
@@ -242,7 +245,7 @@ export function ChatInterface() {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Ask something..."
+          placeholder={`Ask about ${planSummary ? planSummary.title : 'your schedule'}...`}
           className="metal-input flex-1 resize-none rounded-2xl px-3 py-2 text-sm"
           style={{ minHeight: '3.5rem' }}
           rows={2}

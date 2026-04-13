@@ -7,10 +7,15 @@ export function StatsPanel() {
     subjectBreakdown,
     currentStreak,
     userState,
+    planSummary,
+    weeklyProgress,
   } = useStore();
 
   const totalWeeklyHours = weeklyStats.reduce((sum, s) => sum + s.hoursStudied, 0);
   const goalsMetCount = weeklyStats.filter((s) => s.goalMet).length;
+  const planProgressPct = planSummary && weeklyProgress
+    ? Math.min(100, weeklyProgress.completionPercentage)
+    : 0;
 
   return (
     <div className="h-full space-y-4 overflow-y-auto p-4">
@@ -44,6 +49,24 @@ export function StatsPanel() {
           </p>
         </div>
       </div>
+
+      {planSummary && weeklyProgress && (
+        <div className="panel-shell p-4">
+          <h3 className="section-label text-cyan-300 mb-3">Plan Progress</h3>
+          <p className="text-sm text-slate-200">
+            Week {weeklyProgress.weekNumber}: {weeklyProgress.hoursCompleted.toFixed(1)}h / {weeklyProgress.hoursTarget.toFixed(1)}h
+          </p>
+          <div className="mt-2 h-2.5 overflow-hidden rounded-full border border-white/20 bg-slate-950">
+            <div
+              className={`h-full ${weeklyProgress.onTrack ? 'bg-emerald-400' : 'bg-amber-400'}`}
+              style={{ width: `${planProgressPct}%` }}
+            />
+          </div>
+          <p className="mt-2 text-xs text-slate-400">
+            {weeklyProgress.onTrack ? 'On track' : 'Behind schedule'} • {planProgressPct.toFixed(1)}% complete
+          </p>
+        </div>
+      )}
 
       {/* Weekly Breakdown */}
       <div className="panel-shell p-4">

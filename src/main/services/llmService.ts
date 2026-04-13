@@ -9,16 +9,24 @@
  * 4. Proper error handling and lifecycle cleanup
  */
 
-import {
-  getLlama,
-  LlamaChatSession,
-  type Llama,
-  type LlamaContext,
-  type LlamaModel,
-} from 'node-llama-cpp';
 import { app } from 'electron';
 import path from 'path';
 import fs from 'fs';
+
+type LlamaRuntime = {
+  loadModel: (options: { modelPath: string }) => Promise<{ createContext: () => Promise<{ getSequence: () => unknown; dispose: () => Promise<void> }> ; dispose: () => Promise<void> }>;
+  dispose: () => Promise<void>;
+};
+
+type LlamaChatSessionRuntime = {
+  prompt: (prompt: string, options: { temperature: number; maxTokens: number }) => Promise<string>;
+  dispose: () => void;
+};
+
+type LlamaModule = {
+  getLlama: (options: { maxThreads: number }) => Promise<LlamaRuntime>;
+  LlamaChatSession: new (options: { contextSequence: unknown }) => LlamaChatSessionRuntime;
+};
 
 export interface LLMGenerationOptions {
   temperature?: number;
@@ -33,10 +41,10 @@ interface LLMInitOptions {
 }
 
 class EmbeddedLLMService {
-  private llama: Llama | null = null;
-  private model: LlamaModel | null = null;
-  private context: LlamaContext | null = null;
-  private session: LlamaChatSession | null = null;
+  private llama: LlamaRuntime | null = null;
+  private model: { createContext: () => Promise<{ getSequence: () => unknown; dispose: () => Promise<void> }>; dispose: () => Promise<void> } | null = null;
+  private context: { getSequence: () => unknown; dispose: () => Promise<void> } | null = null;
+  private session: LlamaChatSessionRuntime | null = null;
   private isReady = false;
   private modelPath: string | null = null;
   private initError: string | null = null;
@@ -85,16 +93,20 @@ class EmbeddedLLMService {
 
       this.modelPath = modelPath;
 
+      // Runtime require keeps webpack from bundling all optional platform binaries.
+      const runtimeRequire = eval('require') as NodeRequire;
+      const llamaModule = runtimeRequire('node-llama-cpp') as LlamaModule;
+
       // Initialize Llama
       console.log('[LLMService] Loading model from:', modelPath);
 
-      this.llama = await getLlama({
+      this.llama = await llamaModule.getLlama({
         maxThreads: options.nThreads ?? 4,
       });
 
       this.model = await this.llama.loadModel({ modelPath });
       this.context = await this.model.createContext();
-      this.session = new LlamaChatSession({
+      this.session = new llamaModule.LlamaChatSession({
         contextSequence: this.context.getSequence(),
       });
 

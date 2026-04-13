@@ -6,7 +6,7 @@ let db: Database.Database | null = null;
 
 /**
  * Initialize SQLite database with schema
- * Creates tables: tasks, sessions, goals
+ * Creates tables for core app + plan analysis architecture
  * This runs only in the Main Process (Node.js backend)
  */
 export function initializeDatabase(): Database.Database {
@@ -54,12 +54,132 @@ export function initializeDatabase(): Database.Database {
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 
+    CREATE TABLE IF NOT EXISTS plan_metadata (
+      plan_id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      description TEXT,
+      start_date TEXT NOT NULL,
+      end_date TEXT NOT NULL,
+      duration_days INTEGER NOT NULL,
+      total_hours_estimated REAL NOT NULL,
+      weekly_hours_avg REAL NOT NULL,
+      file_path TEXT,
+      file_content TEXT,
+      imported_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      analyzed_at DATETIME,
+      is_active INTEGER DEFAULT 1
+    );
+
+    CREATE TABLE IF NOT EXISTS plan_phases (
+      phase_id TEXT PRIMARY KEY,
+      plan_id TEXT NOT NULL,
+      phase_number INTEGER NOT NULL,
+      name TEXT NOT NULL,
+      description TEXT,
+      week_start INTEGER NOT NULL,
+      week_end INTEGER NOT NULL,
+      total_hours_allocated REAL NOT NULL,
+      focus_areas TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (plan_id) REFERENCES plan_metadata(plan_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS plan_tasks (
+      task_id TEXT PRIMARY KEY,
+      phase_id TEXT NOT NULL,
+      week_number INTEGER NOT NULL,
+      date_start TEXT NOT NULL,
+      date_end TEXT NOT NULL,
+      subject TEXT NOT NULL,
+      task_type TEXT NOT NULL
+        CHECK (task_type IN ('study', 'project', 'practice', 'leetcode', 'other')),
+      hours_allocated REAL NOT NULL,
+      description TEXT,
+      deliverables TEXT,
+      checkpoint TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (phase_id) REFERENCES plan_phases(phase_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS plan_milestones (
+      milestone_id TEXT PRIMARY KEY,
+      plan_id TEXT NOT NULL,
+      week_number INTEGER NOT NULL,
+      description TEXT NOT NULL,
+      success_criteria TEXT,
+      completion_status TEXT DEFAULT 'pending'
+        CHECK (completion_status IN ('pending', 'in_progress', 'completed', 'skipped')),
+      completed_at DATETIME,
+      notes TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (plan_id) REFERENCES plan_metadata(plan_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS plan_analysis (
+      analysis_id TEXT PRIMARY KEY,
+      plan_id TEXT NOT NULL,
+      total_hours REAL NOT NULL,
+      weekly_average REAL NOT NULL,
+      subject_breakdown TEXT NOT NULL,
+      risks TEXT NOT NULL,
+      suggestions TEXT NOT NULL,
+      difficulty_level TEXT,
+      feasibility_score REAL,
+      analyzed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (plan_id) REFERENCES plan_metadata(plan_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS weekly_progress (
+      progress_id TEXT PRIMARY KEY,
+      plan_id TEXT NOT NULL,
+      week_number INTEGER NOT NULL,
+      week_start_date TEXT NOT NULL,
+      week_end_date TEXT NOT NULL,
+      hours_completed REAL NOT NULL,
+      hours_target REAL NOT NULL,
+      completion_percentage REAL NOT NULL,
+      on_track INTEGER NOT NULL,
+      subjects_json TEXT NOT NULL,
+      variance_json TEXT,
+      notes TEXT,
+      calculated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (plan_id) REFERENCES plan_metadata(plan_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS user_state (
+      state_id TEXT PRIMARY KEY DEFAULT 'singleton',
+      current_plan_id TEXT,
+      current_week INTEGER DEFAULT 1,
+      current_phase INTEGER DEFAULT 1,
+      base_goal_hours REAL DEFAULT 2.0,
+      streak_days INTEGER DEFAULT 0,
+      penalty_mode_active INTEGER DEFAULT 0,
+      penalty_expiration_date TEXT,
+      total_hours_studied REAL DEFAULT 0,
+      last_study_date TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (current_plan_id) REFERENCES plan_metadata(plan_id)
+    );
+
     -- Create indexes for performance
     CREATE INDEX IF NOT EXISTS idx_tasks_date ON tasks(date);
     CREATE INDEX IF NOT EXISTS idx_sessions_date ON sessions(date);
     CREATE INDEX IF NOT EXISTS idx_sessions_task_id ON sessions(task_id);
     CREATE INDEX IF NOT EXISTS idx_goals_date ON goals(date);
+
+    CREATE INDEX IF NOT EXISTS idx_plan_tasks_week ON plan_tasks(week_number);
+    CREATE INDEX IF NOT EXISTS idx_plan_tasks_phase ON plan_tasks(phase_id);
+    CREATE INDEX IF NOT EXISTS idx_milestones_week ON plan_milestones(week_number);
+    CREATE INDEX IF NOT EXISTS idx_weekly_progress_week ON weekly_progress(week_number);
+    CREATE INDEX IF NOT EXISTS idx_weekly_progress_plan ON weekly_progress(plan_id);
   `);
+
+  // Ensure singleton user_state row exists.
+  db.prepare(`
+    INSERT OR IGNORE INTO user_state (state_id)
+    VALUES ('singleton')
+  `).run();
 
   console.log(' Database initialized:', dbPath);
   return db;
@@ -125,7 +245,28 @@ export function seedDatabase(): void {
 export function clearDatabase(): void {
   const database = getDatabase();
   try {
-    database.exec('DELETE FROM sessions; DELETE FROM goals; DELETE FROM tasks;');
+    database.exec(`
+      DELETE FROM weekly_progress;
+      DELETE FROM plan_analysis;
+      DELETE FROM plan_milestones;
+      DELETE FROM plan_tasks;
+      DELETE FROM plan_phases;
+      DELETE FROM plan_metadata;
+      DELETE FROM sessions;
+      DELETE FROM goals;
+      DELETE FROM tasks;
+      UPDATE user_state
+      SET current_plan_id = NULL,
+          current_week = 1,
+          current_phase = 1,
+          streak_days = 0,
+          penalty_mode_active = 0,
+          penalty_expiration_date = NULL,
+          total_hours_studied = 0,
+          last_study_date = NULL,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE state_id = 'singleton';
+    `);
     console.log(' Database cleared');
   } catch (error) {
     console.error('Error clearing database:', error);

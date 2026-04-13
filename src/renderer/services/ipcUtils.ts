@@ -11,8 +11,8 @@ const DEFAULT_IPC_TIMEOUT_MS = 30000; // 30 seconds
  */
 export async function withIpcTimeout<T>(
   promise: Promise<T>,
-  timeoutMs: number = DEFAULT_IPC_TIMEOUT_MS,
-  callName: string = 'IPC call'
+  timeoutMs = DEFAULT_IPC_TIMEOUT_MS,
+  callName = 'IPC call'
 ): Promise<T> {
   return Promise.race([
     promise,
@@ -28,7 +28,7 @@ export async function withIpcTimeout<T>(
 /**
  * Create a wrapped version of an async function with timeout
  */
-export function withTimeout<Args extends any[], R>(
+export function withTimeout<Args extends unknown[], R>(
   fn: (...args: Args) => Promise<R>,
   timeoutMs: number = DEFAULT_IPC_TIMEOUT_MS,
   callName?: string

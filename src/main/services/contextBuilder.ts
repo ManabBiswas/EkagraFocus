@@ -4,32 +4,61 @@ import type { IPCDayContext } from '../../shared/ipc';
  * Context Builder Service (Day 3)
  *
  * Converts user message + database context into a rich prompt for the LLM.
- * Takes structured data and formats it into natural language that Ollama understands.
+ * Takes structured data and formats it into natural language that the AI understands.
+ *
+ * CRITICAL FIXES APPLIED:
+ * ✅ Task IDs now visible to AI
+ * ✅ Current time passed for schedule intelligence
+ * ✅ Enhanced system prompt teaches schedule awareness
  *
  * Input:  message + context
- * Output: Complete prompt string ready for Ollama (TinyLLaMA)
+ * Output: Complete prompt string ready for LLM
  */
 
 /**
  * Builds the system prompt that defines AI behavior
+ * 
+ * UPDATED: Now teaches AI to be SCHEDULE-AWARE
  */
 function buildSystemPrompt(): string {
-  return `You are an AI Study Assistant helping students manage their learning.
+  return `You are an AI Study Assistant helping students manage their learning schedule.
 
 Your role:
 1. Understand user messages about study activities
-2. Suggest specific actions (log study session, mark task done, update goals)
+2. Suggest specific actions based on the CURRENT SCHEDULE
 3. Provide motivational feedback and study advice
 4. Parse user intent and extract actionable data
+
+SCHEDULE INTELLIGENCE (CRITICAL):
+- When user asks "what should I study?" or "what's next?", find the NEXT pending task based on current time and start_time
+- When user says "start it", "let's go", or "begin", use the FIRST pending task from TODAY'S SCHEDULE
+- When suggesting a task, ALWAYS include the task ID in your response
+- Consider current time when recommending tasks (suggest upcoming tasks, not past ones)
+- If user mentions a subject (e.g., "Math"), find the matching task by name and use its ID
+
+EXAMPLE RESPONSES:
+User: "What should I study?"
+AI: {
+  "action": "ask_clarification",
+  "data": {"task_id": "math_01", "task_name": "Mathematics - Calculus Review"},
+  "reply": "Based on your schedule, you should start 'Mathematics - Calculus Review' (11:00-12:30). Ready to begin?"
+}
+
+User: "Start it" (when schedule exists)
+AI: {
+  "action": "start_timer",
+  "data": {"task_id": "phys_01", "subject": "Physics - Thermal Dynamics", "durationMinutes": 90},
+  "reply": "Starting 'Physics - Thermal Dynamics' (90 minutes). Let's focus! 🎯"
+}
 
 IMPORTANT: Always respond with ONLY valid JSON (no markdown, no backticks, just raw JSON):
 {
   "action": "log_session" | "start_timer" | "mark_done" | "update_goal" | "ask_clarification",
   "data": {
-    "task_id": "optional - which task",
-    "minutes": "optional - for log_session/start_timer",
-    "durationMinutes": "optional - alternate duration field",
-    "subject": "optional - study subject for timer/session",
+    "task_id": "REQUIRED when referencing a scheduled task",
+    "subject": "optional - task name or custom subject",
+    "minutes": "optional - for log_session",
+    "durationMinutes": "optional - for start_timer",
     "notes": "optional - for log_session",
     "status": "optional - new status for task"
   },
@@ -37,28 +66,32 @@ IMPORTANT: Always respond with ONLY valid JSON (no markdown, no backticks, just 
 }
 
 When user mentions:
-- Starting focus/timer session → action: "start_timer" with duration
-- Study duration → action: "log_session" with minutes
-- Task completion → action: "mark_done"
+- "What should I study?" or "What's next?" → Find next pending task by start_time, suggest it with task_id
+- "Start it" or "Let's go" → action: "start_timer" with task from schedule
+- Study duration like "2h math" → action: "log_session" with minutes
+- Task completion → action: "mark_done" with task_id
 - Goal updates → action: "update_goal"
 - Unclear intent → action: "ask_clarification"
 
-Be encouraging, supportive, and specific.`;
+Be encouraging, supportive, and ALWAYS schedule-aware.`;
 }
 
 /**
  * Formats database context into readable text
+ * 
+ * UPDATED: Now includes task IDs so AI can reference them
  */
 function formatContextToText(context: IPCDayContext): string {
   const sections: string[] = [];
 
-  // Schedule Section
+  // Schedule Section - NOW WITH TASK IDS
   if (context.tasks.length > 0) {
     const taskLines = context.tasks
       .map((task) => {
         const time = task.start_time && task.end_time ? `${task.start_time}-${task.end_time}` : 'No time set';
         const status = task.status === 'done' ? '✓' : task.status === 'in_progress' ? '⏳' : '○';
-        return `  ${status} ${task.name} (${time}) - ${task.status}`;
+        // CRITICAL: Include task ID so AI can reference it in actions
+        return `  ${status} [ID:${task.id}] ${task.name} (${time}) [${task.status}]`;
       })
       .join('\n');
     sections.push(`TODAY'S SCHEDULE:\n${taskLines}`);
@@ -94,17 +127,34 @@ function formatContextToText(context: IPCDayContext): string {
 /**
  * Main function: Builds complete prompt for LLM
  * Combines system instructions + context + user message
+ * 
+ * UPDATED: Now includes current time for time-aware suggestions
  */
 export function buildPrompt(message: string, context: IPCDayContext): string {
   const systemPrompt = buildSystemPrompt();
   const contextText = formatContextToText(context);
   const timestamp = new Date().toISOString();
+  
+  // Add human-readable current time for AI schedule intelligence
+  const currentTime = new Date().toLocaleTimeString('en-US', { 
+    hour12: false, 
+    hour: '2-digit', 
+    minute: '2-digit' 
+  });
+  const currentDate = new Date().toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
 
   const fullPrompt = `${systemPrompt}
 
 ═══════════════════════════════════════════
 
-CURRENT TIMESTAMP: ${timestamp}
+CURRENT DATE: ${currentDate}
+CURRENT TIME: ${currentTime} (24-hour format)
+TIMESTAMP: ${timestamp}
 
 ${contextText}
 
@@ -122,6 +172,7 @@ Respond with ONLY valid JSON (no markdown, no explanation, just the JSON object)
     taskCount: context.tasks.length,
     sessionCount: context.sessions.length,
     goalCount: context.goals.length,
+    currentTime,
   });
 
   return fullPrompt;

@@ -109,3 +109,57 @@ export interface WorkloadEstimate {
   difficulty: 'light' | 'moderate' | 'heavy';
   recommendation: string;
 }
+
+export interface PlanSummary {
+  planId: string;
+  title: string;
+  startDate: string;
+  endDate: string;
+  durationDays: number;
+  totalHoursEstimated: number;
+  weeklyHoursAvg: number;
+}
+
+export interface PlanRiskItem {
+  text: string;
+  severity: 'low' | 'medium' | 'high';
+}
+
+export interface PlanInsight {
+  totalHours: number;
+  weeklyAverage: number;
+  subjectBreakdown: Record<string, number>;
+  risks: PlanRiskItem[];
+  suggestions: string[];
+  feasibilityScore: number;
+  difficultyLevel: string;
+}
+
+export interface PlanWeekTask {
+  taskId: string;
+  weekNumber: number;
+  subject: string;
+  type: 'study' | 'project' | 'practice' | 'leetcode' | 'other';
+  hoursAllocated: number;
+  description: string;
+}
+
+export interface MilestoneStatus {
+  milestoneId: string;
+  weekNumber: number;
+  description: string;
+  completionStatus: 'pending' | 'in_progress' | 'completed' | 'skipped';
+  completedAt: string | null;
+}
+
+export interface WeeklyProgressView {
+  weekNumber: number;
+  weekStartDate: string;
+  weekEndDate: string;
+  hoursCompleted: number;
+  hoursTarget: number;
+  completionPercentage: number;
+  onTrack: boolean;
+  subjects: Record<string, number>;
+  variance: Record<string, number>;
+}

@@ -10,7 +10,6 @@ export function TimerPanel() {
     startTimer,
     stopTimer,
     resetTimer,
-    addSession,
   } = useStore();
 
   const [sessionSubject, setSessionSubject] = useState(currentSessionSubject);
@@ -35,7 +34,7 @@ export function TimerPanel() {
       const minutes = Math.round((timerSeconds / 60) * 4) / 4; // Round to nearest 15 mins
       
       // Call backend to save session ONLY - let db-state-changed event refresh UI
-      await (window as any).api.task.logSession(null, minutes, `${currentSessionSubject} (${timerSeconds}s)`);
+      await window.api.task.logSession(null, minutes, `${currentSessionSubject} (${timerSeconds}s)`);
       
       resetTimer();
       setSessionSubject('');

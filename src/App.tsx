@@ -151,6 +151,10 @@ export function App() {
     setDailyStatus,
     setTodaySessions,
     setUserState,
+    setWeeklyStats,
+    setSubjectBreakdown,
+    setPlanSummary,
+    setWeeklyProgressView,
   } = useStore();
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -193,14 +197,28 @@ export function App() {
         }
 
         const date = getTodayDate();
-        const context = await window.api.db.getDayContext(date);
+        const [
+          context,
+          weeklyStatsRows,
+          subjectRows,
+          planUserState,
+          activePlan,
+          weeklyProgress,
+        ] = await Promise.all([
+          window.api.db.getDayContext(date),
+          window.api.db.getWeeklyStats(date),
+          window.api.db.getSubjectBreakdown(date),
+          window.api.plan.getUserState(),
+          window.api.plan.getActiveMetadata(),
+          window.api.plan.getWeeklyProgress(),
+        ]);
         const hoursCompleted = context.totalMinutes / 60;
 
         // Compute daily goal: base + debt + penalty
         // TODO: Get persisted debt and penalty from DB when goal persistence is implemented
-        const baseGoal = GOAL_CONFIG.BASE_GOAL_HOURS;
+        const baseGoal = planUserState?.base_goal_hours ?? GOAL_CONFIG.BASE_GOAL_HOURS;
         const debtAssigned = 0; // Future: Get from DB
-        const penaltyModeActive = false; // Future: Check if penalty active
+        const penaltyModeActive = (planUserState?.penalty_mode_active ?? 0) === 1;
         const penaltyAssigned = penaltyModeActive ? GOAL_CONFIG.PENALTY_EXTRA_HOURS : 0;
         const totalGoal = baseGoal + debtAssigned + penaltyAssigned;
         
@@ -234,12 +252,63 @@ export function App() {
           }))
         );
 
+        setWeeklyStats(
+          weeklyStatsRows.map((row) => ({
+            date: row.date,
+            hoursStudied: Math.round((row.total_minutes / 60) * 100) / 100,
+            goalMet: (row.total_minutes / 60) >= baseGoal,
+          }))
+        );
+
+        const totalSubjectMinutes = subjectRows.reduce((sum, row) => sum + row.total_minutes, 0);
+        setSubjectBreakdown(
+          subjectRows.map((row) => ({
+            subject: row.subject,
+            hours: Math.round((row.total_minutes / 60) * 100) / 100,
+            sessions: row.sessions,
+            percentage:
+              totalSubjectMinutes > 0 ? Math.round((row.total_minutes / totalSubjectMinutes) * 100) : 0,
+          }))
+        );
+
+        if (activePlan) {
+          setPlanSummary({
+            planId: activePlan.plan_id,
+            title: activePlan.title,
+            startDate: activePlan.start_date,
+            endDate: activePlan.end_date,
+            durationDays: activePlan.duration_days,
+            totalHoursEstimated: activePlan.total_hours_estimated,
+            weeklyHoursAvg: activePlan.weekly_hours_avg,
+          });
+        }
+
+        if (weeklyProgress) {
+          const subjects = weeklyProgress.subjects_json
+            ? (JSON.parse(weeklyProgress.subjects_json) as Record<string, number>)
+            : {};
+          const variance = weeklyProgress.variance_json
+            ? (JSON.parse(weeklyProgress.variance_json) as Record<string, number>)
+            : {};
+          setWeeklyProgressView({
+            weekNumber: weeklyProgress.week_number,
+            weekStartDate: weeklyProgress.week_start_date,
+            weekEndDate: weeklyProgress.week_end_date,
+            hoursCompleted: weeklyProgress.hours_completed,
+            hoursTarget: weeklyProgress.hours_target,
+            completionPercentage: weeklyProgress.completion_percentage,
+            onTrack: weeklyProgress.on_track === 1,
+            subjects,
+            variance,
+          });
+        }
+
         setUserState({
           currentStreakBreaks: 0,
-          penaltyModeActive: false, // Future: Set from persisted DB state
-          penaltyExpirationDate: null, // Future: Set from persisted DB state
-          totalHoursStudied: hoursCompleted,
-          baseGoal: GOAL_CONFIG.BASE_GOAL_HOURS,
+          penaltyModeActive,
+          penaltyExpirationDate: planUserState?.penalty_expiration_date || null,
+          totalHoursStudied: planUserState?.total_hours_studied || hoursCompleted,
+          baseGoal,
         });
       } catch (error) {
         console.error('[App] Failed to refresh day context:', error);
@@ -258,7 +327,15 @@ export function App() {
         unsubscribe();
       }
     };
-  }, [setDailyStatus, setTodaySessions, setUserState]);
+  }, [
+    setDailyStatus,
+    setTodaySessions,
+    setUserState,
+    setWeeklyStats,
+    setSubjectBreakdown,
+    setPlanSummary,
+    setWeeklyProgressView,
+  ]);
 
   const renderActiveTab = () => {
     switch (activeTab) {

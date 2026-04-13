@@ -12,19 +12,13 @@
     "noImplicitAny": true,
     "strictNullChecks": true,
     "sourceMap": true,
-    "baseUrl": "./src",
     "rootDir": "./src",
     "outDir": "dist",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "declaration": true,
-    "declarationMap": true,
-    "paths": {
-      "node-llama-cpp": ["types/node-llama-cpp-shim.d.ts"],
-      "*": ["node_modules/*"],
-      "@/*": ["./*"]
-    }
+    "declarationMap": true
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]

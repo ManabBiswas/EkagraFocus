@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useStore } from '../store/useStore';
 
 export function StudyLoggerPanel() {
-  const { todaySessions, addSession } = useStore();
+  const { todaySessions } = useStore();
 
   const [subject, setSubject] = useState('');
   const [hours, setHours] = useState('');
@@ -18,7 +18,7 @@ export function StudyLoggerPanel() {
       const minutes = Math.round(parseFloat(hours) * 60);
       
       // Call backend to save session ONLY - let db-state-changed event refresh UI
-      await (window as any).api.task.logSession(null, minutes, `${subject} - ${notes}`);
+      await window.api.task.logSession(null, minutes, `${subject} - ${notes}`);
       
       alert(`✓ Logged ${hours} hours of ${subject}`);
 

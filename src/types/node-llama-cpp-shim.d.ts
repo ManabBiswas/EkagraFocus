@@ -1,13 +1,13 @@
 declare module 'node-llama-cpp' {
-  export type Llama = any;
-  export type LlamaModel = any;
-  export type LlamaContext = any;
+  export type Llama = unknown;
+  export type LlamaModel = unknown;
+  export type LlamaContext = unknown;
 
-  export function getLlama(options?: any): Promise<any>;
+  export function getLlama(options?: Record<string, unknown>): Promise<unknown>;
 
   export class LlamaChatSession {
-    constructor(options: any);
-    prompt(prompt: string, options?: any): Promise<string>;
+    constructor(options: Record<string, unknown>);
+    prompt(prompt: string, options?: Record<string, unknown>): Promise<string>;
     dispose(): void;
   }
 }

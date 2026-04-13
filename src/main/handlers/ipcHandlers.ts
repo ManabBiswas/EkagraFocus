@@ -12,6 +12,13 @@ import {
   getWeeklySessions,
   getWeeklyStatsByDate,
   getWeeklySubjectBreakdown,
+  getActivePlanMetadata,
+  getPlanAnalysis,
+  getPlanMilestones,
+  getCurrentWeekTasks,
+  getWeeklyProgress,
+  getUserState,
+  calculateAndUpsertWeeklyProgress,
 } from '../db/queries';
 import { receiveMessage } from '../services/messageReceiver';
 import { processPlanFile } from '../services/planParser';
@@ -154,6 +161,71 @@ export function setupDatabaseHandlers(): void {
     } catch (error) {
       console.error('Error getting subject breakdown:', error);
       return { success: false, error: 'Failed to fetch subject breakdown' } as IPCResponse;
+    }
+  });
+}
+
+export function setupPlanHandlers(): void {
+  ipcMain.handle('plan:getActiveMetadata', async () => {
+    try {
+      return { success: true, data: getActivePlanMetadata() } as IPCResponse;
+    } catch (error) {
+      console.error('Error getting active plan metadata:', error);
+      return { success: false, error: 'Failed to fetch active plan metadata' } as IPCResponse;
+    }
+  });
+
+  ipcMain.handle('plan:getAnalysis', async () => {
+    try {
+      return { success: true, data: getPlanAnalysis() } as IPCResponse;
+    } catch (error) {
+      console.error('Error getting plan analysis:', error);
+      return { success: false, error: 'Failed to fetch plan analysis' } as IPCResponse;
+    }
+  });
+
+  ipcMain.handle('plan:getMilestones', async () => {
+    try {
+      return { success: true, data: getPlanMilestones() } as IPCResponse;
+    } catch (error) {
+      console.error('Error getting milestones:', error);
+      return { success: false, error: 'Failed to fetch milestones' } as IPCResponse;
+    }
+  });
+
+  ipcMain.handle('plan:getCurrentWeekTasks', async () => {
+    try {
+      return { success: true, data: getCurrentWeekTasks() } as IPCResponse;
+    } catch (error) {
+      console.error('Error getting current week tasks:', error);
+      return { success: false, error: 'Failed to fetch current week tasks' } as IPCResponse;
+    }
+  });
+
+  ipcMain.handle('plan:getWeeklyProgress', async () => {
+    try {
+      return { success: true, data: getWeeklyProgress() } as IPCResponse;
+    } catch (error) {
+      console.error('Error getting weekly progress:', error);
+      return { success: false, error: 'Failed to fetch weekly progress' } as IPCResponse;
+    }
+  });
+
+  ipcMain.handle('plan:getUserState', async () => {
+    try {
+      return { success: true, data: getUserState() } as IPCResponse;
+    } catch (error) {
+      console.error('Error getting user state:', error);
+      return { success: false, error: 'Failed to fetch user state' } as IPCResponse;
+    }
+  });
+
+  ipcMain.handle('plan:recalculateWeeklyProgress', async () => {
+    try {
+      return { success: true, data: calculateAndUpsertWeeklyProgress() } as IPCResponse;
+    } catch (error) {
+      console.error('Error recalculating weekly progress:', error);
+      return { success: false, error: 'Failed to recalculate weekly progress' } as IPCResponse;
     }
   });
 }
@@ -326,7 +398,7 @@ export function setupFileHandlers(): void {
         console.log(`[FileHandler] Read file: ${fileName} (${content.length} bytes)`);
         
         // Parse markdown and import to database
-        const parseResult = processPlanFile(content);
+        const parseResult = await processPlanFile(content, new Date().toISOString().split('T')[0], filePath);
         console.log(`[FileHandler] Parse result:`, parseResult);
 
         if (parseResult.success) {
@@ -335,6 +407,7 @@ export function setupFileHandlers(): void {
             fileName,
             filePath,
             tasksImported: parseResult.tasksCount,
+            planId: parseResult.planId,
             context: getFullContext(today),
           });
         }
@@ -348,6 +421,9 @@ export function setupFileHandlers(): void {
             parseResult: {
               tasksImported: parseResult.tasksCount,
               details: parseResult.details,
+              planId: parseResult.planId,
+              metadata: parseResult.metadata,
+              analysis: parseResult.analysis,
             },
           },
         } as IPCResponse;
@@ -403,6 +479,10 @@ export function setupAllHandlers(): void {
   console.log('[IPC] Setting up database handlers...');
   setupDatabaseHandlers();
   console.log('[IPC] ✓ Database handlers done');
+
+  console.log('[IPC] Setting up plan handlers...');
+  setupPlanHandlers();
+  console.log('[IPC] ✓ Plan handlers done');
   
   console.log('[IPC] Setting up task handlers...');
   setupTaskHandlers();

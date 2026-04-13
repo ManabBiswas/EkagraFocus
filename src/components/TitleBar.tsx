@@ -3,7 +3,7 @@ import React from 'react';
 export function TitleBar() {
   const handleMinimize = async () => {
     try {
-      await (window as any).api.window?.minimize?.();
+      await window.api.window.minimize();
     } catch (error) {
       console.error('[TitleBar] Error minimizing window:', error);
     }
@@ -11,7 +11,7 @@ export function TitleBar() {
 
   const handleMaximize = async () => {
     try {
-      await (window as any).api.window?.maximize?.();
+      await window.api.window.maximize();
     } catch (error) {
       console.error('[TitleBar] Error maximizing window:', error);
     }
@@ -19,7 +19,7 @@ export function TitleBar() {
 
   const handleClose = async () => {
     try {
-      await (window as any).api.window?.close?.();
+      await window.api.window.close();
     } catch (error) {
       console.error('[TitleBar] Error closing window:', error);
     }

@@ -1,11 +1,7 @@
 import React from 'react';
 import { useStore } from '../store/useStore';
 
-interface PlanAnalysisViewProps {
-  planId?: string;
-}
-
-export function PlanAnalysisView(_props: PlanAnalysisViewProps) {
+export function PlanAnalysisView() {
   const { planSummary, planInsight } = useStore();
 
   if (!planSummary || !planInsight) {

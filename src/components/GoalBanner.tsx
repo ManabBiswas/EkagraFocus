@@ -11,9 +11,6 @@ export function GoalBanner() {
     100
   );
 
-  const remaining = Math.max(dailyStatus.totalGoal - dailyStatus.hoursCompleted, 0);
-  const goalStatus = dailyStatus.goalMet ? 'Goal Met! 🎉' : `${remaining.toFixed(1)}h remaining`;
-
   return (
     <div className="panel-shell p-4">
       <div className="mb-3 border-b border-white/20 pb-3">

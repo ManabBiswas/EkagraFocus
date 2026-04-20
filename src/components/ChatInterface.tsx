@@ -214,25 +214,25 @@ export function ChatInterface() {
       <div className="flex flex-wrap gap-2 border-t border-white/20 px-4 py-3">
         <button
           onClick={() => handleQuickCommand(`Status Week ${weeklyProgress?.weekNumber || 1}`)}
-          className="rounded-full border border-cyan-400/35 bg-cyan-400/20 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-cyan-200 transition-colors hover:bg-cyan-400/30"
+          className="btn-glow px-3 py-1 rounded-full"
         >
           STATUS
         </button>
         <button
           onClick={() => handleQuickCommand('1h DBMS')}
-          className="rounded-full border border-white/20 bg-black/35 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-slate-300 transition-colors hover:bg-black/50"
+          className="btn-secondary px-3 py-1 rounded-full"
         >
           1H DBMS
         </button>
         <button
           onClick={() => handleQuickCommand('2h DSA')}
-          className="rounded-full border border-emerald-400/35 bg-emerald-400/20 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-emerald-200 transition-colors hover:bg-emerald-400/30"
+          className="btn-success px-3 py-1 rounded-full"
         >
           2H DSA
         </button>
         <button
           onClick={() => handleQuickCommand('Schedule')}
-          className="rounded-full border border-white/20 bg-black/35 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-slate-300 transition-colors hover:bg-black/50"
+          className="btn-secondary px-3 py-1 rounded-full"
         >
           SCHEDULE
         </button>
@@ -253,7 +253,7 @@ export function ChatInterface() {
         />
         <button
           onClick={handleSendMessage}
-          className="rounded-2xl border border-cyan-400/35 bg-cyan-400/20 px-4 py-2 text-xs font-bold uppercase tracking-[0.2em] text-cyan-200 transition-colors hover:bg-cyan-400/30"
+          className="btn-primary px-4 py-2"
         >
           SEND
         </button>

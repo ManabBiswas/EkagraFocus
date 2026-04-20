@@ -83,24 +83,24 @@ export function TimerPanel() {
       <div className="flex gap-3">
         <button
           onClick={handleStartStop}
-          className={`rounded-2xl border px-6 py-3 text-xs font-bold uppercase tracking-[0.2em] transition-colors ${
+          className={`${
             timerRunning
-              ? 'border-red-400/35 bg-red-400/20 text-red-200 hover:bg-red-400/30'
-              : 'border-emerald-400/35 bg-emerald-400/20 text-emerald-200 hover:bg-emerald-400/30'
-          }`}
+              ? 'btn-danger'
+              : 'btn-success'
+          } transition-all duration-300`}
         >
           {timerRunning ? 'PAUSE' : 'START'}
         </button>
         <button
           onClick={resetTimer}
-          className="rounded-2xl border border-white/20 bg-black/35 px-6 py-3 text-xs font-bold uppercase tracking-[0.2em] text-slate-300 transition-colors hover:bg-black/50"
+          className="btn-secondary"
         >
           RESET
         </button>
         <button
           onClick={handleSaveSession}
           disabled={timerSeconds === 0 || !currentSessionSubject}
-          className="rounded-2xl border border-cyan-400/35 bg-cyan-400/20 px-6 py-3 text-xs font-bold uppercase tracking-[0.2em] text-cyan-200 transition-colors hover:bg-cyan-400/30 disabled:cursor-not-allowed disabled:opacity-50"
+          className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
         >
           SAVE
         </button>

@@ -71,7 +71,7 @@ export function StudyLoggerPanel() {
           <button
             onClick={handleLogSession}
             disabled={!subject || hours === ''}
-            className="w-full rounded-2xl border border-cyan-400/35 bg-cyan-400/20 px-4 py-2 text-xs font-bold uppercase tracking-[0.2em] text-cyan-200 transition-colors hover:bg-cyan-400/30 disabled:cursor-not-allowed disabled:opacity-50"
+            className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
           >
             LOG SESSION
           </button>

@@ -96,6 +96,92 @@
     animation: pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
 
+  /* Gaming Button Styles - Simplified */
+  .btn-glow {
+    @apply relative px-4 py-2 rounded-xl font-bold uppercase tracking-wider text-sm;
+    @apply border border-cyan-400 bg-cyan-900;
+    @apply text-cyan-100 shadow-lg transition-all duration-200;
+    @apply hover:shadow-xl hover:text-cyan-50;
+    @apply active:scale-95 focus:outline-none focus:ring-2 focus:ring-cyan-400;
+  }
+
+  .btn-glow:disabled {
+    @apply opacity-40 cursor-not-allowed;
+  }
+
+  .btn-primary {
+    @apply relative px-6 py-3 rounded-xl font-bold uppercase tracking-widest text-xs;
+    @apply border-2 border-cyan-400 bg-cyan-900;
+    @apply text-cyan-100 shadow-lg transition-all duration-300;
+    @apply hover:shadow-xl hover:text-cyan-50;
+    @apply active:scale-95 focus:outline-none;
+  }
+
+  .btn-success {
+    @apply relative px-6 py-3 rounded-xl font-bold uppercase tracking-widest text-xs;
+    @apply border-2 border-emerald-500 bg-emerald-900;
+    @apply text-emerald-100 shadow-lg transition-all duration-300;
+    @apply hover:shadow-xl hover:text-emerald-50;
+    @apply active:scale-95 focus:outline-none;
+  }
+
+  .btn-success:disabled {
+    @apply opacity-40 cursor-not-allowed;
+  }
+
+  .btn-danger {
+    @apply relative px-6 py-3 rounded-xl font-bold uppercase tracking-widest text-xs;
+    @apply border-2 border-red-500 bg-red-900;
+    @apply text-red-100 shadow-lg transition-all duration-300;
+    @apply hover:shadow-xl hover:text-red-50;
+    @apply active:scale-95 focus:outline-none;
+  }
+
+  .btn-secondary {
+    @apply relative px-6 py-3 rounded-xl font-bold uppercase tracking-widest text-xs;
+    @apply border-2 border-slate-600 bg-slate-800;
+    @apply text-slate-200 transition-all duration-300;
+    @apply hover:text-slate-100;
+    @apply active:scale-95 focus:outline-none;
+  }
+
+  .btn-accent {
+    @apply relative px-6 py-3 rounded-xl font-bold uppercase tracking-widest text-xs;
+    @apply border-2 border-purple-500 bg-purple-900;
+    @apply text-purple-100 shadow-lg transition-all duration-300;
+    @apply hover:shadow-xl hover:text-purple-50;
+    @apply active:scale-95 focus:outline-none;
+  }
+
+  .btn-icon {
+    @apply inline-flex items-center justify-center w-10 h-10 rounded-lg;
+    @apply border border-cyan-400 bg-cyan-900;
+    @apply text-cyan-300 transition-all duration-200;
+    @apply hover:text-cyan-200;
+    @apply active:scale-90 focus:outline-none;
+  }
+
+  /* Tab Button Styles */
+  .tab-btn {
+    @apply relative px-4 py-2 rounded-lg font-semibold uppercase tracking-wider text-xs;
+    @apply border transition-all duration-300;
+    @apply hover:border-white/20 hover:bg-white/5 hover:text-slate-100;
+  }
+
+  .tab-btn-active {
+    @apply border-cyan-400 bg-cyan-900;
+    @apply text-cyan-100 shadow-md;
+  }
+
+  /* Input Styling */
+  .metal-input {
+    @apply w-full px-4 py-2 rounded-lg;
+    @apply bg-slate-900 border border-slate-600 text-slate-100 placeholder-slate-500;
+    @apply transition-all duration-200;
+    @apply focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/30;
+    @apply hover:border-slate-500;
+  }
+
   .app-grid {
     background-image:
       linear-gradient(rgba(148, 163, 184, 0.08) 1px, transparent 1px),
@@ -147,20 +233,5 @@
 
   .surface-separator {
     border-color: rgba(148, 163, 184, 0.25);
-  }
-
-  .metal-input {
-    background: rgba(3, 7, 18, 0.85);
-    border: 1px solid rgba(148, 163, 184, 0.25);
-    color: #f0f4f8;
-    box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.03);
-  }
-
-  .metal-input:focus {
-    outline: none;
-    border-color: rgba(34, 211, 238, 0.65);
-    box-shadow:
-      0 0 0 3px rgba(34, 211, 238, 0.18),
-      inset 0 1px 2px rgba(255, 255, 255, 0.03);
   }
 }

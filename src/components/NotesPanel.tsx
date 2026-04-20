@@ -441,7 +441,7 @@ export function NotesPanel() {
           </div>
           <button
             onClick={handleCreateNew}
-            className="rounded-xl border border-cyan-400/35 bg-cyan-400/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-cyan-100 hover:bg-cyan-400/30"
+            className="btn-glow px-3 py-1"
           >
             New
           </button>
@@ -508,20 +508,20 @@ export function NotesPanel() {
           <button
             onClick={handleSave}
             disabled={isSaving}
-            className="rounded-xl border border-emerald-400/35 bg-emerald-400/20 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-emerald-100 hover:bg-emerald-400/30 disabled:opacity-50"
+            className="btn-success px-3 py-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSaving ? 'Saving...' : 'Save note'}
           </button>
           <button
             onClick={handleGenerateInsights}
             disabled={isGenerating || isSaving}
-            className="rounded-xl border border-cyan-400/35 bg-cyan-400/20 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-cyan-100 hover:bg-cyan-400/30 disabled:opacity-50"
+            className="btn-accent px-3 py-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isGenerating ? 'Analyzing...' : 'AI auto-tag + summary'}
+            {isGenerating ? 'Analyzing...' : 'AI Insights'}
           </button>
           <button
             onClick={handleDelete}
-            className="rounded-xl border border-red-400/35 bg-red-400/20 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-red-100 hover:bg-red-400/30"
+            className="btn-danger px-3 py-1.5"
           >
             Delete
           </button>
@@ -613,9 +613,9 @@ export function NotesPanel() {
                         <span className="text-[10px] text-slate-400">{formatBytes(file.size)}</span>
                         <button
                           onClick={() => removeAttachment(index)}
-                          className="rounded border border-red-400/30 bg-red-400/10 px-1.5 py-0.5 text-[10px] text-red-200 hover:bg-red-400/20"
+                          className="rounded border border-red-400/50 bg-red-400/20 px-2 py-1 text-[10px] font-bold text-red-200 hover:bg-red-400/30 transition-all"
                         >
-                          X
+                          ✕
                         </button>
                       </div>
                     </div>

@@ -55,6 +55,44 @@ export const fileApi = () => ({
 });
 
 /**
+ * Notes / Smart notepad API
+ */
+export const notesApi = () => ({
+  list: (params?: { search?: string; linked_task_id?: string; pinnedOnly?: boolean; limit?: number }) =>
+    window.api.notes.list(params),
+  getById: (noteId: string) => window.api.notes.getById(noteId),
+  create: (note: {
+    title: string;
+    content?: string | null;
+    canvas_data?: string | null;
+    tags?: string | null;
+    linked_task_id?: string | null;
+    linked_session_id?: string | null;
+    attachments?: string | null;
+    ai_summary?: string | null;
+    ai_keywords?: string | null;
+    is_pinned?: number;
+  }) => window.api.notes.create(note),
+  update: (
+    noteId: string,
+    updates: {
+      title?: string;
+      content?: string | null;
+      canvas_data?: string | null;
+      tags?: string | null;
+      linked_task_id?: string | null;
+      linked_session_id?: string | null;
+      attachments?: string | null;
+      ai_summary?: string | null;
+      ai_keywords?: string | null;
+      is_pinned?: number;
+    },
+  ) => window.api.notes.update(noteId, updates),
+  delete: (noteId: string) => window.api.notes.delete(noteId),
+  generateInsights: (noteId: string) => window.api.notes.generateInsights(noteId),
+});
+
+/**
  * Plan analysis and progress API
  */
 export const planApi = () => ({

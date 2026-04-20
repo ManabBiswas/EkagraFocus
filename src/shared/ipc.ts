@@ -139,6 +139,61 @@ export interface IPCUserState {
   updated_at: string;
 }
 
+export interface IPCNote {
+  id: string;
+  title: string;
+  content: string | null;
+  canvas_data: string | null;
+  tags: string | null;
+  linked_task_id: string | null;
+  linked_session_id: string | null;
+  attachments: string | null;
+  ai_summary: string | null;
+  ai_keywords: string | null;
+  is_pinned: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface IPCNoteCreateInput {
+  title: string;
+  content?: string | null;
+  canvas_data?: string | null;
+  tags?: string | null;
+  linked_task_id?: string | null;
+  linked_session_id?: string | null;
+  attachments?: string | null;
+  ai_summary?: string | null;
+  ai_keywords?: string | null;
+  is_pinned?: number;
+}
+
+export interface IPCNoteUpdateInput {
+  title?: string;
+  content?: string | null;
+  canvas_data?: string | null;
+  tags?: string | null;
+  linked_task_id?: string | null;
+  linked_session_id?: string | null;
+  attachments?: string | null;
+  ai_summary?: string | null;
+  ai_keywords?: string | null;
+  is_pinned?: number;
+}
+
+export interface IPCNotesListParams {
+  search?: string;
+  linked_task_id?: string;
+  pinnedOnly?: boolean;
+  limit?: number;
+}
+
+export interface IPCNoteInsights {
+  summary: string;
+  tags: string[];
+  keywords: string[];
+}
+
 export interface IPCAgentMessage {
   action:
     | 'mark_done'
@@ -156,6 +211,11 @@ export interface IPCResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;
+}
+
+export interface IPCSessionLogResult {
+  sessionId: string;
+  linkedNotesCount: number;
 }
 
 /**
@@ -180,12 +240,20 @@ export interface IPCHandlers {
   'plan:getUserState': () => Promise<IPCUserState | null>;
   'plan:recalculateWeeklyProgress': () => Promise<IPCWeeklyProgress | null>;
 
+  // Notes / Smart notepad
+  'notes:list': (params?: IPCNotesListParams) => Promise<IPCNote[]>;
+  'notes:getById': (noteId: string) => Promise<IPCNote | null>;
+  'notes:create': (note: IPCNoteCreateInput) => Promise<IPCNote>;
+  'notes:update': (noteId: string, updates: IPCNoteUpdateInput) => Promise<IPCNote | null>;
+  'notes:delete': (noteId: string) => Promise<{ deleted: boolean }>;
+  'notes:generateInsights': (noteId: string) => Promise<IPCNote | null>;
+
   // Agent communication
   'agent:sendMessage': (message: string) => Promise<IPCResponse<IPCAgentMessage>>;
   'agent:getTodayContext': () => Promise<IPCResponse<IPCDayContext>>;
 
   // Task operations
   'task:markDone': (taskId: string) => Promise<IPCResponse>;
-  'task:logSession': (taskId: string, minutes: number, notes?: string) => Promise<IPCResponse>;
+  'task:logSession': (taskId: string, minutes: number, notes?: string) => Promise<IPCResponse<IPCSessionLogResult>>;
   'task:updateStatus': (taskId: string, status: string) => Promise<IPCResponse>;
 }

@@ -2,6 +2,10 @@ import { getDatabase } from './database';
 import type {
   IPCDayContext,
   IPCGoal,
+  IPCNote,
+  IPCNoteCreateInput,
+  IPCNotesListParams,
+  IPCNoteUpdateInput,
   IPCPlanAnalysis,
   IPCPlanMetadata,
   IPCPlanMilestone,
@@ -84,6 +88,10 @@ export interface PlanImportResult {
   importedMilestones: number;
 }
 
+export type NoteCreateInput = IPCNoteCreateInput;
+export type NoteUpdateInput = IPCNoteUpdateInput;
+export type NotesListParams = IPCNotesListParams;
+
 const round2 = (value: number): number => Math.round(value * 100) / 100;
 const todayIso = (): string => new Date().toISOString().split('T')[0];
 
@@ -134,6 +142,117 @@ export function getTaskById(taskId: string): IPCTask | undefined {
   return db.prepare('SELECT * FROM tasks WHERE id = ?').get(taskId) as IPCTask | undefined;
 }
 
+export function getNotes(params: NotesListParams = {}): IPCNote[] {
+  const db = getDatabase();
+  const whereClauses: string[] = [];
+  const values: unknown[] = [];
+
+  if (params.search && params.search.trim().length > 0) {
+    whereClauses.push('(title LIKE ? OR content LIKE ? OR tags LIKE ?)');
+    const q = `%${params.search.trim()}%`;
+    values.push(q, q, q);
+  }
+
+  if (params.linked_task_id && params.linked_task_id.trim().length > 0) {
+    whereClauses.push('linked_task_id = ?');
+    values.push(params.linked_task_id);
+  }
+
+  if (params.pinnedOnly) {
+    whereClauses.push('is_pinned = 1');
+  }
+
+  let query = 'SELECT * FROM notes';
+  if (whereClauses.length > 0) {
+    query += ` WHERE ${whereClauses.join(' AND ')}`;
+  }
+
+  const limit = Math.max(1, Math.min(params.limit || 200, 500));
+  query += ' ORDER BY is_pinned DESC, updated_at DESC, created_at DESC LIMIT ?';
+  values.push(limit);
+
+  return db.prepare(query).all(...values) as IPCNote[];
+}
+
+export function getNoteById(noteId: string): IPCNote | null {
+  const db = getDatabase();
+  return (db.prepare('SELECT * FROM notes WHERE id = ?').get(noteId) as IPCNote | undefined) || null;
+}
+
+export function insertNote(note: NoteCreateInput): IPCNote {
+  const db = getDatabase();
+  const id = createId('note');
+  const title = (note.title || '').trim() || 'Untitled Note';
+
+  db.prepare(
+    `INSERT INTO notes (
+      id, title, content, canvas_data, tags, linked_task_id, linked_session_id,
+      attachments, ai_summary, ai_keywords, is_pinned
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).run(
+    id,
+    title,
+    note.content ?? null,
+    note.canvas_data ?? null,
+    note.tags ?? null,
+    note.linked_task_id ?? null,
+    note.linked_session_id ?? null,
+    note.attachments ?? null,
+    note.ai_summary ?? null,
+    note.ai_keywords ?? null,
+    note.is_pinned ? 1 : 0
+  );
+
+  const inserted = getNoteById(id);
+  if (!inserted) {
+    throw new Error('Failed to create note');
+  }
+
+  return inserted;
+}
+
+export function updateNote(noteId: string, updates: NoteUpdateInput): IPCNote | null {
+  const db = getDatabase();
+
+  const allowedFields: Array<keyof NoteUpdateInput> = [
+    'title',
+    'content',
+    'canvas_data',
+    'tags',
+    'linked_task_id',
+    'linked_session_id',
+    'attachments',
+    'ai_summary',
+    'ai_keywords',
+    'is_pinned',
+  ];
+
+  const entries = allowedFields.filter((field) => (updates as Record<string, unknown>)[field] !== undefined);
+  if (entries.length === 0) {
+    return getNoteById(noteId);
+  }
+
+  const setClause = entries.map((field) => `${field} = ?`).join(', ');
+  const values = entries.map((field) => {
+    const value = (updates as Record<string, unknown>)[field];
+    return field === 'is_pinned' ? (value ? 1 : 0) : value;
+  });
+
+  db.prepare(
+    `UPDATE notes
+     SET ${setClause}, updated_at = CURRENT_TIMESTAMP
+     WHERE id = ?`
+  ).run(...values, noteId);
+
+  return getNoteById(noteId);
+}
+
+export function deleteNote(noteId: string): boolean {
+  const db = getDatabase();
+  const result = db.prepare('DELETE FROM notes WHERE id = ?').run(noteId);
+  return result.changes > 0;
+}
+
 export function getActiveGoals(date: string): IPCGoal[] {
   const db = getDatabase();
   return db.prepare('SELECT * FROM goals WHERE date = ? AND active = 1').all(date) as IPCGoal[];
@@ -172,6 +291,31 @@ export function insertSession(session: Omit<IPCSession, 'created_at'>): string {
      VALUES (?, ?, ?, ?, ?)`
   ).run(session.id, session.task_id, session.date, session.duration_minutes, session.notes);
   return session.id;
+}
+
+export function autoLinkRecentNotesToSession(
+  sessionId: string,
+  options?: { windowMinutes?: number; maxNotes?: number }
+): number {
+  const db = getDatabase();
+  const windowMinutes = Math.max(5, Math.min(options?.windowMinutes || 180, 24 * 60));
+  const maxNotes = Math.max(1, Math.min(options?.maxNotes || 3, 20));
+  const windowModifier = `-${windowMinutes} minutes`;
+
+  const result = db.prepare(
+    `UPDATE notes
+     SET linked_session_id = ?, updated_at = CURRENT_TIMESTAMP
+     WHERE id IN (
+       SELECT id
+       FROM notes
+       WHERE linked_session_id IS NULL
+         AND datetime(updated_at) >= datetime('now', ?)
+       ORDER BY datetime(updated_at) DESC
+       LIMIT ?
+     )`
+  ).run(sessionId, windowModifier, maxNotes);
+
+  return result.changes;
 }
 
 export function insertTask(task: Omit<IPCTask, 'created_at' | 'updated_at'>): string {

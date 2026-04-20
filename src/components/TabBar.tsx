@@ -10,6 +10,7 @@ export function TabBar() {
     { id: 'logger', label: 'Log' },
     { id: 'stats', label: 'Stats' },
     { id: 'plan', label: 'Plan' },
+    { id: 'notes', label: 'Notes' },
   ] as const;
 
   return (

@@ -8,6 +8,7 @@ import { TimerPanel } from './components/TimerPanel';
 import { StudyLoggerPanel } from './components/StudyLoggerPanel';
 import { StatsPanel } from './components/StatsPanel';
 import { PlanViewer } from './components/PlanViewer';
+import { NotesPanel } from './components/NotesPanel';
 import { NotificationToast } from './components/NotificationToast';
 import { GOAL_CONFIG } from './shared/goalConfig';
 
@@ -349,6 +350,8 @@ export function App() {
         return <StatsPanel />;
       case 'plan':
         return <PlanViewer />;
+      case 'notes':
+        return <NotesPanel />;
       default:
         return <ChatInterface />;
     }

@@ -162,6 +162,25 @@ export function initializeDatabase(): Database.Database {
       FOREIGN KEY (current_plan_id) REFERENCES plan_metadata(plan_id)
     );
 
+    -- Notes table (smart notepad)
+    CREATE TABLE IF NOT EXISTS notes (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      content TEXT,
+      canvas_data TEXT,
+      tags TEXT,
+      linked_task_id TEXT,
+      linked_session_id TEXT,
+      attachments TEXT,
+      ai_summary TEXT,
+      ai_keywords TEXT,
+      is_pinned INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (linked_task_id) REFERENCES tasks(id),
+      FOREIGN KEY (linked_session_id) REFERENCES sessions(id)
+    );
+
     -- Create indexes for performance
     CREATE INDEX IF NOT EXISTS idx_tasks_date ON tasks(date);
     CREATE INDEX IF NOT EXISTS idx_sessions_date ON sessions(date);
@@ -173,6 +192,9 @@ export function initializeDatabase(): Database.Database {
     CREATE INDEX IF NOT EXISTS idx_milestones_week ON plan_milestones(week_number);
     CREATE INDEX IF NOT EXISTS idx_weekly_progress_week ON weekly_progress(week_number);
     CREATE INDEX IF NOT EXISTS idx_weekly_progress_plan ON weekly_progress(plan_id);
+    CREATE INDEX IF NOT EXISTS idx_notes_tags ON notes(tags);
+    CREATE INDEX IF NOT EXISTS idx_notes_created ON notes(created_at);
+    CREATE INDEX IF NOT EXISTS idx_notes_updated ON notes(updated_at);
   `);
 
   // Ensure singleton user_state row exists.
@@ -252,6 +274,7 @@ export function clearDatabase(): void {
       DELETE FROM plan_tasks;
       DELETE FROM plan_phases;
       DELETE FROM plan_metadata;
+      DELETE FROM notes;
       DELETE FROM sessions;
       DELETE FROM goals;
       DELETE FROM tasks;

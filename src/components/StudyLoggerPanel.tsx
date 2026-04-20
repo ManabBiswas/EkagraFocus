@@ -18,9 +18,14 @@ export function StudyLoggerPanel() {
       const minutes = Math.round(parseFloat(hours) * 60);
       
       // Call backend to save session ONLY - let db-state-changed event refresh UI
-      await window.api.task.logSession(null, minutes, `${subject} - ${notes}`);
-      
-      alert(`✓ Logged ${hours} hours of ${subject}`);
+      const result = await window.api.task.logSession(null, minutes, `${subject} - ${notes}`);
+
+      const linkedMessage =
+        result.linkedNotesCount > 0
+          ? `\nAuto-linked notes: ${result.linkedNotesCount}`
+          : '';
+
+      alert(`✓ Logged ${hours} hours of ${subject}${linkedMessage}`);
 
       // Reset form
       setSubject('');

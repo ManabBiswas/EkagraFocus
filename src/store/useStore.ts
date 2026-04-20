@@ -44,7 +44,7 @@ const getInitialUserState = (): UserState => ({
 
 interface FocusAgentState {
   // ── UI State ──────────────────────────────────────────────
-  activeTab: 'chat' | 'timer' | 'logger' | 'stats' | 'plan';
+  activeTab: 'chat' | 'timer' | 'logger' | 'stats' | 'plan' | 'notes';
   isInitialized: boolean;
 
   // ── Goal & Status ─────────────────────────────────────────
@@ -90,7 +90,7 @@ interface FocusAgentState {
   weeklyProgress: WeeklyProgressView | null;
 
   // ── Actions ───────────────────────────────────────────────
-  setActiveTab: (tab: 'chat' | 'timer' | 'logger' | 'stats' | 'plan') => void;
+  setActiveTab: (tab: 'chat' | 'timer' | 'logger' | 'stats' | 'plan' | 'notes') => void;
   initializeStore: () => void;
   setInitialized: (value: boolean) => void;
 

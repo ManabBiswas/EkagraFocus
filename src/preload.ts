@@ -2,11 +2,16 @@ import { contextBridge, ipcRenderer, webFrame } from 'electron';
 import type {
   IPCDayContext,
   IPCGoal,
+  IPCNote,
+  IPCNoteCreateInput,
+  IPCNotesListParams,
+  IPCNoteUpdateInput,
   IPCPlanAnalysis,
   IPCPlanMetadata,
   IPCPlanMilestone,
   IPCPlanTask,
   IPCResponse,
+  IPCSessionLogResult,
   IPCSession,
   IPCTask,
   IPCUserState,
@@ -159,9 +164,10 @@ const api = {
       taskId: string | null,
       durationMinutes: number,
       notes?: string,
-    ): Promise<void> => {
+    ): Promise<IPCSessionLogResult> => {
       const result = await ipcRenderer.invoke('task:logSession', taskId, durationMinutes, notes);
       if (!result.success) throw new Error(result.error);
+      return result.data || { sessionId: '', linkedNotesCount: 0 };
     },
 
     /**
@@ -216,6 +222,44 @@ const api = {
     readPlanFile: async (filePath: string): Promise<IPCResponse<unknown>> => {
       // Returns IPCResponse directly from handler
       return await ipcRenderer.invoke('read-plan-file', filePath);
+    },
+  },
+
+  notes: {
+    list: async (params?: IPCNotesListParams): Promise<IPCNote[]> => {
+      const result = await ipcRenderer.invoke('notes:list', params);
+      if (!result.success) throw new Error(result.error);
+      return result.data || [];
+    },
+
+    getById: async (noteId: string): Promise<IPCNote | null> => {
+      const result = await ipcRenderer.invoke('notes:getById', noteId);
+      if (!result.success) throw new Error(result.error);
+      return result.data || null;
+    },
+
+    create: async (note: IPCNoteCreateInput): Promise<IPCNote> => {
+      const result = await ipcRenderer.invoke('notes:create', note);
+      if (!result.success) throw new Error(result.error);
+      return result.data;
+    },
+
+    update: async (noteId: string, updates: IPCNoteUpdateInput): Promise<IPCNote | null> => {
+      const result = await ipcRenderer.invoke('notes:update', noteId, updates);
+      if (!result.success) throw new Error(result.error);
+      return result.data || null;
+    },
+
+    delete: async (noteId: string): Promise<{ deleted: boolean }> => {
+      const result = await ipcRenderer.invoke('notes:delete', noteId);
+      if (!result.success) throw new Error(result.error);
+      return result.data || { deleted: false };
+    },
+
+    generateInsights: async (noteId: string): Promise<IPCNote | null> => {
+      const result = await ipcRenderer.invoke('notes:generateInsights', noteId);
+      if (!result.success) throw new Error(result.error);
+      return result.data || null;
     },
   },
 

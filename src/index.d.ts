@@ -7,9 +7,14 @@ import type {
   IPCTask,
   IPCSession,
   IPCGoal,
+  IPCNote,
+  IPCNoteCreateInput,
+  IPCNotesListParams,
+  IPCNoteUpdateInput,
   IPCDayContext,
   IPCAgentMessage,
   IPCResponse,
+  IPCSessionLogResult,
   IPCPlanMetadata,
   IPCPlanAnalysis,
   IPCPlanMilestone,
@@ -35,7 +40,7 @@ interface IPCDB {
 
 interface IPCTaskOps {
   markDone: (taskId: string) => Promise<void>;
-  logSession: (taskId: string | null, minutes: number, notes?: string) => Promise<void>;
+  logSession: (taskId: string | null, minutes: number, notes?: string) => Promise<IPCSessionLogResult>;
   updateStatus: (taskId: string, status: 'pending' | 'in_progress' | 'done') => Promise<void>;
 }
 
@@ -68,6 +73,15 @@ interface IPCFile {
     }>
   >;
   readPlanFile: (filePath: string) => Promise<IPCResponse<{ filePath: string; fileName: string; content: string }>>;
+}
+
+interface IPCNotes {
+  list: (params?: IPCNotesListParams) => Promise<IPCNote[]>;
+  getById: (noteId: string) => Promise<IPCNote | null>;
+  create: (note: IPCNoteCreateInput) => Promise<IPCNote>;
+  update: (noteId: string, updates: IPCNoteUpdateInput) => Promise<IPCNote | null>;
+  delete: (noteId: string) => Promise<{ deleted: boolean }>;
+  generateInsights: (noteId: string) => Promise<IPCNote | null>;
 }
 
 interface IPCPlan {
@@ -105,6 +119,7 @@ interface API {
   task: IPCTaskOps;
   agent: IPCAgent;
   file: IPCFile;
+  notes: IPCNotes;
   plan: IPCPlan;
   events: IPCEvents;
   window: IPCWindow;

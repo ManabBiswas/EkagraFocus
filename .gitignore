@@ -90,7 +90,7 @@ typings/
 
 # Electron-Forge
 out/
-
+docs/
 guide/
 *.md
 !README.md

@@ -2,11 +2,17 @@ import { ipcMain, dialog, BrowserWindow } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 import {
+  autoLinkRecentNotesToSession,
+  deleteNote,
+  getNoteById,
+  getNotes,
   getTodayTasks,
   getActiveGoals,
   getTodaySessions,
   getFullContext,
   updateTaskStatus,
+  updateNote,
+  insertNote,
   insertSession,
   getTaskById,
   getWeeklySessions,
@@ -22,7 +28,18 @@ import {
 } from '../db/queries';
 import { receiveMessage } from '../services/messageReceiver';
 import { processPlanFile } from '../services/planParser';
-import type { IPCResponse, IPCDayContext, IPCTask, IPCSession } from '../../shared/ipc';
+import { generateViaOllama, llmService } from '../services/llmService';
+import type {
+  IPCResponse,
+  IPCDayContext,
+  IPCTask,
+  IPCSession,
+  IPCNote,
+  IPCNoteInsights,
+  IPCNotesListParams,
+  IPCNoteCreateInput,
+  IPCNoteUpdateInput,
+} from '../../shared/ipc';
 
 /**
  * IPC Handlers
@@ -60,6 +77,171 @@ function notifyRendererStateChange(eventName: DBStateEvent, data: unknown): void
   for (const window of BrowserWindow.getAllWindows()) {
     window.webContents.send('db-state-changed', payload);
   }
+}
+
+function normalizeJsonPayload(raw: string): string {
+  const trimmed = raw.trim();
+  const fenced = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  return fenced ? fenced[1].trim() : trimmed;
+}
+
+function safeParseInsights(raw: string): IPCNoteInsights | null {
+  try {
+    const normalized = normalizeJsonPayload(raw);
+    const parsed = JSON.parse(normalized) as Partial<IPCNoteInsights>;
+
+    if (!parsed || typeof parsed !== 'object') return null;
+
+    const summary = typeof parsed.summary === 'string' ? parsed.summary.trim() : '';
+    const tags = Array.isArray(parsed.tags)
+      ? parsed.tags.map((tag) => String(tag).trim()).filter((tag) => tag.length > 0)
+      : [];
+    const keywords = Array.isArray(parsed.keywords)
+      ? parsed.keywords.map((keyword) => String(keyword).trim()).filter((keyword) => keyword.length > 0)
+      : [];
+
+    if (!summary && tags.length === 0 && keywords.length === 0) {
+      return null;
+    }
+
+    return {
+      summary,
+      tags: Array.from(new Set(tags)).slice(0, 8),
+      keywords: Array.from(new Set(keywords)).slice(0, 12),
+    };
+  } catch {
+    return null;
+  }
+}
+
+function buildFallbackSummary(content: string): string {
+  const cleaned = content.replace(/\s+/g, ' ').trim();
+  if (!cleaned) return 'No content to summarize yet.';
+
+  const sentences = cleaned
+    .split(/(?<=[.!?])\s+/)
+    .map((sentence) => sentence.trim())
+    .filter((sentence) => sentence.length > 0);
+
+  return sentences.slice(0, 2).join(' ').slice(0, 280);
+}
+
+function buildFallbackKeywords(content: string): string[] {
+  const stopWords = new Set([
+    'the',
+    'and',
+    'for',
+    'with',
+    'this',
+    'that',
+    'from',
+    'into',
+    'your',
+    'have',
+    'will',
+    'about',
+    'when',
+    'where',
+    'what',
+    'why',
+    'how',
+    'are',
+    'was',
+    'were',
+    'been',
+    'can',
+    'could',
+    'should',
+    'would',
+  ]);
+
+  const tokens = content
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, ' ')
+    .split(/\s+/)
+    .map((token) => token.trim())
+    .filter((token) => token.length >= 4 && !stopWords.has(token));
+
+  const frequency = new Map<string, number>();
+  tokens.forEach((token) => {
+    frequency.set(token, (frequency.get(token) || 0) + 1);
+  });
+
+  return Array.from(frequency.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 8)
+    .map(([token]) => token);
+}
+
+function parseStringList(source: string | null | undefined): string[] {
+  if (!source) return [];
+
+  const trimmed = source.trim();
+  if (!trimmed) return [];
+
+  try {
+    const parsed = JSON.parse(trimmed);
+    if (Array.isArray(parsed)) {
+      return parsed.map((item) => String(item).trim()).filter((item) => item.length > 0);
+    }
+  } catch {
+    // Ignore and use comma-split fallback.
+  }
+
+  return trimmed
+    .split(',')
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
+}
+
+async function generateNoteInsights(title: string, content: string): Promise<IPCNoteInsights> {
+  const prompt = [
+    'You are an assistant that analyzes study notes.',
+    'Return ONLY strict JSON with this shape:',
+    '{"summary":"2-3 sentence summary","tags":["tag1"],"keywords":["kw1"]}',
+    'Rules:',
+    '- summary must be concise.',
+    '- tags should be 3-6 subject labels.',
+    '- keywords should be 5-10 specific terms.',
+    `Title: ${title}`,
+    `Note Content: ${content}`,
+  ].join('\n');
+
+  let raw = '';
+
+  if (llmService.isInitialized()) {
+    try {
+      raw = await llmService.generateResponse(prompt, { temperature: 0.2, maxTokens: 260 });
+    } catch (error) {
+      console.warn('[Notes] Embedded LLM insight generation failed, trying Ollama fallback:', error);
+    }
+  }
+
+  if (!raw) {
+    const ollamaRaw = await generateViaOllama(prompt, 'tinyllama');
+    raw = ollamaRaw || '';
+  }
+
+  const parsed = raw ? safeParseInsights(raw) : null;
+  if (parsed) {
+    if (!parsed.summary) {
+      parsed.summary = buildFallbackSummary(content);
+    }
+    if (parsed.tags.length === 0) {
+      parsed.tags = buildFallbackKeywords(`${title} ${content}`).slice(0, 5);
+    }
+    if (parsed.keywords.length === 0) {
+      parsed.keywords = buildFallbackKeywords(content);
+    }
+    return parsed;
+  }
+
+  const fallbackKeywords = buildFallbackKeywords(`${title} ${content}`);
+  return {
+    summary: buildFallbackSummary(content),
+    tags: fallbackKeywords.slice(0, 5),
+    keywords: fallbackKeywords.slice(0, 8),
+  };
 }
 
 /**
@@ -274,14 +456,20 @@ export function setupTaskHandlers(): void {
           notes: notes || null,
         });
 
+        const linkedNotesCount = autoLinkRecentNotesToSession(sessionId, {
+          windowMinutes: 180,
+          maxNotes: 3,
+        });
+
         notifyRendererStateChange('SESSION_LOGGED', {
           sessionId,
           taskId: taskId || null,
           minutes,
+          linkedNotesCount,
           context: getFullContext(today),
         });
 
-        return { success: true, data: { sessionId } } as IPCResponse;
+        return { success: true, data: { sessionId, linkedNotesCount } } as IPCResponse;
       } catch (error) {
         console.error('Error logging session:', error);
         return { success: false, error: 'Failed to log session' } as IPCResponse;
@@ -356,6 +544,111 @@ export function setupAgentHandlers(): void {
     } catch (error) {
       console.error('Error in agent:getTodayContext handler:', error);
       return { success: false, error: 'Failed to fetch context' } as IPCResponse;
+    }
+  });
+}
+
+export function setupNotesHandlers(): void {
+  ipcMain.handle('notes:list', async (_event, params?: IPCNotesListParams) => {
+    try {
+      const notes = getNotes(params || {});
+      return { success: true, data: notes } as IPCResponse<IPCNote[]>;
+    } catch (error) {
+      console.error('Error listing notes:', error);
+      return { success: false, error: 'Failed to list notes' } as IPCResponse;
+    }
+  });
+
+  ipcMain.handle('notes:getById', async (_event, noteId: string) => {
+    try {
+      if (!noteId || typeof noteId !== 'string') {
+        return { success: false, error: 'Invalid note id' } as IPCResponse;
+      }
+      const note = getNoteById(noteId);
+      return { success: true, data: note } as IPCResponse<IPCNote | null>;
+    } catch (error) {
+      console.error('Error getting note by id:', error);
+      return { success: false, error: 'Failed to fetch note' } as IPCResponse;
+    }
+  });
+
+  ipcMain.handle('notes:create', async (_event, note: IPCNoteCreateInput) => {
+    try {
+      if (!note || typeof note !== 'object') {
+        return { success: false, error: 'Invalid note payload' } as IPCResponse;
+      }
+
+      const created = insertNote({
+        ...note,
+        title: (note.title || 'Untitled Note').trim(),
+      });
+
+      return { success: true, data: created } as IPCResponse<IPCNote>;
+    } catch (error) {
+      console.error('Error creating note:', error);
+      return { success: false, error: 'Failed to create note' } as IPCResponse;
+    }
+  });
+
+  ipcMain.handle('notes:update', async (_event, noteId: string, updates: IPCNoteUpdateInput) => {
+    try {
+      if (!noteId || typeof noteId !== 'string') {
+        return { success: false, error: 'Invalid note id' } as IPCResponse;
+      }
+
+      const updated = updateNote(noteId, updates || {});
+      return { success: true, data: updated } as IPCResponse<IPCNote | null>;
+    } catch (error) {
+      console.error('Error updating note:', error);
+      return { success: false, error: 'Failed to update note' } as IPCResponse;
+    }
+  });
+
+  ipcMain.handle('notes:delete', async (_event, noteId: string) => {
+    try {
+      if (!noteId || typeof noteId !== 'string') {
+        return { success: false, error: 'Invalid note id' } as IPCResponse;
+      }
+
+      const deleted = deleteNote(noteId);
+      return { success: true, data: { deleted } } as IPCResponse<{ deleted: boolean }>;
+    } catch (error) {
+      console.error('Error deleting note:', error);
+      return { success: false, error: 'Failed to delete note' } as IPCResponse;
+    }
+  });
+
+  ipcMain.handle('notes:generateInsights', async (_event, noteId: string) => {
+    try {
+      if (!noteId || typeof noteId !== 'string') {
+        return { success: false, error: 'Invalid note id' } as IPCResponse;
+      }
+
+      const note = getNoteById(noteId);
+      if (!note) {
+        return { success: false, error: 'Note not found' } as IPCResponse;
+      }
+
+      const baseContent = [note.title, note.content || '', note.canvas_data || '']
+        .map((part) => part.trim())
+        .filter((part) => part.length > 0)
+        .join('\n\n');
+
+      const insights = await generateNoteInsights(note.title, baseContent);
+
+      const mergedTags = Array.from(new Set([...parseStringList(note.tags), ...insights.tags])).slice(0, 10);
+      const mergedKeywords = Array.from(new Set([...parseStringList(note.ai_keywords), ...insights.keywords])).slice(0, 15);
+
+      const updated = updateNote(noteId, {
+        ai_summary: insights.summary,
+        tags: JSON.stringify(mergedTags),
+        ai_keywords: JSON.stringify(mergedKeywords),
+      });
+
+      return { success: true, data: updated } as IPCResponse<IPCNote | null>;
+    } catch (error) {
+      console.error('Error generating note insights:', error);
+      return { success: false, error: 'Failed to generate note insights' } as IPCResponse;
     }
   });
 }
@@ -491,6 +784,10 @@ export function setupAllHandlers(): void {
   console.log('[IPC] Setting up agent handlers...');
   setupAgentHandlers();
   console.log('[IPC] ✓ Agent handlers done');
+
+  console.log('[IPC] Setting up notes handlers...');
+  setupNotesHandlers();
+  console.log('[IPC] ✓ Notes handlers done');
   
   console.log('[IPC] Setting up file handlers...');
   setupFileHandlers();

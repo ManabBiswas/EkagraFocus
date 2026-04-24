@@ -1,29 +1,6 @@
 import type { IPCResponse, IPCAgentMessage, IPCDayContext } from '../../shared/ipc';
 import { getFullContext } from '../db/queries';
 
-/**
- * Message Receiver Service (Day 2)
- * 
- * Receives user messages from React UI, validates them, and routes to
- * the Agent Pipeline for processing. Acts as the entry point for the
- * 4-layer architecture:
- * 
- *   React UI (Layer 1)
- *      ↓ sends message
- *   Message Receiver (Layer 2)
- *      ↓ validates & routes
- *   Context Builder (Layer 3)
- *      ↓ (will be implemented Day 3)
- *   LLM Agent (Layer 4)
- *      ↓ returns response
- *   
- * Responsibilities:
- * - Validate user input
- * - Get today's context from database
- * - Route to Context Builder (future)
- * - Handle errors gracefully
- * - Return type-safe responses
- */
 
 interface ValidatedMessage {
   content: string;
@@ -169,15 +146,6 @@ export async function receiveMessage(
   }
 }
 
-/**
- * Routes message to Agent Pipeline (Days 3-5)
- * 
- * Orchestrates the complete AI pipeline:
- * 1. Intent Detection: Parse message for patterns
- * 2. Agent Orchestrator: Call Ollama (TinyLLaMA) with context
- * 3. Intent Executor: Parse response and execute actions
- * 4. Return structured result with AI response
- */
 async function routeToContextBuilder(
   message: ValidatedMessage,
   // context is passed but used internally by agent pipeline
@@ -204,7 +172,5 @@ async function routeToContextBuilder(
   }
 }
 
-/**
- * Exports for testing
- */
+// Export functions
 export { validateMessage, getDayContext };

@@ -41,27 +41,6 @@ import type {
   IPCNoteUpdateInput,
 } from '../../shared/ipc';
 
-/**
- * IPC Handlers
- * All handlers receive data from Renderer via IPC and return responses
- * The bridge between Main Process (backend) and Renderer Process (frontend)
- */
-
-// Handler channel names for cleanup
-// const HANDLER_CHANNELS = [
-//   'db:getTodayTasks',
-//   'db:getActiveSessions',
-//   'db:getActiveGoals',
-//   'db:getDayContext',
-//   'task:markDone',
-//   'task:logSession',
-//   'task:updateStatus',
-//   'agent:sendMessage',
-//   'agent:getTodayContext',
-//   'import-plan-file',
-//   'read-plan-file',
-// ];
-
 // Guard to prevent duplicate handler registration
 let handlersInitialized = false;
 

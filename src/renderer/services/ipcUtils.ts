@@ -39,20 +39,4 @@ export function withTimeout<Args extends unknown[], R>(
   };
 }
 
-/**
- * Example usage in component:
- * 
- * const getTasks = withTimeout(
- *   async (date: string) => window.api.db.getTodayTasks(date),
- *   5000,
- *   'getTodayTasks'
- * );
- * 
- * try {
- *   const tasks = await getTasks(today);
- * } catch (error) {
- *   if (error.message.includes('timed out')) {
- *     // Handle timeout
- *   }
- * }
- */
+

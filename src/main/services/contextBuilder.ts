@@ -1,25 +1,5 @@
 import type { IPCDayContext } from '../../shared/ipc';
 
-/**
- * Context Builder Service (Day 3)
- *
- * Converts user message + database context into a rich prompt for the LLM.
- * Takes structured data and formats it into natural language that the AI understands.
- *
- * CRITICAL FIXES APPLIED:
- * ✅ Task IDs now visible to AI
- * ✅ Current time passed for schedule intelligence
- * ✅ Enhanced system prompt teaches schedule awareness
- *
- * Input:  message + context
- * Output: Complete prompt string ready for LLM
- */
-
-/**
- * Builds the system prompt that defines AI behavior
- * 
- * UPDATED: Now teaches AI to be SCHEDULE-AWARE
- */
 function buildSystemPrompt(): string {
   return `You are an AI Study Assistant helping students manage their learning schedule.
 

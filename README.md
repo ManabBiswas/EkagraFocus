@@ -80,7 +80,7 @@ All your data stays on your device. All processing happens locally.
 - **Node.js**: 18.0.0 or higher
 - **npm**: 9.0.0 or higher
 - **RAM**: 4GB minimum (8GB recommended for smooth AI processing)
-- **Disk Space**: 2GB for application + LLM models
+
 
 ## 🚀 Quick Start
 
@@ -297,6 +297,28 @@ npm run build
    - Update state in Zustand store if needed
    - Add tab routing in `App.tsx`
 
+## 📚 Documentation
+
+For more detailed information, please refer to:
+
+- **[Quick Start Setup](SETUP.md)** - Installation and basic setup
+- **[LLM/AI Setup Guide](docs/LLM_SETUP.md)** - Enable AI chat with local models (optional)
+- **[Architecture Guide](docs/Architecture.md)** - System design and component overview
+- **[Advanced Setup](docs/SETUP.md)** - Development and troubleshooting
+- **[Contributing Guidelines](CONTRIBUTING.md)** - How to contribute to the project
+- **[Code of Conduct](CODE_OF_CONDUCT.md)** - Community standards
+
+### Understanding "No AI Available" Message
+
+If you see `[Agent] No AI available, using enhanced fallback` in the console, this is **normal**:
+
+- ✅ App is working correctly
+- ✅ All features work without AI (timer, notes, analytics, goals)
+- ✅ Chat uses intelligent pattern matching as fallback
+- 🔧 To enable AI, see [LLM Setup Guide](docs/LLM_SETUP.md) (optional)
+
+**EkagraFocus works perfectly fine without setting up a local LLM model!**
+
 ## 🤝 Contributing
 
 We welcome contributions from developers of all skill levels. Whether you're interested in frontend, backend, AI, database optimization, or documentation, there's a place for you!
@@ -329,15 +351,7 @@ We welcome contributions from developers of all skill levels. Whether you're int
 - **TypeScript**: All code must be typed (strict mode enabled)
 - **Testing**: Validate with `npm run lint` before submitting PR
 
-### Documentation
-
-Please refer to these docs for more details:
-
-- **Getting Started**: See [QUICKSTART.md](docs/QUICKSTART.md)
-- **Contributing Process**: See [CONTRIBUTING.md](docs/CONTRIBUTING.md)
-- **Code of Conduct**: See [CODE_OF_CONDUCT.md](docs/CODE_OF_CONDUCT.md)
-- **Security Policy**: See [SECURITY.md](docs/SECURITY.md)
-- **Architecture Details**: See [docs/guide/Architecture.md](docs/guide/Architecture.md)
+See [Contributing Guidelines](CONTRIBUTING.md) for complete details.
 
 ## 🐛 Reporting Issues
 
@@ -349,30 +363,31 @@ Found a bug? Please create an issue with:
 4. **Actual Behavior**: What actually happens?
 5. **Environment**: OS, Node version, etc.
 
-## 🔒 Security
+## 🔒 Security & Privacy
 
-We take security seriously. Please see [SECURITY.md](docs/SECURITY.md) for:
+**EkagraFocus** is designed with security and privacy at its core:
 
-- Supported versions
-- How to report vulnerabilities
-- Security best practices
-- Responsible disclosure policy
+- ✅ **All data stays local** - No cloud sync or external servers
+- ✅ **No API keys required** - Works offline completely
+- ✅ **Encrypted database** - SQLite stores all data securely
+- ✅ **No telemetry** - We don't track user behavior
+- ✅ **Open source** - Code is transparent and auditable
 
-## 📚 Additional Resources
+## 🔗 External Resources
 
-### Project Documentation
-
-- [Architecture Guide](docs/guide/Architecture.md)
-- [Implementation Guide](docs/guide/IMPLEMENTATION_GUIDE.md)
-- [Quick Reference](docs/guide/QUICK_REFERENCE.md)
-
-### External Resources
+### Learn More
 
 - [Electron Documentation](https://www.electronjs.org/docs)
 - [React Documentation](https://react.dev/)
 - [TypeScript Handbook](https://www.typescriptlang.org/docs/)
 - [SQLite Documentation](https://www.sqlite.org/docs.html)
 - [Tailwind CSS](https://tailwindcss.com/docs)
+
+### AI & LLM Resources
+
+- [node-llama-cpp Documentation](https://github.com/withcatai/node-llama-cpp)
+- [Ollama Project](https://ollama.ai/)
+- [GGUF Model Format](https://github.com/ggerganov/ggml)
 
 ## 🗺 Roadmap
 
@@ -410,7 +425,3 @@ Built with amazing open-source projects:
 - [Electron Forge](https://www.electronforge.io/) - Build tooling
 
 ---
-
-Made with ❤️ for students and learners everywhere.
-
-**Questions?** Feel free to open an issue or join our discussions!

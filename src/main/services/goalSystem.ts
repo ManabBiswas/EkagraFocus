@@ -1,14 +1,3 @@
-/**
- * Goal & Penalty System
- * 
- * Manages daily study goals with debt carryover and penalty mode.
- * Key features:
- * 1. Base goal: 2 hours/day
- * 2. Debt carry-over: If goal missed, carry forward to next day
- * 3. Penalty mode: If 2 consecutive days missed → activate 7-day penalty (add 1h/day)
- * 4. Streak tracking: Track consecutive days of goal completion
- */
-
 import { getFullContext } from '../db/queries';
 import type { IPCDayContext } from '../../shared/ipc';
 import { GOAL_CONFIG } from '../../shared/goalConfig';

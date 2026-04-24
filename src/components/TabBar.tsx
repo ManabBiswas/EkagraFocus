@@ -14,7 +14,7 @@ export function TabBar() {
   ] as const;
 
   return (
-    <div className="flex gap-1 border-b border-slate-700/50 bg-gradient-to-r from-slate-900/40 to-slate-800/30 backdrop-blur-sm p-2">
+    <div className="flex gap-1 border-b border-slate-700/50 bg-linear-to-r from-slate-900/40 to-slate-800/30 backdrop-blur-sm p-2">
       {tabs.map((tab) => (
         <button
           key={tab.id}

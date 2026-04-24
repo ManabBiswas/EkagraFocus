@@ -19,7 +19,7 @@
 import type { IPCResponse, IPCAgentMessage } from '../../shared/ipc';
 import { executeIntent } from './intentExecutor';
 import { buildPrompt } from './contextBuilder';
-import { llmService } from './llmService';
+import { generateViaOllama, llmService } from './llmService';
 import { getFullContext } from '../db/queries';
 
 interface AgentPipelineMetrics {
@@ -75,17 +75,7 @@ export async function runAgent(userMessage: string): Promise<IPCResponse<IPCAgen
     const step3Start = Date.now();
     let llmResponse: string;
     let llmUsed: string;
-
-    // ─────────────────────────────────────────────────────────────
-    // CRITICAL FIX: Only use pattern matching as LAST RESORT
-    // Let the AI handle schedule intelligence whenever possible
-    // ─────────────────────────────────────────────────────────────
-    const noAIAvailable = !llmService.isInitialized();
-    
-    // Only use pattern matching if:
-    // 1. No LLM is initialized AND
-    // 2. The query is extremely simple (just "status" or "progress")
-    const isStatusQuery = /^(status|progress)$/i.test(userMessage.trim());
+    const ollamaModel = process.env.OLLAMA_MODEL?.trim() || 'phi';
 
     if (llmService.isInitialized()) {
       // USE AI FIRST - This is the primary path now
@@ -105,16 +95,29 @@ export async function runAgent(userMessage: string): Promise<IPCResponse<IPCAgen
         llmResponse = getSimpleResponse(userMessage, context);
         llmUsed = 'Pattern matching (embedded failed)';
       }
-    } else if (noAIAvailable && isStatusQuery) {
-      // Pattern matching ONLY for simple status queries when no AI
-      console.debug(`[Agent] No AI available, using pattern matching for status query [${pipelineId}]`);
-      llmResponse = getSimpleResponse(userMessage, context);
-      llmUsed = 'Pattern matching (no AI available)';
     } else {
-      // Try to be helpful even without AI
-      console.debug(`[Agent] No AI available, using enhanced fallback [${pipelineId}]`);
-      llmResponse = getSimpleResponse(userMessage, context);
-      llmUsed = 'Pattern matching (no AI available)';
+      // Try Ollama before falling back to pattern matching.
+      try {
+        console.debug(`[Agent] Calling Ollama model "${ollamaModel}" [${pipelineId}]`);
+        const ollamaResponse = await generateViaOllama(prompt, ollamaModel);
+
+        if (ollamaResponse) {
+          llmResponse = ollamaResponse;
+          llmUsed = `Ollama (${ollamaModel})`;
+          console.info(`[Agent] ✓ Ollama response received [${pipelineId}]`);
+        } else {
+          console.debug(`[Agent] No AI available, using enhanced fallback [${pipelineId}]`);
+          llmResponse = getSimpleResponse(userMessage, context);
+          llmUsed = 'Pattern matching (no AI available)';
+        }
+      } catch (ollamaError) {
+        console.warn(
+          `[Agent] Ollama failed, using pattern matching [${pipelineId}]:`,
+          ollamaError
+        );
+        llmResponse = getSimpleResponse(userMessage, context);
+        llmUsed = 'Pattern matching (ollama failed)';
+      }
     }
 
     const generationTime = Date.now() - step3Start;

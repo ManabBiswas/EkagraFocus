@@ -2,15 +2,6 @@ import type { IPCAgentMessage } from '../../shared/ipc';
 import { BrowserWindow } from 'electron';
 import { updateTaskStatus, insertSession, getTaskById, getFullContext } from '../db/queries';
 
-/**
- * Intent Executor Service (Day 4)
- *
- * Parses AI response and executes database mutations.
- * Converts AI decisions into actual database changes.
- *
- * Input:  AI response (JSON string)
- * Output: Confirmation of executed actions
- */
 
 interface AIResponse {
   action: 'log_session' | 'mark_done' | 'update_goal' | 'start_timer' | 'ask_clarification';
@@ -32,10 +23,6 @@ function notifyDbStateChanged(eventName: DBStateEvent, data: Record<string, unkn
   }
 }
 
-/**
- * Parses AI response from Ollama (Local LLM)
- * Handles various response formats and extracts structured data
- */
 function parseAIResponse(responseText: string): AIResponse {
   try {
     // Try direct JSON parsing
@@ -82,9 +69,6 @@ function parseAIResponse(responseText: string): AIResponse {
   };
 }
 
-/**
- * Validates AI response structure
- */
 function isValidAIResponse(obj: unknown): obj is AIResponse {
   if (typeof obj !== 'object' || obj === null) return false;
 
@@ -99,9 +83,7 @@ function isValidAIResponse(obj: unknown): obj is AIResponse {
   );
 }
 
-/**
- * Executes log_session action
- */
+
 function executeLogSession(data: Record<string, unknown>, reply: string): IPCAgentMessage {
   try {
     // Support both field name formats

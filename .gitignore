@@ -90,8 +90,6 @@ typings/
 
 # Electron-Forge
 out/
-docs/
-guide/
-*.md
-!README.md
-node_modules
+
+# Dependencies
+node_modules/

@@ -1,13 +1,4 @@
-/**
- * Embedded LLM Service for Electron Main Process
- * Uses node-llama-cpp to run LLM inference locally.
- * 
- * Supports:
- * 1. Loading GGUF model files
- * 2. Generating responses via chat session
- * 3. Fallback to Ollama if embedded model unavailable
- * 4. Proper error handling and lifecycle cleanup
- */
+
 
 import { app } from 'electron';
 import path from 'path';
@@ -249,11 +240,15 @@ class EmbeddedLLMService {
 // Try to generate response via Ollama (fallback)
 export async function generateViaOllama(
   prompt: string,
-  model = 'tinyllama'
+  model = process.env.OLLAMA_MODEL?.trim() || 'phi'
 ): Promise<string | null> {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+    const configuredTimeout = Number(process.env.OLLAMA_TIMEOUT_MS || 30000);
+    const timeoutMs = Number.isFinite(configuredTimeout) && configuredTimeout > 0 ? configuredTimeout : 30000;
+    timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
     console.debug('[LLMService] Trying Ollama fallback...');
 
@@ -271,8 +266,6 @@ export async function generateViaOllama(
       }),
     });
 
-    clearTimeout(timeoutId);
-
     if (!response.ok) {
       throw new Error(`Ollama returned ${response.status}`);
     }
@@ -286,6 +279,10 @@ export async function generateViaOllama(
     const errorMsg = error instanceof Error ? error.message : 'Unknown error';
     console.debug('[LLMService] Ollama fallback failed:', errorMsg);
     return null;
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
   }
 }
 

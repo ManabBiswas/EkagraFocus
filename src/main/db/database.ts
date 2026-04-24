@@ -4,11 +4,6 @@ import { app } from 'electron';
 
 let db: Database.Database | null = null;
 
-/**
- * Initialize SQLite database with schema
- * Creates tables for core app + plan analysis architecture
- * This runs only in the Main Process (Node.js backend)
- */
 export function initializeDatabase(): Database.Database {
   if (db) return db;
 

@@ -457,9 +457,18 @@ export function NotesPanel() {
         <div className="flex-1 space-y-2 overflow-y-auto pr-1">
           {isLoading && <p className="text-sm text-slate-400">Loading notes...</p>}
           {!isLoading && filteredNotes.length === 0 && (
-            <p className="rounded-xl border border-white/15 bg-black/30 p-3 text-sm text-slate-400">
-              No notes yet. Create your first note.
-            </p>
+            <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-white/15 bg-black/30 px-4 py-8 text-center">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" />
+              </svg>
+              <div>
+                <p className="text-sm font-semibold text-slate-300">No notes yet</p>
+                <p className="mt-1 text-xs text-slate-500">Start writing to capture your thoughts.</p>
+              </div>
+              <button onClick={handleCreateNew} className="btn-glow mt-1 px-4 py-1.5 text-xs">
+                Create first note
+              </button>
+            </div>
           )}
 
           {filteredNotes.map((note) => {
@@ -573,7 +582,7 @@ export function NotesPanel() {
               value={editor.content}
               onChange={(event) => setEditor((prev) => ({ ...prev, content: event.target.value }))}
               placeholder="Write markdown notes here..."
-              rows={10}
+              rows={16}
               className="metal-input w-full resize-y rounded-xl px-3 py-2 text-sm"
             />
 

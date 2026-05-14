@@ -161,11 +161,23 @@
     @apply active:scale-90 focus:outline-none;
   }
 
-  /* Tab Button Styles */
+  /* Tab Button Styles - parallelogram game-like tabs */
   .tab-btn {
-    @apply relative px-4 py-2 rounded-lg font-semibold uppercase tracking-wider text-xs;
-    @apply border transition-all duration-300;
+    @apply relative px-5 py-2 font-semibold uppercase tracking-wider text-xs;
+    @apply border transition-all duration-300 overflow-hidden;
     @apply hover:border-white/20 hover:bg-white/5 hover:text-slate-100;
+    transform: skewX(-10deg);
+    border-radius: 4px;
+  }
+
+  .tab-btn > span {
+    display: inline-block;
+    transform: skewX(10deg);
+  }
+
+  .tab-btn:focus-visible {
+    outline: 2px solid rgba(56, 189, 248, 0.8);
+    outline-offset: 2px;
   }
 
   .tab-btn-active {

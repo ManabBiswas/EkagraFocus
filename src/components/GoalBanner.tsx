@@ -60,7 +60,7 @@ function RedistributionPanel({ summaries, todayExtra, onTrigger, onDismiss, isTr
           {hasPending && (
             <button
               onClick={() => setExpanded((v) => !v)}
-              className="text-[10px] text-violet-300 underline underline-offset-2 hover:text-violet-100 transition-colors"
+              className="rounded-lg border border-violet-400/40 bg-violet-500/20 px-2 py-1 text-[10px] font-semibold text-violet-200 hover:bg-violet-500/35 transition-colors"
             >
               {expanded ? 'Hide' : `View ${summaries.length}`}
             </button>
@@ -168,7 +168,7 @@ export function GoalBanner() {
       if (!dailyStatus) return;
       const hour = new Date().getHours();
       const key = `auto_redist_${today}`;
-      if (hour < 22 || localStorage.getItem(key) || dailyStatus.goalMet) return;
+      if (hour < 23 || localStorage.getItem(key) || dailyStatus.goalMet) return;
       localStorage.setItem(key, '1');
       await triggerRedistribution();
     };

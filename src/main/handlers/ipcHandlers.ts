@@ -40,6 +40,15 @@ import type {
   IPCNoteCreateInput,
   IPCNoteUpdateInput,
 } from '../../shared/ipc';
+import {
+  redistributeIncompleteHours,
+  getRedistributionSummary,
+  getRedistributedHoursForDate,
+  getAllPendingRedistributions,
+  markRedistributionApplied,
+  clearRedistributionForSource,
+  detectIncompleteGoal,
+} from '../db/redistributionQueries';
 
 // Guard to prevent duplicate handler registration
 let handlersInitialized = false;
@@ -739,6 +748,81 @@ export function setupFileHandlers(): void {
   console.log('[FileHandler] ✓ All file handlers registered');
 }
 
+export function setupRedistributionHandlers(): void {
+  ipcMain.handle(
+    'redistribution:trigger',
+    async (_event, payload: {
+      date: string;
+      totalGoalHours: number;
+      hoursCompleted: number;
+      subject?: string | null;
+      spreadDays?: number;
+      maxExtraHoursPerDay?: number;
+    }) => {
+      try {
+        const { date, totalGoalHours, hoursCompleted, subject, spreadDays, maxExtraHoursPerDay } = payload;
+        const { isIncomplete, remainingHours } = detectIncompleteGoal(date, totalGoalHours, hoursCompleted);
+        if (!isIncomplete) {
+          return { success: true, data: { redistributed: false, message: 'Goal already met.' } };
+        }
+        const entries = redistributeIncompleteHours(date, remainingHours, {
+          spreadDays: spreadDays ?? 5,
+          maxExtraHoursPerDay: maxExtraHoursPerDay ?? 2,
+          subject: subject ?? null,
+          includeWeekends: false,
+        });
+        return { success: true, data: { redistributed: true, sourceDate: date, remainingHours, entriesCreated: entries.length, entries } };
+      } catch (error) {
+        console.error('[Redistribution] Error:', error);
+        return { success: false, error: 'Failed to redistribute workload' };
+      }
+    }
+  );
+
+  ipcMain.handle('redistribution:getSummary', async () => {
+    try {
+      return { success: true, data: getRedistributionSummary() };
+    } catch (error) {
+      return { success: false, error: 'Failed to get summary' };
+    }
+  });
+
+  ipcMain.handle('redistribution:getHoursForDate', async (_event, targetDate: string) => {
+    try {
+      const hours = getRedistributedHoursForDate(targetDate);
+      return { success: true, data: { hours } };
+    } catch (error) {
+      return { success: false, error: 'Failed to get hours' };
+    }
+  });
+
+  ipcMain.handle('redistribution:getAllPending', async () => {
+    try {
+      return { success: true, data: getAllPendingRedistributions() };
+    } catch (error) {
+      return { success: false, error: 'Failed to get pending' };
+    }
+  });
+
+  ipcMain.handle('redistribution:markApplied', async (_event, targetDate: string) => {
+    try {
+      const changes = markRedistributionApplied(targetDate);
+      return { success: true, data: { markedApplied: changes } };
+    } catch (error) {
+      return { success: false, error: 'Failed to mark applied' };
+    }
+  });
+
+  ipcMain.handle('redistribution:clear', async (_event, sourceDate: string) => {
+    try {
+      const changes = clearRedistributionForSource(sourceDate);
+      return { success: true, data: { cleared: changes } };
+    } catch (error) {
+      return { success: false, error: 'Failed to clear' };
+    }
+  });
+}
+
 export function setupAllHandlers(): void {
   // Prevent duplicate handler registration
   if (handlersInitialized) {
@@ -771,6 +855,7 @@ export function setupAllHandlers(): void {
   console.log('[IPC] Setting up file handlers...');
   setupFileHandlers();
   console.log('[IPC] ✓ File handlers done');
+  setupRedistributionHandlers();
 
   handlersInitialized = true;
   console.log('[IPC] ✓ All handlers initialized successfully');

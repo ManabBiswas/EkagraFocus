@@ -262,6 +262,26 @@ const api = {
       return result.data || null;
     },
   },
+  redistribution: {
+    trigger: async (payload: unknown) => {
+      return await ipcRenderer.invoke('redistribution:trigger', payload);
+    },
+    getSummary: async () => {
+      return await ipcRenderer.invoke('redistribution:getSummary');
+    },
+    getHoursForDate: async (date: string) => {
+      return await ipcRenderer.invoke('redistribution:getHoursForDate', date);
+    },
+    getAllPending: async () => {
+      return await ipcRenderer.invoke('redistribution:getAllPending');
+    },
+    markApplied: async (date: string) => {
+      return await ipcRenderer.invoke('redistribution:markApplied', date);
+    },
+    clear: async (sourceDate: string) => {
+      return await ipcRenderer.invoke('redistribution:clear', sourceDate);
+    },
+  },
 
   events: {
     onDbStateChanged: (callback: (payload: DBStateChangedPayload) => void) => {

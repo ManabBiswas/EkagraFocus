@@ -1,4 +1,5 @@
 import Database from 'better-sqlite3';
+import { ensureRedistributionTable } from './redistributionQueries';
 import path from 'path';
 import { app } from 'electron';
 
@@ -193,11 +194,15 @@ export function initializeDatabase(): Database.Database {
   `);
 
   // Ensure singleton user_state row exists.
-  db.prepare(`
-    INSERT OR IGNORE INTO user_state (state_id)
-    VALUES ('singleton')
+ db.prepare(`
+    INSERT OR IGNORE INTO user_state (state_id, base_goal_hours)
+    VALUES ('singleton', 9)
   `).run();
 
+  db.prepare(`
+    UPDATE user_state SET base_goal_hours = 9 WHERE state_id = 'singleton'
+  `).run();
+   ensureRedistributionTable();
   console.log(' Database initialized:', dbPath);
   return db;
 }

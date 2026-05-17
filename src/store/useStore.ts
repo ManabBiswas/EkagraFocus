@@ -16,6 +16,13 @@ import type {
   MilestoneStatus,
   WeeklyProgressView,
 } from '../types';
+const calculateRemainingHours = (
+  totalGoal: number,
+  hoursCompleted: number
+) => {
+  return Math.max(totalGoal - hoursCompleted, 0);
+};
+
 import { GOAL_CONFIG } from '../shared/goalConfig';
 
 const getTodayIsoDate = () => new Date().toISOString().split('T')[0];
@@ -133,6 +140,7 @@ interface FocusAgentState {
 }
 
 export const useStore = create<FocusAgentState>((set) => ({
+  
   // Initial state
   activeTab: 'chat',
   isInitialized: false,
@@ -219,11 +227,41 @@ export const useStore = create<FocusAgentState>((set) => ({
 
   // Session actions
   setTodaySessions: (sessions) => set({ todaySessions: sessions }),
-  addSession: (session) =>
-    set((state) => ({
-      todaySessions: [...state.todaySessions, session],
-    })),
+addSession: (session) =>
+  set((state) => {
+    if (!state.dailyStatus) return state;
 
+    const currentStatus = state.dailyStatus;
+
+    const updatedHours =
+      currentStatus.hoursCompleted + session.durationHours;
+      const baseGoal = currentStatus.totalGoal;
+
+const overflow = Math.max(updatedHours - baseGoal, 0);
+if (overflow > 0) {
+  console.log("OVERFLOW DETECTED:", overflow);
+}
+      console.log("SESSION ADDED:", session);
+      console.log("UPDATED HOURS:", updatedHours);
+
+    const remaining = calculateRemainingHours(
+      currentStatus.totalGoal,
+      updatedHours
+    );
+
+    return {
+      todaySessions: [...state.todaySessions, session],
+
+      dailyStatus: {
+        ...currentStatus,
+        hoursCompleted: updatedHours,
+        remaining: remaining,
+        goalMet: remaining === 0,
+        progressPercent:
+          (updatedHours / currentStatus.totalGoal) * 100,
+      },
+    };
+  }),
   // Analytics actions
   setWeeklyStats: (stats) => set({ weeklyStats: stats }),
   setSubjectBreakdown: (breakdown) => set({ subjectBreakdown: breakdown }),

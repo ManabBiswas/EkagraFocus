@@ -4,7 +4,7 @@ import { useStore } from '../store/useStore';
 const DEFAULT_ZOOM = 1;
 
 export function TitleBar() {
-  const { setActiveTab, addNotification } = useStore();
+  const { setActiveTab, addNotification, currentStreak } = useStore();
   const [zoomFactor, setZoomFactor] = useState<number>(DEFAULT_ZOOM);
 
   useEffect(() => {
@@ -80,6 +80,26 @@ export function TitleBar() {
           </span>
           PROFILE
         </button>
+
+        <div className="group relative flex items-center gap-1.5 px-2 py-1 select-none">
+          <span className="text-base filter drop-shadow-[0_0_8px_rgba(249,115,22,0.4)]">
+            🔥
+          </span>
+          <span className="text-sm font-bold tracking-tight text-white">
+            {currentStreak}
+          </span>
+          <span className="text-[9px] font-medium uppercase tracking-[0.15em] text-slate-500">
+             Day Streak
+          </span>
+          <div className="absolute top-full left-1/2 mt-0.5 w-44 -translate-x-1/2 scale-90 opacity-0 transition-all duration-200 group-hover:scale-100 group-hover:opacity-100 pointer-events-none z-50">
+            <div className="absolute -top-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 bg-[#0f172a] border-t border-l border-white/10" />
+              <div className="rounded-lg border border-white/10 bg-[#0f172a]/90 px-2 py-1.5 text-center shadow-xl backdrop-blur-md">
+                <p className="text-[9px] font-medium text-slate-200">
+                  ACTIVE FOR <span className="text-orange-400">{currentStreak}</span> DAYS!
+               </p>
+            </div>
+          </div>
+        </div>
 
         <div className="flex items-center gap-1 rounded-md border border-white/10 bg-white/5 px-1.5 py-1">
           <button

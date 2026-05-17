@@ -773,5 +773,5 @@ export function setupAllHandlers(): void {
   console.log('[IPC] ✓ File handlers done');
 
   handlersInitialized = true;
-  console.log('[IPC] ✅ All handlers initialized successfully');
+  console.log('[IPC] ✓ All handlers initialized successfully');
 }

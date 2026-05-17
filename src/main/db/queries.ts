@@ -290,7 +290,52 @@ export function insertSession(session: Omit<IPCSession, 'created_at'>): string {
     `INSERT INTO sessions (id, task_id, date, duration_minutes, notes)
      VALUES (?, ?, ?, ?, ?)`
   ).run(session.id, session.task_id, session.date, session.duration_minutes, session.notes);
+  
+  recalculateStreak();
+  
   return session.id;
+}
+
+export function recalculateStreak(): number {
+  const db = getDatabase();
+  const userState = getUserState();
+  const baseGoal = userState?.base_goal_hours ?? 2.0;
+
+  const rows = db.prepare(`SELECT date, SUM(duration_minutes)/60.0 as hours FROM sessions GROUP BY date ORDER BY date DESC`).all() as {date: string, hours: number}[];
+  
+  const dailyHours = new Map<string, number>();
+  rows.forEach(r => dailyHours.set(r.date, r.hours));
+
+  let streak = 0;
+  const todayDate = new Date();
+  const todayIso = todayDate.toISOString().split('T')[0];
+
+  // Calculate past streak mapping backwards from yesterday
+  let pastStreak = 0;
+  const checkDate = new Date(todayDate);
+  checkDate.setDate(checkDate.getDate() - 1);
+
+  let checking = true;
+  while (checking) {
+    const iso = checkDate.toISOString().split('T')[0];
+    const hrs = dailyHours.get(iso) || 0;
+    if (hrs >= baseGoal) {
+       pastStreak++;
+       checkDate.setDate(checkDate.getDate() - 1);
+    } else {
+       checking = false;
+    }
+  }
+
+  // Account for today
+  streak = pastStreak;
+  const todayHrs = dailyHours.get(todayIso) || 0;
+  if (todayHrs >= baseGoal) {
+    streak++;
+  }
+
+  updateUserState({ streak_days: streak });
+  return streak;
 }
 
 export function autoLinkRecentNotesToSession(

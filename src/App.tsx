@@ -156,6 +156,7 @@ export function App() {
     setSubjectBreakdown,
     setPlanSummary,
     setWeeklyProgressView,
+    setCurrentStreak,
   } = useStore();
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -311,6 +312,8 @@ export function App() {
           totalHoursStudied: planUserState?.total_hours_studied || hoursCompleted,
           baseGoal,
         });
+
+        setCurrentStreak(planUserState?.streak_days || 0);
       } catch (error) {
         console.error('[App] Failed to refresh day context:', error);
       }
@@ -336,6 +339,7 @@ export function App() {
     setSubjectBreakdown,
     setPlanSummary,
     setWeeklyProgressView,
+    setCurrentStreak,
   ]);
 
   const renderActiveTab = () => {

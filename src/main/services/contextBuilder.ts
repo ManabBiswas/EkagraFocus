@@ -1,59 +1,19 @@
 import type { IPCDayContext } from '../../shared/ipc';
 
 function buildSystemPrompt(): string {
-  return `You are an AI Study Assistant helping students manage their learning schedule.
+  return `You are a study assistant. Respond with JSON only (no markdown).
 
-Your role:
-1. Understand user messages about study activities
-2. Suggest specific actions based on the CURRENT SCHEDULE
-3. Provide motivational feedback and study advice
-4. Parse user intent and extract actionable data
-
-SCHEDULE INTELLIGENCE (CRITICAL):
-- When user asks "what should I study?" or "what's next?", find the NEXT pending task based on current time and start_time
-- When user says "start it", "let's go", or "begin", use the FIRST pending task from TODAY'S SCHEDULE
-- When suggesting a task, ALWAYS include the task ID in your response
-- Consider current time when recommending tasks (suggest upcoming tasks, not past ones)
-- If user mentions a subject (e.g., "Math"), find the matching task by name and use its ID
-
-EXAMPLE RESPONSES:
-User: "What should I study?"
-AI: {
-  "action": "ask_clarification",
-  "data": {"task_id": "math_01", "task_name": "Mathematics - Calculus Review"},
-  "reply": "Based on your schedule, you should start 'Mathematics - Calculus Review' (11:00-12:30). Ready to begin?"
-}
-
-User: "Start it" (when schedule exists)
-AI: {
-  "action": "start_timer",
-  "data": {"task_id": "phys_01", "subject": "Physics - Thermal Dynamics", "durationMinutes": 90},
-  "reply": "Starting 'Physics - Thermal Dynamics' (90 minutes). Let's focus! 🎯"
-}
-
-IMPORTANT: Always respond with ONLY valid JSON (no markdown, no backticks, just raw JSON):
+Format:
 {
-  "action": "log_session" | "start_timer" | "mark_done" | "update_goal" | "ask_clarification",
-  "data": {
-    "task_id": "REQUIRED when referencing a scheduled task",
-    "subject": "optional - task name or custom subject",
-    "minutes": "optional - for log_session",
-    "durationMinutes": "optional - for start_timer",
-    "notes": "optional - for log_session",
-    "status": "optional - new status for task"
-  },
-  "reply": "Your friendly response to the user"
+  "action": "log_session" | "start_timer" | "ask_clarification",
+  "data": {...},
+  "reply": "friendly response"
 }
 
-When user mentions:
-- "What should I study?" or "What's next?" → Find next pending task by start_time, suggest it with task_id
-- "Start it" or "Let's go" → action: "start_timer" with task from schedule
-- Study duration like "2h math" → action: "log_session" with minutes
-- Task completion → action: "mark_done" with task_id
-- Goal updates → action: "update_goal"
-- Unclear intent → action: "ask_clarification"
-
-Be encouraging, supportive, and ALWAYS schedule-aware.`;
+Examples:
+- "2h DSA" → {"action": "log_session", "data": {"minutes": 120, "subject": "DSA"}, "reply": "Logged 2h DSA!"}
+- "start 1h math" → {"action": "start_timer", "data": {"durationMinutes": 60, "subject": "Math"}, "reply": "Starting 1h Math timer!"}
+`;
 }
 
 /**
@@ -64,44 +24,20 @@ Be encouraging, supportive, and ALWAYS schedule-aware.`;
 function formatContextToText(context: IPCDayContext): string {
   const sections: string[] = [];
 
-  // Schedule Section - NOW WITH TASK IDS
+  // Simplified schedule
   if (context.tasks.length > 0) {
-    const taskLines = context.tasks
-      .map((task) => {
-        const time = task.start_time && task.end_time ? `${task.start_time}-${task.end_time}` : 'No time set';
-        const status = task.status === 'done' ? '✓' : task.status === 'in_progress' ? '⏳' : '○';
-        // CRITICAL: Include task ID so AI can reference it in actions
-        return `  ${status} [ID:${task.id}] ${task.name} (${time}) [${task.status}]`;
-      })
-      .join('\n');
-    sections.push(`TODAY'S SCHEDULE:\n${taskLines}`);
+    const taskList = context.tasks
+      .slice(0, 5)  // Only show 5 tasks max
+      .map((t) => `${t.name} (${t.start_time || 'no time'})`)
+      .join(', ');
+    sections.push(`Schedule: ${taskList}`);
   }
 
-  // Progress Section
-  const completedCount = context.tasks.filter((t) => t.status === 'done').length;
-  const progressLines = [
-    `  • Total Study Time: ${context.totalMinutes} minutes`,
-    `  • Sessions Logged: ${context.sessions.length}`,
-    `  • Tasks Completed: ${completedCount}/${context.tasks.length}`,
-  ];
-  sections.push(`TODAY'S PROGRESS:\n${progressLines.join('\n')}`);
+  // Simplified progress
+  const hours = Math.round((context.totalMinutes / 60) * 10) / 10;
+  sections.push(`Studied today: ${hours}h in ${context.sessions.length} sessions`);
 
-  // Goals Section
-  if (context.goals.length > 0) {
-    const goalLines = context.goals.map((g) => `  • ${g.description}`).join('\n');
-    sections.push(`TODAY'S GOALS:\n${goalLines}`);
-  }
-
-  // Recent Sessions Section
-  if (context.sessions.length > 0) {
-    const recentSessions = context.sessions.slice(-3);
-    const sessionLines = recentSessions
-      .map((s) => `  • ${s.duration_minutes} min${s.notes ? ` - ${s.notes}` : ''}`)
-      .join('\n');
-    sections.push(`RECENT STUDY SESSIONS:\n${sessionLines}`);
-  }
-
-  return sections.join('\n\n');
+  return sections.join('\n');
 }
 
 /**

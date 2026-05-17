@@ -22,11 +22,7 @@ const calculateRemainingHours = (
 ) => {
   return Math.max(totalGoal - hoursCompleted, 0);
 };
-const getUnmetWorkload = (dailyStatus: DailyStatus) => {
-  const remaining = dailyStatus.totalGoal - dailyStatus.hoursCompleted;
 
-  return remaining > 0 ? remaining : 0;
-};
 import { GOAL_CONFIG } from '../shared/goalConfig';
 
 const getTodayIsoDate = () => new Date().toISOString().split('T')[0];

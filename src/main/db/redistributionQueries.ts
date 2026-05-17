@@ -95,7 +95,7 @@ export function redistributeIncompleteHours(
   // Build the list of future dates to spread onto
   const futureDates: string[] = [];
   const base = new Date(sourceDate);
-  let cursor = new Date(base);
+  const cursor = new Date(base);
   cursor.setDate(cursor.getDate() + 1); // start from day after source
  
   while (futureDates.length < spreadDays) {
@@ -198,7 +198,8 @@ export function getRedistributionSummary(): RedistributionSummary[] {
   const byDate = new Map<string, RedistributionEntry[]>();
   for (const entry of entries) {
     if (!byDate.has(entry.target_date)) byDate.set(entry.target_date, []);
-    byDate.get(entry.target_date)!.push(entry);
+    const dateEntries = byDate.get(entry.target_date);
+if (dateEntries) dateEntries.push(entry);
   }
  
   return Array.from(byDate.entries()).map(([date, dateEntries]) => ({

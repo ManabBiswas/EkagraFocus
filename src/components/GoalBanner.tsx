@@ -16,15 +16,16 @@ interface RedistributionSummary {
   }>;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const ipc = async (channel: string, ...args: unknown[]): Promise<{success: boolean; data?: unknown; error?: string}> => {
   const [namespace, method] = channel.split(':');
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const api = (window as any).api?.[namespace];
   if (api && typeof api[method] === 'function') {
     return await api[method](...args);
   }
   return { success: false, error: `No handler for ${channel}` };
 };
-
 
 function formatDate(iso: string): string {
   const d = new Date(iso + 'T00:00:00');

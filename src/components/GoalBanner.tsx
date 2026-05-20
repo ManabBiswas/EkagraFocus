@@ -130,13 +130,15 @@ export function GoalBanner() {
   const [redistributionSummaries, setRedistributionSummaries] = useState<RedistributionSummary[]>([]);
   const [todayExtraHours, setTodayExtraHours] = useState(0);
   const [isTriggering, setIsTriggering] = useState(false);
+  const [burnoutWarnings, setBurnoutWarnings] = useState<Array<{ type: string; severity: string; message: string }>>([]);
   const today = getTodayIso();
 
   const loadRedistributionData = useCallback(async () => {
     try {
-      const [summaryRes, todayRes] = await Promise.all([
+      const [summaryRes, todayRes, burnoutRes] = await Promise.all([
         ipc('redistribution:getSummary'),
         ipc('redistribution:getHoursForDate', today),
+        ipc('db:getBurnoutReport'),
       ]);
       if (summaryRes?.success && Array.isArray(summaryRes.data)) {
         setRedistributionSummaries(summaryRes.data as RedistributionSummary[]);
@@ -154,6 +156,9 @@ export function GoalBanner() {
             });
           }
         }
+      }
+      if (burnoutRes?.success && Array.isArray((burnoutRes.data as any)?.warnings)) {
+        setBurnoutWarnings((burnoutRes.data as any).warnings);
       }
     } catch (err) {
       console.warn('[GoalBanner] Failed to load redistribution data:', err);
@@ -266,6 +271,23 @@ export function GoalBanner() {
       {dailyStatus.penaltyModeActive && (
         <div className="mt-3 rounded-xl border border-red-400/30 bg-red-400/15 p-3 text-sm">
           <p className="font-semibold text-red-200">Penalty mode active — 7 day duration</p>
+        </div>
+      )}
+
+      {burnoutWarnings.length > 0 && (
+        <div className="mt-3 space-y-1.5">
+          {burnoutWarnings.map((w, i) => (
+            <div
+              key={i}
+              className={`rounded-xl px-3 py-2 text-xs text-left ${
+                w.severity === 'warning'
+                  ? 'border border-orange-500/30 bg-orange-500/10 text-orange-300'
+                  : 'border border-yellow-500/30 bg-yellow-500/10 text-yellow-300'
+              }`}
+            >
+              {w.severity === 'warning' ? '⚠️' : 'ℹ️'} {w.message}
+            </div>
+          ))}
         </div>
       )}
 

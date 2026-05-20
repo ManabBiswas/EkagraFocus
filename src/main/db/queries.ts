@@ -240,7 +240,7 @@ export function updateNote(noteId: string, updates: NoteUpdateInput): IPCNote | 
 
   db.prepare(
     `UPDATE notes
-     SET ${setClause}, updated_at = CURRENT_TIMESTAMP
+     SET ${setClause}, updated_at = (strftime('%Y-%m-%d %H:%M:%S', 'now', 'localtime'))
      WHERE id = ?`
   ).run(...values, noteId);
 
@@ -279,7 +279,7 @@ export function getTotalMinutesToday(date: string): number {
 export function updateTaskStatus(taskId: string, status: 'pending' | 'in_progress' | 'done'): boolean {
   const db = getDatabase();
   const result = db
-    .prepare('UPDATE tasks SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
+    .prepare('UPDATE tasks SET status = ?, updated_at = (strftime('%Y-%m-%d %H:%M:%S', 'now', 'localtime')) WHERE id = ?')
     .run(status, taskId);
   return result.changes > 0;
 }
@@ -301,7 +301,7 @@ export function recalculateStreak(): number {
   const userState = getUserState();
   const baseGoal = userState?.base_goal_hours ?? 2.0;
 
-  const rows = db.prepare(`SELECT date, SUM(duration_minutes)/60.0 as hours FROM sessions GROUP BY date ORDER BY date DESC`).all() as {date: string, hours: number}[];
+  const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 90); const cutoffDate = cutoff.toISOString().split('T')[0]; const rows = db.prepare(`SELECT date, SUM(duration_minutes)/60.0 as hours FROM sessions WHERE date >= ? GROUP BY date ORDER BY date DESC`).all(cutoffDate) as {date: string, hours: number}[];
   
   const dailyHours = new Map<string, number>();
   rows.forEach(r => dailyHours.set(r.date, r.hours));
@@ -509,7 +509,7 @@ export function updateUserState(partial: Partial<Omit<IPCUserState, 'state_id' |
 
   db.prepare(
     `UPDATE user_state
-     SET ${setClause}, updated_at = CURRENT_TIMESTAMP
+     SET ${setClause}, updated_at = (strftime('%Y-%m-%d %H:%M:%S', 'now', 'localtime'))
      WHERE state_id = 'singleton'`
   ).run(...values);
 }

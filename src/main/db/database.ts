@@ -14,6 +14,9 @@ export function initializeDatabase(): Database.Database {
 
   // Enable foreign keys
   db.pragma('foreign_keys = ON');
+  db.function('localtime_now', () => {
+  return new Date().toLocaleString('sv-SE').replace('T', ' ').slice(0, 19);
+});
 
   // Create tables if they don't exist
   db.exec(`
@@ -25,8 +28,8 @@ export function initializeDatabase(): Database.Database {
       start_time TEXT,
       end_time TEXT,
       status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'in_progress', 'done')),
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      created_at DATETIME DEFAULT (strftime('%Y-%m-%d %H:%M:%S', 'now', 'localtime')),
+      updated_at DATETIME DEFAULT (strftime('%Y-%m-%d %H:%M:%S', 'now', 'localtime'))
     );
 
     -- Sessions table (completed study sessions)
@@ -36,7 +39,7 @@ export function initializeDatabase(): Database.Database {
       date TEXT NOT NULL,
       duration_minutes INTEGER NOT NULL,
       notes TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      created_at DATETIME DEFAULT (strftime('%Y-%m-%d %H:%M:%S', 'now', 'localtime')),
       FOREIGN KEY (task_id) REFERENCES tasks(id)
     );
 
@@ -46,8 +49,8 @@ export function initializeDatabase(): Database.Database {
       date TEXT NOT NULL,
       description TEXT NOT NULL,
       active INTEGER DEFAULT 1,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      created_at DATETIME DEFAULT (strftime('%Y-%m-%d %H:%M:%S', 'now', 'localtime')),
+      updated_at DATETIME DEFAULT (strftime('%Y-%m-%d %H:%M:%S', 'now', 'localtime'))
     );
 
     CREATE TABLE IF NOT EXISTS plan_metadata (
@@ -76,7 +79,7 @@ export function initializeDatabase(): Database.Database {
       week_end INTEGER NOT NULL,
       total_hours_allocated REAL NOT NULL,
       focus_areas TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      created_at DATETIME DEFAULT (strftime('%Y-%m-%d %H:%M:%S', 'now', 'localtime')),
       FOREIGN KEY (plan_id) REFERENCES plan_metadata(plan_id)
     );
 
@@ -93,7 +96,7 @@ export function initializeDatabase(): Database.Database {
       description TEXT,
       deliverables TEXT,
       checkpoint TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      created_at DATETIME DEFAULT (strftime('%Y-%m-%d %H:%M:%S', 'now', 'localtime')),
       FOREIGN KEY (phase_id) REFERENCES plan_phases(phase_id)
     );
 
@@ -107,7 +110,7 @@ export function initializeDatabase(): Database.Database {
         CHECK (completion_status IN ('pending', 'in_progress', 'completed', 'skipped')),
       completed_at DATETIME,
       notes TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      created_at DATETIME DEFAULT (strftime('%Y-%m-%d %H:%M:%S', 'now', 'localtime')),
       FOREIGN KEY (plan_id) REFERENCES plan_metadata(plan_id)
     );
 
@@ -153,8 +156,8 @@ export function initializeDatabase(): Database.Database {
       penalty_expiration_date TEXT,
       total_hours_studied REAL DEFAULT 0,
       last_study_date TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      created_at DATETIME DEFAULT (strftime('%Y-%m-%d %H:%M:%S', 'now', 'localtime')),
+      updated_at DATETIME DEFAULT (strftime('%Y-%m-%d %H:%M:%S', 'now', 'localtime')),
       FOREIGN KEY (current_plan_id) REFERENCES plan_metadata(plan_id)
     );
 
@@ -171,8 +174,8 @@ export function initializeDatabase(): Database.Database {
       ai_summary TEXT,
       ai_keywords TEXT,
       is_pinned INTEGER DEFAULT 0,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      created_at DATETIME DEFAULT (strftime('%Y-%m-%d %H:%M:%S', 'now', 'localtime')),
+      updated_at DATETIME DEFAULT (strftime('%Y-%m-%d %H:%M:%S', 'now', 'localtime')),
       FOREIGN KEY (linked_task_id) REFERENCES tasks(id),
       FOREIGN KEY (linked_session_id) REFERENCES sessions(id)
     );
@@ -287,7 +290,7 @@ export function clearDatabase(): void {
           penalty_expiration_date = NULL,
           total_hours_studied = 0,
           last_study_date = NULL,
-          updated_at = CURRENT_TIMESTAMP
+          updated_at = (strftime('%Y-%m-%d %H:%M:%S', 'now', 'localtime'))
       WHERE state_id = 'singleton';
     `);
     console.log(' Database cleared');

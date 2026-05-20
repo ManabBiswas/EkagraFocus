@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useStore } from './store/useStore';
 import { TitleBar } from './components/TitleBar';
 import { GoalBanner } from './components/GoalBanner';
@@ -12,6 +12,37 @@ import { NotesPanel } from './components/NotesPanel';
 import { NotificationToast } from './components/NotificationToast';
 import { GOAL_CONFIG } from './shared/goalConfig';
 
+function getGreetingMessage(date = new Date()) {
+  const hour = date.getHours();
+
+  if (hour >= 5 && hour < 12) {
+    return 'Good Morning 🌞';
+  }
+
+  if (hour >= 12 && hour < 17) {
+    return 'Good Afternoon 👋';
+  }
+
+  if (hour >= 17 && hour < 21) {
+    return 'Good Evening ✨';
+  }
+
+  return 'Ready to focus tonight? 🌙';
+}
+
+const motivationalQuotes = [
+  'Small progress is still progress.',
+  'Focus on consistency, not perfection.',
+  'One focused session can change the shape of the day.',
+  'Start where you are, then keep going.',
+  'Discipline grows one honest block at a time.',
+];
+
+function getRandomQuote() {
+  const quoteIndex = Math.floor(Math.random() * motivationalQuotes.length);
+  return motivationalQuotes[quoteIndex];
+}
+
 function DashboardOverview() {
   const {
     activeTab,
@@ -24,6 +55,19 @@ function DashboardOverview() {
     timerSeconds,
     isAgentThinking,
   } = useStore();
+  const [greeting, setGreeting] = useState(() => getGreetingMessage());
+  const [quote] = useState(() => getRandomQuote());
+
+  useEffect(() => {
+    const refreshGreeting = () => {
+      setGreeting(getGreetingMessage());
+    };
+    const greetingInterval = window.setInterval(refreshGreeting, 60 * 1000);
+
+    return () => {
+      window.clearInterval(greetingInterval);
+    };
+  }, []);
 
   const weeklyHours = weeklyStats.reduce((sum, entry) => sum + entry.hoursStudied, 0);
   const todayHours = todaySessions.reduce((sum, session) => sum + session.durationHours, 0);
@@ -81,6 +125,23 @@ function DashboardOverview() {
         </div>
 
         <div className="mt-4 space-y-3">
+          <div className="rounded-2xl border border-cyan-400/25 bg-cyan-400/10 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] sm:px-5 sm:py-4">
+            <p className="section-label text-cyan-200">Today</p>
+            <p className="mt-2 text-xl font-bold leading-tight text-white sm:text-2xl">
+              {greeting}
+            </p>
+            <p className="mt-1 text-sm text-slate-300">
+              Settle in and make the next session count.
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-amber-300/25 bg-amber-300/10 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] sm:px-5 sm:py-4">
+            <p className="section-label text-amber-200">Focus quote</p>
+            <blockquote className="mt-2 text-base font-semibold leading-relaxed text-white sm:text-lg">
+              &ldquo;{quote}&rdquo;
+            </blockquote>
+          </div>
+
           <div className="rounded-2xl border border-white/15 bg-black/40 p-4">
             <div className="flex items-center justify-between gap-3">
               <div>

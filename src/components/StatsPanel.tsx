@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useStore } from '../store/useStore';
 
 export function StatsPanel() {
@@ -16,6 +16,18 @@ export function StatsPanel() {
   const planProgressPct = planSummary && weeklyProgress
     ? Math.min(100, weeklyProgress.completionPercentage)
     : 0;
+
+  const [burnoutReport, setBurnoutReport] = useState<{ warnings: Array<{ type: string; severity: string; message: string }> } | null>(null);
+
+  useEffect(() => {
+    (window.api as any).burnout?.getReport()
+      .then((res: any) => {
+        if (res?.success && res.data?.warnings?.length > 0) {
+          setBurnoutReport(res.data);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   return (
     <div className="h-full space-y-4 overflow-y-auto p-4 pr-3">
@@ -126,6 +138,27 @@ export function StatsPanel() {
           </div>
         )}
       </div>
+
+      {/* Burnout Warnings */}
+      {burnoutReport && burnoutReport.warnings.length > 0 && (
+        <div className="panel-shell p-4">
+          <h3 className="section-label text-orange-300 mb-3">Burnout Alerts</h3>
+          <div className="space-y-2">
+            {burnoutReport.warnings.map((w, i) => (
+              <div
+                key={i}
+                className={`rounded-xl px-3 py-2 text-xs text-left ${
+                  w.severity === 'warning'
+                    ? 'bg-orange-500/10 border border-orange-500/30 text-orange-300'
+                    : 'bg-yellow-500/10 border border-yellow-500/30 text-yellow-300'
+                }`}
+              >
+                {w.severity === 'warning' ? '⚠️' : 'ℹ️'} {w.message}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Penalty Status */}
       {userState?.penaltyModeActive && (

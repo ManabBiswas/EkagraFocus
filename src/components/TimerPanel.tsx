@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useStore } from '../store/useStore';
 
 export function TimerPanel() {
@@ -13,6 +13,17 @@ export function TimerPanel() {
   } = useStore();
 
   const [sessionSubject, setSessionSubject] = useState(currentSessionSubject);
+  const [burnoutWarnings, setBurnoutWarnings] = useState<Array<{ type: string; severity: string; message: string }>>([]);
+
+  useEffect(() => {
+    window.Electron.ipcRenderer.invoke('db:getBurnoutReport')
+      .then((res: any) => {
+        if (res?.success && res.data?.warnings?.length > 0) {
+          setBurnoutWarnings(res.data.warnings.filter((w: any) => w.severity === 'warning'));
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const hours = Math.floor(timerSeconds / 3600);
   const minutes = Math.floor((timerSeconds % 3600) / 60);
@@ -31,9 +42,8 @@ export function TimerPanel() {
     if (timerSeconds === 0) return;
     
     try {
-      const minutes = Math.round((timerSeconds / 60) * 4) / 4; // Round to nearest 15 mins
+      const minutes = Math.round((timerSeconds / 60) * 4) / 4;
       
-      // Call backend to save session ONLY - let db-state-changed event refresh UI
       const result = await window.api.task.logSession(
         null,
         minutes,
@@ -42,7 +52,7 @@ export function TimerPanel() {
       
       resetTimer();
       setSessionSubject('');
-      // Toast notification would go here if available
+
       if (result.linkedNotesCount > 0) {
         console.log(
           `✓ Saved ${minutes} minutes of ${currentSessionSubject}. Auto-linked notes: ${result.linkedNotesCount}`
@@ -64,6 +74,17 @@ export function TimerPanel() {
           {hours.toString().padStart(2, '0')}:{minutes.toString().padStart(2, '0')}:{seconds.toString().padStart(2, '0')}
         </p>
       </div>
+
+      {/* Burnout Warnings */}
+      {burnoutWarnings.length > 0 && (
+        <div className="flex flex-col gap-1 w-full max-w-md">
+          {burnoutWarnings.map((w, i) => (
+            <div key={i} className="rounded-xl bg-orange-500/10 border border-orange-500/30 px-4 py-2 text-xs text-orange-300 text-left">
+              ⚠️ {w.message}
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Subject Input */}
       <div className="flex gap-2 w-full max-w-md">

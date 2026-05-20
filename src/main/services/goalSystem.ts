@@ -245,6 +245,24 @@ export function detectBurnoutRisk(lookbackDays = 7): BurnoutReport {
     }
   }
 
+  // Check for days with > 8h studied
+  for (const day of dailyHours) {
+    const hours = day.total_minutes / 60;
+    if (hours > 8) {
+      warnings.push({
+        type: 'high_daily_hours',
+        severity: 'warning',
+        message: `You studied ${Math.round(hours * 10) / 10}h on ${day.date}. Consistently exceeding 8h/day risks burnout.`,
+      });
+    } else if (hours > 6) {
+      warnings.push({
+        type: 'high_daily_hours',
+        severity: 'info',
+        message: `You studied ${Math.round(hours * 10) / 10}h on ${day.date}. Make sure to schedule rest.`,
+      });
+    }
+  }
+
   // Deduplicate same-type+date warnings
   const seen = new Set<string>();
   const deduped = warnings.filter((w) => {

@@ -1,6 +1,7 @@
 import { getFullContext } from '../db/queries';
 import type { IPCDayContext } from '../../shared/ipc';
 import { GOAL_CONFIG } from '../../shared/goalConfig';
+import { getBurnoutAnalysisData } from '../db/queries'
 
 export interface DailyGoalStatus {
   date: string;
@@ -207,6 +208,57 @@ export function calculateMissConsequence(currentStreak: number): string {
     return `Missing today will activate penalty mode: +1h/day for ${PENALTY_DURATION_DAYS} days!`;
   }
   return `Missing today will reset your streak to 0.`;
+}
+
+// Add before `export default {`
+
+export interface BurnoutWarning {
+  type: 'long_session' | 'high_daily_hours' | 'declining_consistency';
+  severity: 'info' | 'warning';
+  message: string;
+}
+
+export interface BurnoutReport {
+  hasWarnings: boolean;
+  warnings: BurnoutWarning[];
+  analyzedDays: number;
+}
+
+export function detectBurnoutRisk(lookbackDays = 7): BurnoutReport {
+  const { dailyHours, longSessions } = getBurnoutAnalysisData(lookbackDays);
+  const warnings: BurnoutWarning[] = [];
+
+  // Check for sessions > 2h without break 
+  for (const session of longSessions) {
+    if (session.duration_minutes > 150) {
+      warnings.push({
+        type: 'long_session',
+        severity: 'warning',
+        message: `You had a ${Math.round(session.duration_minutes / 60 * 10) / 10}h session on ${session.date} without a break. Consider the Pomodoro technique.`,
+      });
+    } else if (session.duration_minutes > 120) {
+      warnings.push({
+        type: 'long_session',
+        severity: 'info',
+        message: `Session on ${session.date} was over 2h. Short breaks improve retention.`,
+      });
+    }
+  }
+
+  // Deduplicate same-type+date warnings
+  const seen = new Set<string>();
+  const deduped = warnings.filter((w) => {
+    const key = `${w.type}|${w.message}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  return {
+    hasWarnings: deduped.length > 0,
+    warnings: deduped,
+    analyzedDays: lookbackDays,
+  };
 }
 
 export default {

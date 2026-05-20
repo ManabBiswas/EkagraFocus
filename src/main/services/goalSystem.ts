@@ -263,6 +263,19 @@ export function detectBurnoutRisk(lookbackDays = 7): BurnoutReport {
     }
   }
 
+  // Check for declining consistency over last 3 vs prior 3 days
+  if (dailyHours.length >= 6) {
+    const recent = dailyHours.slice(-3).reduce((s, d) => s + d.total_minutes, 0);
+    const prior = dailyHours.slice(-6, -3).reduce((s, d) => s + d.total_minutes, 0);
+    if (prior > 0 && recent < prior * 0.6) {
+      warnings.push({
+        type: 'declining_consistency',
+        severity: 'info',
+        message: `Your study time dropped by ${Math.round((1 - recent / prior) * 100)}% over the last 3 days. This may indicate fatigue.`,
+      });
+    }
+  }
+
   // Deduplicate same-type+date warnings
   const seen = new Set<string>();
   const deduped = warnings.filter((w) => {

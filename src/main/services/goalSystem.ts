@@ -299,6 +299,7 @@ export default {
   formatGoalSummary,
   checkStreakRisk,
   calculateMissConsequence,
+  detectBurnoutRisk,
   BASE_GOAL_HOURS,
   PENALTY_ACTIVATION_STREAK,
   PENALTY_DURATION_DAYS,

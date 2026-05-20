@@ -354,7 +354,7 @@ export function autoLinkRecentNotesToSession(
        SELECT id
        FROM notes
        WHERE linked_session_id IS NULL
-         AND datetime(updated_at) >= datetime('now', ?)
+         AND datetime(updated_at) >= datetime('now', 'localtime', ?)
        ORDER BY datetime(updated_at) DESC
        LIMIT ?
      )`

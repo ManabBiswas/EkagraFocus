@@ -284,15 +284,36 @@ export function updateTaskStatus(taskId: string, status: 'pending' | 'in_progres
   return result.changes > 0;
 }
 
-export function insertSession(session: Omit<IPCSession, 'created_at'>): string {
+export interface SessionInsertInput {
+  id: string;
+  task_id: string | null;
+  date: string;
+  duration_minutes: number;
+  notes: string | null;
+  /** "HH:MM" — optional, captured from timer start */
+  start_time?: string | null;
+  /** "HH:MM" — optional, captured from timer stop */
+  end_time?: string | null;
+}
+
+export function insertSession(session: SessionInsertInput): string {
   const db = getDatabase();
+
   db.prepare(
-    `INSERT INTO sessions (id, task_id, date, duration_minutes, notes)
-     VALUES (?, ?, ?, ?, ?)`
-  ).run(session.id, session.task_id, session.date, session.duration_minutes, session.notes);
-  
+    `INSERT INTO sessions (id, task_id, date, duration_minutes, notes, start_time, end_time)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`
+  ).run(
+    session.id,
+    session.task_id,
+    session.date,
+    session.duration_minutes,
+    session.notes,
+    session.start_time ?? null,
+    session.end_time ?? null,
+  );
+
   recalculateStreak();
-  
+
   return session.id;
 }
 
@@ -308,7 +329,7 @@ export function recalculateStreak(): number {
 
   let streak = 0;
   const todayDate = new Date();
-  const todayIso = todayDate.toISOString().split('T')[0];
+  const todayIsoStr = todayDate.toISOString().split('T')[0];
 
   // Calculate past streak mapping backwards from yesterday
   let pastStreak = 0;
@@ -329,7 +350,7 @@ export function recalculateStreak(): number {
 
   // Account for today
   streak = pastStreak;
-  const todayHrs = dailyHours.get(todayIso) || 0;
+  const todayHrs = dailyHours.get(todayIsoStr) || 0;
   if (todayHrs >= baseGoal) {
     streak++;
   }

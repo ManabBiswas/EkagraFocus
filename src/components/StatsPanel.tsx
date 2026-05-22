@@ -273,5 +273,5 @@ export function StatsPanel() {
         </div>
       )}
     </div>
- );
+  );
 }

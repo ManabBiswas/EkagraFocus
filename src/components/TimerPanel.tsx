@@ -133,6 +133,7 @@ export function TimerPanel() {
       resetTimer();
       setSessionSubject('');
 
+
       if (result.linkedNotesCount > 0) {
         console.log(
           `✓ Saved ${durationMinutes}m of ${currentSessionSubject}. Auto-linked notes: ${result.linkedNotesCount}`

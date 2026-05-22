@@ -852,3 +852,29 @@ export function estimateWeekDateRange(weekNumber: number): { start: string; end:
   return getWeekDateRangeFromStart(planStart, weekNumber);
 }
 
+// Add after getUpcomingTasks or at end of file
+
+export function getBurnoutAnalysisData(lookbackDays = 7): {
+  dailyHours: Array<{ date: string; total_minutes: number }>;
+  longSessions: Array<{ date: string; duration_minutes: number; start_time: string | null; end_time: string | null }>;
+} {
+  const db = getDatabase();
+  const end = todayIso();
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - lookbackDays);
+  const start = startDate.toISOString().split('T')[0];
+
+  const dailyHours = db.prepare(
+    `SELECT date, SUM(duration_minutes) as total_minutes
+     FROM sessions WHERE date >= ? AND date <= ?
+     GROUP BY date ORDER BY date ASC`
+  ).all(start, end) as Array<{ date: string; total_minutes: number }>;
+
+  const longSessions = db.prepare(
+    `SELECT date, duration_minutes, start_time, end_time
+     FROM sessions WHERE date >= ? AND date <= ? AND duration_minutes > 120
+     ORDER BY date ASC`
+  ).all(start, end) as Array<{ date: string; duration_minutes: number; start_time: string | null; end_time: string | null }>;
+
+  return { dailyHours, longSessions };
+}

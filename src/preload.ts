@@ -158,14 +158,25 @@ const api = {
     },
 
     /**
-     * Log a study session
+     * Log a study session.
+     * startTime and endTime are optional "HH:MM" strings used for
+     * burnout analysis (continuous block detection).
      */
     logSession: async (
       taskId: string | null,
       durationMinutes: number,
       notes?: string,
+      startTime?: string | null,
+      endTime?: string | null,
     ): Promise<IPCSessionLogResult> => {
-      const result = await ipcRenderer.invoke('task:logSession', taskId, durationMinutes, notes);
+      const result = await ipcRenderer.invoke(
+        'task:logSession',
+        taskId,
+        durationMinutes,
+        notes,
+        startTime ?? null,
+        endTime ?? null,
+      );
       if (!result.success) throw new Error(result.error);
       return result.data || { sessionId: '', linkedNotesCount: 0 };
     },
@@ -212,7 +223,6 @@ const api = {
      * Open file picker and read markdown plan
      */
     importPlanFile: async (): Promise<IPCResponse<unknown>> => {
-      // Returns IPCResponse directly from handler
       return await ipcRenderer.invoke('import-plan-file');
     },
 
@@ -220,10 +230,13 @@ const api = {
      * Read a plan file from a given path
      */
     readPlanFile: async (filePath: string): Promise<IPCResponse<unknown>> => {
-      // Returns IPCResponse directly from handler
       return await ipcRenderer.invoke('read-plan-file', filePath);
     },
   },
+
+  // ─────────────────────────────────────────────────────────────
+  // NOTES
+  // ─────────────────────────────────────────────────────────────
 
   notes: {
     list: async (params?: IPCNotesListParams): Promise<IPCNote[]> => {
@@ -262,6 +275,11 @@ const api = {
       return result.data || null;
     },
   },
+
+  // ─────────────────────────────────────────────────────────────
+  // REDISTRIBUTION
+  // ─────────────────────────────────────────────────────────────
+
   redistribution: {
     trigger: async (payload: unknown) => {
       return await ipcRenderer.invoke('redistribution:trigger', payload);
@@ -283,6 +301,37 @@ const api = {
     },
   },
 
+  // ─────────────────────────────────────────────────────────────
+  // BURNOUT DETECTION
+  // ─────────────────────────────────────────────────────────────
+
+  burnout: {
+    /**
+     * Full 7-day heuristic burnout analysis.
+     * Returns BurnoutReport with warnings, recommendations, risk level and stats.
+     * Does NOT affect streaks or penalties — informational only.
+     */
+    getReport: async () => {
+      const result = await ipcRenderer.invoke('burnout:getReport');
+      if (!result.success) throw new Error(result.error);
+      return result;
+    },
+
+    /**
+     * Lightweight check based solely on today's total logged minutes.
+     * Cheap to call — safe to run after every session log or timer tick.
+     */
+    getLiveRisk: async () => {
+      const result = await ipcRenderer.invoke('burnout:getLiveRisk');
+      if (!result.success) throw new Error(result.error);
+      return result;
+    },
+  },
+
+  // ─────────────────────────────────────────────────────────────
+  // EVENTS
+  // ─────────────────────────────────────────────────────────────
+
   events: {
     onDbStateChanged: (callback: (payload: DBStateChangedPayload) => void) => {
       const listener = (_event: Electron.IpcRendererEvent, payload: DBStateChangedPayload) => {
@@ -300,6 +349,7 @@ const api = {
   // ─────────────────────────────────────────────────────────────
   // WINDOW CONTROLS
   // ─────────────────────────────────────────────────────────────
+
   window: {
     minimize: async () => {
       return await ipcRenderer.invoke('window:minimize');

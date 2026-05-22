@@ -287,7 +287,7 @@ function NotesEmptyState({ onCreateNew }: { onCreateNew: () => void }) {
 
       <button
         onClick={onCreateNew}
-        className="btn-glow w-full rounded-xl py-2.5 text-sm font-semibold"
+        className="btn-glow w-full cursor-pointer rounded-xl py-2.5 text-sm font-semibold"
       >
         + Create your first note
       </button>
@@ -642,7 +642,7 @@ export function NotesPanel() {
               onChange={(event) => setEditor((prev) => ({ ...prev, content: event.target.value }))}
               placeholder="Write markdown notes here..."
               rows={16}
-              className="metal-input min-h-[240px] w-full resize-y rounded-xl px-3 py-2 text-sm"
+              className="metal-input min-h-60 w-full resize-y rounded-xl px-3 py-2 text-sm"
             />
 
             <textarea

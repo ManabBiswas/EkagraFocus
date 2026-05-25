@@ -340,12 +340,25 @@ export function recalculateStreak(): number {
 
 export function autoLinkRecentNotesToSession(
   sessionId: string,
-  options?: { windowMinutes?: number; maxNotes?: number }
+  options?: {
+  windowMinutes?: number;
+  maxNotes?: number;
+  minimumContentLength?: number;
+}
 ): number {
   const db = getDatabase();
-  const windowMinutes = Math.max(5, Math.min(options?.windowMinutes || 180, 24 * 60));
-  const maxNotes = Math.max(1, Math.min(options?.maxNotes || 3, 20));
-  const minimumContentLength=20;
+  const windowMinutes = Math.max(
+  5,
+  Math.min(options?.windowMinutes || 180, 24 * 60)
+);
+
+const maxNotes = Math.max(
+  1,
+  Math.min(options?.maxNotes || 3, 20)
+);
+
+const minimumContentLength = Math.max(5,Math.min(options?.minimumContentLength || 20, 500)
+);
   const windowModifier = `-${windowMinutes} minutes`;
 
   const result = db.prepare(
@@ -356,7 +369,8 @@ export function autoLinkRecentNotesToSession(
        FROM notes
        WHERE linked_session_id IS NULL
          AND content IS NOT NULL
-         AND LENGTH(trim(content)) >= ?
+         AND LENGTH(content) >= ?
+         AND trim(content) != "
          AND datetime(updated_at) >= datetime('now', ?)
        ORDER BY datetime(updated_at) DESC
        LIMIT ?

@@ -6,11 +6,11 @@ export type BurnoutSeverity = 'info' | 'warning' | 'critical';
 
 export interface BurnoutWarning {
   type:
-    | 'long_session'
-    | 'high_daily_hours'
-    | 'declining_consistency'
-    | 'no_break'
-    | 'overload_streak';
+  | 'long_session'
+  | 'high_daily_hours'
+  | 'declining_consistency'
+  | 'no_break'
+  | 'overload_streak';
   severity: BurnoutSeverity;
   message: string;
   detail?: string;
@@ -168,21 +168,39 @@ function detectNoBreakBlocks(sessions: RawSession[]): {
 
   for (const [date, daySessions] of byDate) {
     // Sort by start_time ascending
-    daySessions.sort((a, b) =>
-      toTimestamp(date, a.start_time!) - toTimestamp(date, b.start_time!)
-    );
+    daySessions.sort((a, b) => {
+      if (!a.start_time || !b.start_time) return 0;
 
-    let blockStartMs = toTimestamp(date, daySessions[0].start_time!);
-    let blockEndMs = toTimestamp(date, daySessions[0].end_time!);
+      return (
+        toTimestamp(date, a.start_time) -
+        toTimestamp(date, b.start_time)
+      );
+    });
+
+    const firstSession = daySessions[0];
+
+    if (!firstSession?.start_time || !firstSession?.end_time) {
+      continue;
+    }
+
+    let blockStartMs = toTimestamp(date, firstSession.start_time);
+    let blockEndMs = toTimestamp(date, firstSession.end_time);
 
     for (let i = 1; i < daySessions.length; i++) {
       const s = daySessions[i];
-      const sStart = toTimestamp(date, s.start_time!);
+      if (!s.start_time) continue;
+
+      const sStart = toTimestamp(date, s.start_time);
       const gapMinutes = (sStart - blockEndMs) / 60_000;
 
       if (gapMinutes <= NO_BREAK_GAP_MINUTES) {
         // Extend block
-        blockEndMs = Math.max(blockEndMs, toTimestamp(date, s.end_time!));
+        if (!s.end_time) continue;
+
+        blockEndMs = Math.max(
+          blockEndMs,
+          toTimestamp(date, s.end_time)
+        );
       } else {
         // Evaluate completed block
         const blockHours = (blockEndMs - blockStartMs) / 3_600_000;
@@ -200,8 +218,10 @@ function detectNoBreakBlocks(sessions: RawSession[]): {
             message: `${blockHours.toFixed(1)}h continuous study block on ${date} — a short break would help.`,
           });
         }
-        blockStartMs = toTimestamp(date, s.start_time!);
-        blockEndMs = toTimestamp(date, s.end_time!);
+        if (!s.start_time || !s.end_time) continue;
+
+        blockStartMs = toTimestamp(date, s.start_time);
+        blockEndMs = toTimestamp(date, s.end_time);
       }
     }
 

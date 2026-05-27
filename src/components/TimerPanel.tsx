@@ -16,7 +16,6 @@ export function TimerPanel() {
   const {
     timerRunning,
     timerSeconds,
-    timerStartedAt,
     currentSessionSubject,
     setTimerSubject,
     startTimer,
@@ -117,8 +116,6 @@ export function TimerPanel() {
 
     try {
       const durationMinutes = Math.round((timerSeconds / 60) * 4) / 4;
-      const startTime = sessionStartTimeRef.current;
-      const endTime = formatHHMM(new Date());
 
       const result = await window.api.task.logSession(
         null,

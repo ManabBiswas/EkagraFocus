@@ -152,7 +152,14 @@
     @apply hover:shadow-xl hover:text-purple-50;
     @apply active:scale-95 focus:outline-none;
   }
-
+  
+  .btn-icon {
+    @apply inline-flex items-center justify-center w-10 h-10 rounded-lg;
+    @apply border border-cyan-400 bg-cyan-900;
+    @apply text-cyan-300 transition-all duration-200;
+    @apply hover:text-cyan-200;
+    @apply active:scale-90 focus:outline-none;
+  }
 
   /* Tab Button Styles */
 /* Base tab */

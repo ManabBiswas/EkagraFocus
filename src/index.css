@@ -153,25 +153,47 @@
     @apply active:scale-95 focus:outline-none;
   }
 
-  .btn-icon {
-    @apply inline-flex items-center justify-center w-10 h-10 rounded-lg;
-    @apply border border-cyan-400 bg-cyan-900;
-    @apply text-cyan-300 transition-all duration-200;
-    @apply hover:text-cyan-200;
-    @apply active:scale-90 focus:outline-none;
-  }
 
   /* Tab Button Styles */
-  .tab-btn {
-    @apply relative px-4 py-2 rounded-lg font-semibold uppercase tracking-wider text-xs;
-    @apply border transition-all duration-300;
-    @apply hover:border-white/20 hover:bg-white/5 hover:text-slate-100;
-  }
+/* Base tab (static, no movement) */
+.tab-btn {
+  @apply relative px-5 py-1 text-xs font-semibold uppercase tracking-wider;
+  color: rgb(252, 253, 254);
+  clip-path: polygon(10px 10px, 100% 0, calc(100% - 22px) 100%, 10% 100%);
+}
+.tab-btn::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
 
-  .tab-btn-active {
-    @apply border-cyan-400 bg-cyan-900;
-    @apply text-cyan-100 shadow-md;
-  }
+  width: 14px;
+  height: 14px;
+
+  background: inherit;
+  border-top-left-radius: 8px;
+
+  transform: translate(-2px, -2px);
+}
+/* Hover = ONLY color change */
+.tab-btn-idle:hover {
+  color: #e2e8f0;
+  transform: translateX(-82);  
+}
+
+/* 🔷 Sliding active background */
+.tab-slider {
+  width:80px;
+  clip-path: polygon(19.92px 0% , 100% 0%, 77.8% 100%, 0% 100%);
+
+  background: linear-gradient(135deg, #178092, #11daf9);
+
+  box-shadow:
+    0 0 10px rgba(34, 211, 238, 0.6),
+    inset 0 0 6px rgba(255, 255, 255, 0.1);
+
+  border: 1px solid rgba(34, 211, 238, 0.6);
+}
 
   /* Input Styling */
   .metal-input {

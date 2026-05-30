@@ -1,10 +1,14 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useStore } from '../store/useStore';
+
+const timerPresets = [25, 45, 60, 90];
+const defaultSubject = 'Focus Session';
 
 export function TimerPanel() {
   const {
     timerRunning,
     timerSeconds,
+    timerDurationMinutes,
     currentSessionSubject,
     setTimerSubject,
     startTimer,
@@ -13,18 +17,36 @@ export function TimerPanel() {
   } = useStore();
 
   const [sessionSubject, setSessionSubject] = useState(currentSessionSubject);
+  const [selectedDuration, setSelectedDuration] = useState(timerDurationMinutes || 25);
 
-  const hours = Math.floor(timerSeconds / 3600);
-  const minutes = Math.floor((timerSeconds % 3600) / 60);
-  const seconds = timerSeconds % 60;
+  const activeDuration = timerDurationMinutes || selectedDuration;
+  const durationSeconds = activeDuration * 60;
+  const displaySeconds = timerRunning || timerSeconds > 0
+    ? Math.max(durationSeconds - timerSeconds, 0)
+    : durationSeconds;
+  const hours = Math.floor(displaySeconds / 3600);
+  const minutes = Math.floor((displaySeconds % 3600) / 60);
+  const seconds = displaySeconds % 60;
+
+  useEffect(() => {
+    if (!timerRunning && timerDurationMinutes > 0) {
+      setSelectedDuration(timerDurationMinutes);
+    }
+  }, [timerDurationMinutes, timerRunning]);
 
   const handleStartStop = () => {
     if (timerRunning) {
       stopTimer();
     } else {
-      if (!sessionSubject.trim()) return;
-      startTimer(sessionSubject);
+      const subject = sessionSubject.trim() || defaultSubject;
+      setSessionSubject(subject);
+      setTimerSubject(subject);
+      startTimer(subject, selectedDuration);
     }
+  };
+
+  const handleReset = () => {
+    resetTimer();
   };
 
   const handleSaveSession = async () => {
@@ -32,16 +54,18 @@ export function TimerPanel() {
     
     try {
       const minutes = Math.round((timerSeconds / 60) * 4) / 4; // Round to nearest 15 mins
+      const subject = currentSessionSubject || sessionSubject.trim() || defaultSubject;
       
       // Call backend to save session ONLY - let db-state-changed event refresh UI
       const result = await window.api.task.logSession(
         null,
         minutes,
-        `${currentSessionSubject} (${timerSeconds}s)`
+        `${subject} (${timerSeconds}s)`
       );
       
       resetTimer();
       setSessionSubject('');
+      setSelectedDuration(25);
       // Toast notification would go here if available
       if (result.linkedNotesCount > 0) {
         console.log(
@@ -63,6 +87,9 @@ export function TimerPanel() {
         <p className="font-mono text-6xl font-black tracking-[0.08em] text-cyan-300 md:text-7xl">
           {hours.toString().padStart(2, '0')}:{minutes.toString().padStart(2, '0')}:{seconds.toString().padStart(2, '0')}
         </p>
+        <p className="mt-3 text-xs uppercase tracking-[0.3em] text-slate-400">
+          {activeDuration} min preset
+        </p>
       </div>
 
       {/* Subject Input */}
@@ -79,6 +106,30 @@ export function TimerPanel() {
         />
       </div>
 
+      {/* Time Presets */}
+      <div className="flex flex-wrap justify-center gap-2">
+        {timerPresets.map((preset) => (
+          <button
+            key={preset}
+            type="button"
+            onClick={() => {
+              setSelectedDuration(preset);
+              if (timerSeconds > 0) {
+                resetTimer();
+              }
+            }}
+            disabled={timerRunning}
+            className={`rounded-xl border px-4 py-2 text-xs font-bold uppercase tracking-widest transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-45 ${
+              selectedDuration === preset
+                ? 'border-cyan-400 bg-cyan-400/20 text-cyan-100 shadow-lg'
+                : 'border-slate-600 bg-slate-900 text-slate-300 hover:border-cyan-400/60 hover:text-cyan-100'
+            }`}
+          >
+            {preset} min
+          </button>
+        ))}
+      </div>
+
       {/* Control Buttons */}
       <div className="flex gap-3">
         <button
@@ -92,14 +143,14 @@ export function TimerPanel() {
           {timerRunning ? 'PAUSE' : 'START'}
         </button>
         <button
-          onClick={resetTimer}
+          onClick={handleReset}
           className="btn-secondary"
         >
           RESET
         </button>
         <button
           onClick={handleSaveSession}
-          disabled={timerSeconds === 0 || !currentSessionSubject}
+          disabled={timerSeconds === 0}
           className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
         >
           SAVE

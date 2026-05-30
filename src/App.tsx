@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { useStore } from './store/useStore';
 import { TitleBar } from './components/TitleBar';
 import { GoalBanner } from './components/GoalBanner';
@@ -11,6 +11,25 @@ import { PlanViewer } from './components/PlanViewer';
 import { NotesPanel } from './components/NotesPanel';
 import { NotificationToast } from './components/NotificationToast';
 import { GOAL_CONFIG } from './shared/goalConfig';
+
+const focusQuotes = [
+  'Small progress is still progress.',
+  'One focused session can change the shape of the day.',
+  'Start small, stay steady, finish clean.',
+  'Protect the next hour. The rest can wait.',
+  'Clarity comes from motion.',
+];
+
+function getGreeting() {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good Morning';
+  if (hour < 17) return 'Good Afternoon';
+  return 'Good Evening';
+}
+
+function getRandomQuote() {
+  return focusQuotes[Math.floor(Math.random() * focusQuotes.length)];
+}
 
 function DashboardOverview() {
   const {
@@ -36,6 +55,8 @@ function DashboardOverview() {
   const goalLabel = dailyStatus
     ? `${dailyStatus.hoursCompleted.toFixed(1)}h / ${dailyStatus.totalGoal.toFixed(1)}h`
     : 'No goal loaded';
+  const greeting = getGreeting();
+  const quote = useMemo(() => getRandomQuote(), []);
 
   const stats = [
     {
@@ -81,6 +102,19 @@ function DashboardOverview() {
         </div>
 
         <div className="mt-4 space-y-3">
+          <div className="rounded-2xl border border-cyan-400/25 bg-cyan-400/10 p-4">
+            <p className="section-label text-cyan-300">Today</p>
+            <p className="mt-2 text-xl font-bold text-white">{greeting}</p>
+            <p className="mt-1 text-xs text-slate-300">
+              Settle in and make the next session count.
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-amber-400/25 bg-amber-400/10 p-4">
+            <p className="section-label text-amber-200">Focus quote</p>
+            <p className="mt-2 text-sm font-semibold text-amber-50">&quot;{quote}&quot;</p>
+          </div>
+
           <div className="rounded-2xl border border-white/15 bg-black/40 p-4">
             <div className="flex items-center justify-between gap-3">
               <div>

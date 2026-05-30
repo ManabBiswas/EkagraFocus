@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useStore } from '../store/useStore';
+import type { BurnoutReport } from '../store/useStore';
 
 interface RedistributionSummary {
   targetDate: string;
@@ -35,6 +36,8 @@ function formatDate(iso: string): string {
 function getTodayIso(): string {
   return new Date().toISOString().split('T')[0];
 }
+
+// ─── Redistribution panel (unchanged) ────────────────────────────────────────
 
 interface RedistributionPanelProps {
   summaries: RedistributionSummary[];
@@ -125,12 +128,96 @@ function RedistributionPanel({ summaries, todayExtra, onTrigger, onDismiss, isTr
   );
 }
 
+// ─── Burnout nudge ────────────────────────────────────────────────────────────
+
+interface BurnoutNudgeProps {
+  report: BurnoutReport;
+}
+
+function BurnoutNudge({ report }: BurnoutNudgeProps) {
+  const [dismissed, setDismissed] = useState(false);
+
+  // Only render for moderate/high risk, and only if not dismissed
+  if (dismissed || report.riskLevel === 'none' || report.riskLevel === 'low') {
+    return null;
+  }
+
+  const isHigh = report.riskLevel === 'high';
+  const topWarning = report.warnings[0];
+  const topRec = report.recommendations[0];
+
+  return (
+    <div
+      className={`mt-3 rounded-xl border p-3 ${
+        isHigh
+          ? 'border-red-400/35 bg-red-500/10'
+          : 'border-orange-400/30 bg-orange-500/10'
+      }`}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span className="text-base">{isHigh ? '⛔' : '⚠️'}</span>
+          <p
+            className={`text-[11px] font-semibold uppercase tracking-[0.2em] ${
+              isHigh ? 'text-red-300' : 'text-orange-300'
+            }`}
+          >
+            {isHigh ? 'High Burnout Risk' : 'Burnout Warning'}
+          </p>
+        </div>
+        <button
+          onClick={() => setDismissed(true)}
+          className="text-[10px] text-slate-500 hover:text-slate-300 transition-colors shrink-0"
+          aria-label="Dismiss burnout warning"
+        >
+          ✕
+        </button>
+      </div>
+
+      {topWarning && (
+        <p
+          className={`mt-2 text-xs leading-relaxed ${
+            isHigh ? 'text-red-200' : 'text-orange-200'
+          }`}
+        >
+          {topWarning.message}
+        </p>
+      )}
+
+      {topRec && (
+        <p className="mt-1.5 text-xs text-slate-300 leading-relaxed">
+          <span className="text-sky-400">→</span> {topRec}
+        </p>
+      )}
+
+      {report.warnings.length > 1 && (
+        <p className="mt-1.5 text-[10px] text-slate-500">
+          +{report.warnings.length - 1} more signal{report.warnings.length > 2 ? 's' : ''} — check the Stats tab for details.
+        </p>
+      )}
+    </div>
+  );
+}
+
+// ─── GoalBanner ───────────────────────────────────────────────────────────────
+
 export function GoalBanner() {
-  const { dailyStatus, updateDailyStatus } = useStore();
+  const {
+    dailyStatus,
+    updateDailyStatus,
+    burnoutReport,
+    fetchBurnoutReport,
+  } = useStore();
+
   const [redistributionSummaries, setRedistributionSummaries] = useState<RedistributionSummary[]>([]);
   const [todayExtraHours, setTodayExtraHours] = useState(0);
   const [isTriggering, setIsTriggering] = useState(false);
   const today = getTodayIso();
+
+  // Fetch burnout report once on mount (throttled inside store)
+  useEffect(() => {
+    fetchBurnoutReport();
+  }, [fetchBurnoutReport]);
 
   const loadRedistributionData = useCallback(async () => {
     try {
@@ -213,6 +300,7 @@ export function GoalBanner() {
 
   return (
     <div className="panel-shell p-4">
+      {/* ── Goal header + progress bar ───────────────────────────────────── */}
       <div className="mb-3 border-b border-white/20 pb-3">
         <div className="mb-2 flex items-center justify-between">
           <div>
@@ -231,13 +319,16 @@ export function GoalBanner() {
         <div className="h-2.5 w-full overflow-hidden rounded-full border border-white/20 bg-slate-900">
           <div
             className={`h-full transition-all duration-300 shadow-[0_0_8px] ${
-              dailyStatus.goalMet ? 'bg-emerald-400 shadow-emerald-400/50' : 'bg-cyan-400 shadow-cyan-400/50'
+              dailyStatus.goalMet
+                ? 'bg-emerald-400 shadow-emerald-400/50'
+                : 'bg-cyan-400 shadow-cyan-400/50'
             }`}
             style={{ width: `${progressPercent}%` }}
           />
         </div>
       </div>
 
+      {/* ── Goal breakdown pills ─────────────────────────────────────────── */}
       <div className="grid grid-cols-3 gap-2 text-sm">
         <div className="rounded-xl border border-white/15 bg-black/35 p-3">
           <p className="text-[10px] uppercase tracking-[0.3em] text-slate-300 font-semibold">Base</p>
@@ -263,12 +354,17 @@ export function GoalBanner() {
         )}
       </div>
 
+      {/* ── Penalty mode banner ──────────────────────────────────────────── */}
       {dailyStatus.penaltyModeActive && (
         <div className="mt-3 rounded-xl border border-red-400/30 bg-red-400/15 p-3 text-sm">
           <p className="font-semibold text-red-200">Penalty mode active — 7 day duration</p>
         </div>
       )}
 
+      {/* ── Burnout nudge (moderate / high risk only) ────────────────────── */}
+      {burnoutReport && <BurnoutNudge report={burnoutReport} />}
+
+      {/* ── Redistribution panel ────────────────────────────────────────── */}
       <RedistributionPanel
         summaries={redistributionSummaries}
         todayExtra={todayExtraHours}

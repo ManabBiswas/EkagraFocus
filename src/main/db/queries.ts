@@ -289,15 +289,36 @@ export function updateTaskStatus(taskId: string, status: 'pending' | 'in_progres
   return result.changes > 0;
 }
 
-export function insertSession(session: Omit<IPCSession, 'created_at'>): string {
+export interface SessionInsertInput {
+  id: string;
+  task_id: string | null;
+  date: string;
+  duration_minutes: number;
+  notes: string | null;
+  /** "HH:MM" — optional, captured from timer start */
+  start_time?: string | null;
+  /** "HH:MM" — optional, captured from timer stop */
+  end_time?: string | null;
+}
+
+export function insertSession(session: SessionInsertInput): string {
   const db = getDatabase();
+
   db.prepare(
-    `INSERT INTO sessions (id, task_id, date, duration_minutes, notes)
-     VALUES (?, ?, ?, ?, ?)`
-  ).run(session.id, session.task_id, session.date, session.duration_minutes, session.notes);
-  
+    `INSERT INTO sessions (id, task_id, date, duration_minutes, notes, start_time, end_time)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`
+  ).run(
+    session.id,
+    session.task_id,
+    session.date,
+    session.duration_minutes,
+    session.notes,
+    session.start_time ?? null,
+    session.end_time ?? null,
+  );
+
   recalculateStreak();
-  
+
   return session.id;
 }
 
@@ -336,7 +357,7 @@ export function recalculateStreak(): number {
 
   // Account for today
   streak = pastStreak;
-  const todayHrs = dailyHours.get(todayIso) || 0;
+  const todayHrs = dailyHours.get(todayIsoStr) || 0;
   if (todayHrs >= baseGoal) {
     streak++;
   }
@@ -838,3 +859,29 @@ export function estimateWeekDateRange(weekNumber: number): { start: string; end:
   return getWeekDateRangeFromStart(planStart, weekNumber);
 }
 
+// Add after getUpcomingTasks or at end of file
+
+export function getBurnoutAnalysisData(lookbackDays = 7): {
+  dailyHours: Array<{ date: string; total_minutes: number }>;
+  longSessions: Array<{ date: string; duration_minutes: number; start_time: string | null; end_time: string | null }>;
+} {
+  const db = getDatabase();
+  const end = todayIso();
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - lookbackDays);
+  const start = startDate.toISOString().split('T')[0];
+
+  const dailyHours = db.prepare(
+    `SELECT date, SUM(duration_minutes) as total_minutes
+     FROM sessions WHERE date >= ? AND date <= ?
+     GROUP BY date ORDER BY date ASC`
+  ).all(start, end) as Array<{ date: string; total_minutes: number }>;
+
+  const longSessions = db.prepare(
+    `SELECT date, duration_minutes, start_time, end_time
+     FROM sessions WHERE date >= ? AND date <= ? AND duration_minutes > 120
+     ORDER BY date ASC`
+  ).all(start, end) as Array<{ date: string; duration_minutes: number; start_time: string | null; end_time: string | null }>;
+
+  return { dailyHours, longSessions };
+}

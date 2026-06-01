@@ -87,7 +87,7 @@
       opacity: 0.8;
     }
   }
-
+}
   .animate-slide-in {
     animation: slide-in 0.3s ease-out;
   }
@@ -152,7 +152,7 @@
     @apply hover:shadow-xl hover:text-purple-50;
     @apply active:scale-95 focus:outline-none;
   }
-
+  
   .btn-icon {
     @apply inline-flex items-center justify-center w-10 h-10 rounded-lg;
     @apply border border-cyan-400 bg-cyan-900;
@@ -162,16 +162,58 @@
   }
 
   /* Tab Button Styles */
-  .tab-btn {
-    @apply relative px-4 py-2 rounded-lg font-semibold uppercase tracking-wider text-xs;
-    @apply border transition-all duration-300;
-    @apply hover:border-white/20 hover:bg-white/5 hover:text-slate-100;
-  }
+/* Base tab */
+.tab-btn {
+  @apply relative px-5 py-1 text-xs font-semibold uppercase tracking-wider;
 
-  .tab-btn-active {
-    @apply border-cyan-400 bg-cyan-900;
-    @apply text-cyan-100 shadow-md;
-  }
+  color: rgb(252, 253, 254);
+  background: transparent;
+
+  transition:
+    color 0.25s ease,
+    background-color 0.25s ease;
+}
+
+/* Hover = ONLY text color */
+.tab-btn-idle:hover {
+  color: #e2e8f0;
+  cursor: pointer;
+}
+
+/* 🔷 Active sliding bg */
+.tab-slider {
+  transform: skewX(-24deg); /* keep text straight */
+   border: 1.5px solid rgba(1, 138, 122, 0.954);
+   border-radius: 18%;
+  /* KEEP YOUR CURRENT SHADE */
+  background: linear-gradient(
+    135deg,
+    #1780926d,
+    #11daf9dd
+  );
+  transition: all 0.3s ease;
+}
+
+/* Border layer ONLY on selected tab */
+.tab-slider::before {
+  content: "";
+
+  position: absolute;
+  inset: 0;
+
+  clip-path: inherit;
+
+  /* curved top-left illusion */
+  border-top-left-radius: 9px;
+  border-bottom-right-radius: 9px;
+
+  /* border */
+  box-shadow:
+    inset 0 0 0 2px rgba(6, 11, 12, 0.6),
+    0 0 10px rgba(0, 5, 6, 0.5);
+
+  pointer-events: none;
+}
 
   /* Input Styling */
   .metal-input {
@@ -234,4 +276,4 @@
   .surface-separator {
     border-color: rgba(148, 163, 184, 0.25);
   }
-}
+

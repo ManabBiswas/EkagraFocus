@@ -25,6 +25,7 @@ import {
   getWeeklyProgress,
   getUserState,
   calculateAndUpsertWeeklyProgress,
+  getTotalMinutesToday,
 } from '../db/queries';
 import { receiveMessage } from '../services/messageReceiver';
 import { processPlanFile } from '../services/planParser';
@@ -49,6 +50,7 @@ import {
   clearRedistributionForSource,
   detectIncompleteGoal,
 } from '../db/redistributionQueries';
+import { generateBurnoutReport, getTodayLiveRisk } from '../db/burnoutQueries';
 
 // Guard to prevent duplicate handler registration
 let handlersInitialized = false;
@@ -333,6 +335,19 @@ export function setupDatabaseHandlers(): void {
       return { success: false, error: 'Failed to fetch subject breakdown' } as IPCResponse;
     }
   });
+
+   /**
+   * Get burnout risk report for last 7 days
+   */
+  ipcMain.handle('db:getBurnoutReport', async () => {
+    try {
+      const report = detectBurnoutRisk(7);
+      return { success: true, data: report } as IPCResponse;
+    } catch (error) {
+      console.error('Error getting burnout report:', error);
+      return { success: false, error: 'Failed to fetch burnout report' } as IPCResponse;
+    }
+  });
 }
 
 export function setupPlanHandlers(): void {
@@ -427,11 +442,19 @@ export function setupTaskHandlers(): void {
   });
 
   /**
-   * Log a study session for a task
+   * Log a study session for a task.
+   * Accepts optional start_time and end_time ("HH:MM") for burnout analysis.
    */
   ipcMain.handle(
     'task:logSession',
-    async (event, taskId: string, minutes: number, notes?: string) => {
+    async (
+      event,
+      taskId: string,
+      minutes: number,
+      notes?: string,
+      startTime?: string | null,
+      endTime?: string | null,
+    ) => {
       try {
         const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         const today = new Date().toISOString().split('T')[0];
@@ -442,6 +465,8 @@ export function setupTaskHandlers(): void {
           date: today,
           duration_minutes: minutes,
           notes: notes || null,
+          start_time: startTime ?? null,
+          end_time: endTime ?? null,
         });
 
         const linkedNotesCount = autoLinkRecentNotesToSession(sessionId, {
@@ -823,6 +848,40 @@ export function setupRedistributionHandlers(): void {
   });
 }
 
+// ─── Burnout handlers ────────────────────────────────────────────────────────
+
+/**
+ * burnout:getReport  — full 7-day heuristic analysis.
+ * Returns BurnoutReport. Does not affect streaks or penalties.
+ */
+export function setupBurnoutHandlers(): void {
+  ipcMain.handle('burnout:getReport', async () => {
+    try {
+      const report = generateBurnoutReport();
+      return { success: true, data: report } as IPCResponse;
+    } catch (error) {
+      console.error('[Burnout] Error generating report:', error);
+      return { success: false, error: 'Failed to generate burnout report' } as IPCResponse;
+    }
+  });
+
+  /**
+   * burnout:getLiveRisk  — lightweight check based on today's logged minutes.
+   * Used by TimerPanel to warn mid-session without a full DB scan.
+   */
+  ipcMain.handle('burnout:getLiveRisk', async () => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const todayMinutes = getTotalMinutesToday(today);
+      const risk = getTodayLiveRisk(todayMinutes);
+      return { success: true, data: risk } as IPCResponse;
+    } catch (error) {
+      console.error('[Burnout] Error getting live risk:', error);
+      return { success: false, error: 'Failed to get live risk' } as IPCResponse;
+    }
+  });
+}
+
 export function setupAllHandlers(): void {
   // Prevent duplicate handler registration
   if (handlersInitialized) {
@@ -855,7 +914,12 @@ export function setupAllHandlers(): void {
   console.log('[IPC] Setting up file handlers...');
   setupFileHandlers();
   console.log('[IPC] ✓ File handlers done');
+
   setupRedistributionHandlers();
+
+  console.log('[IPC] Setting up burnout handlers...');
+  setupBurnoutHandlers();
+  console.log('[IPC] ✓ Burnout handlers done');
 
   handlersInitialized = true;
   console.log('[IPC] ✓ All handlers initialized successfully');

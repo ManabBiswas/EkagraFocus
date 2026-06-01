@@ -35,6 +35,8 @@ export function initializeDatabase(): Database.Database {
       task_id TEXT,
       date TEXT NOT NULL,
       duration_minutes INTEGER NOT NULL,
+      start_time TEXT,
+      end_time TEXT,
       notes TEXT,
       created_at DATETIME DEFAULT (datetime('now', 'localtime')),
       FOREIGN KEY (task_id) REFERENCES tasks(id)

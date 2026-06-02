@@ -410,7 +410,7 @@ export function App() {
             <DashboardOverview />
 
             <main className="flex min-h-0 flex-col gap-4">
-              <section className="panel-shell flex min-h-140 flex-col overflow-hidden xl:min-h-0 xl:flex-1">
+              <section className="panel-shell p-2 gap-0 flex min-h-140 flex-col overflow-hidden xl:min-h-0 xl:flex-1">
                 <TabBar />
                 <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden pr-1">
                   {renderActiveTab()}

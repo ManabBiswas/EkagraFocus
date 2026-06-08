@@ -29,14 +29,16 @@ export function initializeDatabase(): Database.Database {
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 
-    -- Sessions table (completed study sessions)
+   -- Sessions table (completed study sessions)
     CREATE TABLE IF NOT EXISTS sessions (
       id TEXT PRIMARY KEY,
       task_id TEXT,
       date TEXT NOT NULL,
       duration_minutes INTEGER NOT NULL,
+      start_time TEXT,
+      end_time TEXT,
       notes TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      created_at DATETIME DEFAULT (datetime('now', 'localtime')),
       FOREIGN KEY (task_id) REFERENCES tasks(id)
     );
 
@@ -171,8 +173,8 @@ export function initializeDatabase(): Database.Database {
       ai_summary TEXT,
       ai_keywords TEXT,
       is_pinned INTEGER DEFAULT 0,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      created_at DATETIME DEFAULT (datetime('now', 'localtime')),
+      updated_at DATETIME DEFAULT (datetime('now', 'localtime')),
       FOREIGN KEY (linked_task_id) REFERENCES tasks(id),
       FOREIGN KEY (linked_session_id) REFERENCES sessions(id)
     );
@@ -233,7 +235,10 @@ export function closeDatabase(): void {
  */
 export function seedDatabase(): void {
   const database = getDatabase();
-  const today = new Date().toISOString().split('T')[0];
+  const now = new Date();
+  const offset = now.getTimezoneOffset();
+  const local = new Date(now.getTime() - offset * 60 * 1000);
+  const today = local.toISOString().split('T')[0];
 
   try {
     // Insert sample tasks

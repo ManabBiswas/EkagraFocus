@@ -93,7 +93,12 @@ export type NoteUpdateInput = IPCNoteUpdateInput;
 export type NotesListParams = IPCNotesListParams;
 
 const round2 = (value: number): number => Math.round(value * 100) / 100;
-const todayIso = (): string => new Date().toISOString().split('T')[0];
+const todayIso = (): string => {
+  const now = new Date();
+  const offset = now.getTimezoneOffset();
+  const local = new Date(now.getTime() - offset * 60 * 1000);
+  return local.toISOString().split('T')[0];
+};
 
 function createId(prefix: string): string {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -238,9 +243,9 @@ export function updateNote(noteId: string, updates: NoteUpdateInput): IPCNote | 
     return field === 'is_pinned' ? (value ? 1 : 0) : value;
   });
 
-  db.prepare(
+ db.prepare(
     `UPDATE notes
-     SET ${setClause}, updated_at = CURRENT_TIMESTAMP
+     SET ${setClause}, updated_at = datetime('now', 'localtime')
      WHERE id = ?`
   ).run(...values, noteId);
 
@@ -329,7 +334,9 @@ export function recalculateStreak(): number {
 
   let streak = 0;
   const todayDate = new Date();
-  const todayIsoStr = todayDate.toISOString().split('T')[0];
+  const offset = todayDate.getTimezoneOffset();
+  const localDate = new Date(todayDate.getTime() - offset * 60 * 1000);
+  const todayIso = localDate.toISOString().split('T')[0];
 
   // Calculate past streak mapping backwards from yesterday
   let pastStreak = 0;
@@ -370,12 +377,12 @@ export function autoLinkRecentNotesToSession(
 
   const result = db.prepare(
     `UPDATE notes
-     SET linked_session_id = ?, updated_at = CURRENT_TIMESTAMP
+     SET linked_session_id = ?, updated_at = datetime('now', 'localtime')
      WHERE id IN (
        SELECT id
        FROM notes
        WHERE linked_session_id IS NULL
-         AND datetime(updated_at) >= datetime('now', ?)
+         AND datetime(updated_at) >= datetime('now', 'localtime', ?)
        ORDER BY datetime(updated_at) DESC
        LIMIT ?
      )`

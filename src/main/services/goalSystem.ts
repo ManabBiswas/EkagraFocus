@@ -44,7 +44,10 @@ export function calculateDailyGoal(
   debtFromPrevious = 0,
   penaltyExpirationDate: string | null = null
 ): DailyGoalStatus {
-  const today = new Date().toISOString().split('T')[0];
+  const now = new Date();
+  const offset = now.getTimezoneOffset();
+  const local = new Date(now.getTime() - offset * 60 * 1000);
+  const today = local.toISOString().split('T')[0];
   
   // Check if penalty mode is still active
   const penaltyModeActive = penaltyExpirationDate
@@ -144,7 +147,12 @@ export function evaluatePreviousDayGoal(
  * @returns Full goal status
  */
 export function getTodayGoalStatus(
-  date: string = new Date().toISOString().split('T')[0],
+  date: string = (() => {
+    const now = new Date();
+    const offset = now.getTimezoneOffset();
+    const local = new Date(now.getTime() - offset * 60 * 1000);
+    return local.toISOString().split('T')[0];
+  })(),
   debtFromPrevious = 0,
   penaltyDate: string | null = null
 ): DailyGoalStatus {

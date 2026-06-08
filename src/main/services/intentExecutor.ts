@@ -149,15 +149,15 @@ function executeLogSession(data: Record<string, unknown>, reply: string): IPCAge
 
 /**
  * Executes start_timer action
- * Logs session immediately + sends data to UI for timer display
+ * Returns timer metadata to the renderer — does NOT persist a session.
+ * The session should only be saved after the timer completes or the user
+ * explicitly saves it, to avoid logging planned time as completed time.
  */
 function executeStartTimer(data: Record<string, unknown>, reply: string): IPCAgentMessage {
   try {
-    // Same as log_session but with start_timer action
     const minutes = typeof data.minutes === 'number' ? data.minutes : 
                     (typeof data.durationMinutes === 'number' ? data.durationMinutes : 0);
     const subject = typeof data.subject === 'string' ? data.subject : 'Focus Session';
-    const notes = typeof data.notes === 'string' ? data.notes : null;
 
     if (minutes <= 0) {
       return {
@@ -167,31 +167,11 @@ function executeStartTimer(data: Record<string, unknown>, reply: string): IPCAge
       };
     }
 
-    // Log the session to database immediately
-    const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    const today = new Date().toISOString().split('T')[0];
-
-    insertSession({
-      id: sessionId,
-      task_id: null,
-      date: today,
-      duration_minutes: minutes,
-      notes: notes || subject,
-    });
-
-    notifyDbStateChanged('SESSION_LOGGED', {
-      sessionId,
-      taskId: null,
-      minutes,
-      context: getFullContext(today),
-    });
-
-    console.info('[IntentExecutor] Timer started', { sessionId, minutes, subject });
+    console.info('[IntentExecutor] Timer requested (no session logged yet)', { minutes, subject });
 
     return {
       action: 'start_timer',
       data: {
-        sessionId,
         durationMinutes: minutes,
         subject,
         startTime: Date.now(),

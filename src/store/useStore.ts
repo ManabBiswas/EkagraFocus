@@ -49,6 +49,44 @@ const getInitialUserState = (): UserState => ({
   baseGoal: GOAL_CONFIG.BASE_GOAL_HOURS,
 });
 
+// ─── Burnout types (mirrored from burnoutQueries.ts for renderer use) ────────
+
+export type BurnoutSeverity = 'info' | 'warning' | 'critical';
+
+export interface BurnoutWarning {
+  type:
+    | 'long_session'
+    | 'high_daily_hours'
+    | 'declining_consistency'
+    | 'no_break'
+    | 'overload_streak';
+  severity: BurnoutSeverity;
+  message: string;
+  detail?: string;
+}
+
+export interface BurnoutReport {
+  generatedAt: string;
+  warnings: BurnoutWarning[];
+  recommendations: string[];
+  riskLevel: 'none' | 'low' | 'moderate' | 'high';
+  stats: {
+    avgDailyHoursLast7: number;
+    maxSingleSessionHours: number;
+    longestContinuousBlockHours: number;
+    consistencyScore: number;
+    studyDaysLast7: number;
+  };
+}
+
+export interface BurnoutLiveRisk {
+  isAtRisk: boolean;
+  severity: BurnoutSeverity | null;
+  message: string | null;
+}
+
+// ─── Store interface ──────────────────────────────────────────────────────────
+
 interface FocusAgentState {
   // ── UI State ──────────────────────────────────────────────
   activeTab: 'chat' | 'timer' | 'logger' | 'stats' | 'plan' | 'notes';
@@ -96,6 +134,12 @@ interface FocusAgentState {
   milestones: MilestoneStatus[];
   weeklyProgress: WeeklyProgressView | null;
 
+  // ── Burnout ────────────────────────────────────────────────
+  burnoutReport: BurnoutReport | null;
+  burnoutLiveRisk: BurnoutLiveRisk | null;
+  /** Timestamp (ms) when burnoutReport was last fetched — used to throttle calls */
+  burnoutReportFetchedAt: number | null;
+
   // ── Actions ───────────────────────────────────────────────
   setActiveTab: (tab: 'chat' | 'timer' | 'logger' | 'stats' | 'plan' | 'notes') => void;
   initializeStore: () => void;
@@ -137,9 +181,23 @@ interface FocusAgentState {
   setWeekTasks: (tasks: PlanWeekTask[]) => void;
   setMilestones: (milestones: MilestoneStatus[]) => void;
   setWeeklyProgressView: (progress: WeeklyProgressView | null) => void;
+
+  // Burnout actions
+  setBurnoutReport: (report: BurnoutReport | null) => void;
+  setBurnoutLiveRisk: (risk: BurnoutLiveRisk | null) => void;
+  /**
+   * Fetch the full burnout report from the backend and store it.
+   * Throttled to once per 5 minutes to avoid hammering SQLite.
+   */
+  fetchBurnoutReport: () => Promise<void>;
+  /**
+   * Fetch the lightweight live risk check (today's minutes only).
+   * Cheap — can be called after each session log.
+   */
+  fetchBurnoutLiveRisk: () => Promise<void>;
 }
 
-export const useStore = create<FocusAgentState>((set) => ({
+export const useStore = create<FocusAgentState>((set, get) => ({
   
   // Initial state
   activeTab: 'chat',
@@ -176,6 +234,11 @@ export const useStore = create<FocusAgentState>((set) => ({
   weekTasks: [],
   milestones: [],
   weeklyProgress: null,
+
+  // Burnout initial state
+  burnoutReport: null,
+  burnoutLiveRisk: null,
+  burnoutReportFetchedAt: null,
 
   // Tab actions
   setActiveTab: (tab) => set({ activeTab: tab }),
@@ -227,41 +290,41 @@ export const useStore = create<FocusAgentState>((set) => ({
 
   // Session actions
   setTodaySessions: (sessions) => set({ todaySessions: sessions }),
-addSession: (session) =>
-  set((state) => {
-    if (!state.dailyStatus) return state;
+  addSession: (session) =>
+    set((state) => {
+      if (!state.dailyStatus) return state;
 
-    const currentStatus = state.dailyStatus;
+      const currentStatus = state.dailyStatus;
 
-    const updatedHours =
-      currentStatus.hoursCompleted + session.durationHours;
+      const updatedHours =
+        currentStatus.hoursCompleted + session.durationHours;
       const baseGoal = currentStatus.totalGoal;
 
-const overflow = Math.max(updatedHours - baseGoal, 0);
-if (overflow > 0) {
-  console.log("OVERFLOW DETECTED:", overflow);
-}
-      console.log("SESSION ADDED:", session);
-      console.log("UPDATED HOURS:", updatedHours);
+      const overflow = Math.max(updatedHours - baseGoal, 0);
+      if (overflow > 0) {
+        console.log('OVERFLOW DETECTED:', overflow);
+      }
+      console.log('SESSION ADDED:', session);
+      console.log('UPDATED HOURS:', updatedHours);
 
-    const remaining = calculateRemainingHours(
-      currentStatus.totalGoal,
-      updatedHours
-    );
+      const remaining = calculateRemainingHours(
+        currentStatus.totalGoal,
+        updatedHours
+      );
 
-    return {
-      todaySessions: [...state.todaySessions, session],
+      return {
+        todaySessions: [...state.todaySessions, session],
+        dailyStatus: {
+          ...currentStatus,
+          hoursCompleted: updatedHours,
+          remaining: remaining,
+          goalMet: remaining === 0,
+          progressPercent:
+            (updatedHours / currentStatus.totalGoal) * 100,
+        },
+      };
+    }),
 
-      dailyStatus: {
-        ...currentStatus,
-        hoursCompleted: updatedHours,
-        remaining: remaining,
-        goalMet: remaining === 0,
-        progressPercent:
-          (updatedHours / currentStatus.totalGoal) * 100,
-      },
-    };
-  }),
   // Analytics actions
   setWeeklyStats: (stats) => set({ weeklyStats: stats }),
   setSubjectBreakdown: (breakdown) => set({ subjectBreakdown: breakdown }),
@@ -292,4 +355,53 @@ if (overflow > 0) {
   setWeekTasks: (tasks) => set({ weekTasks: tasks }),
   setMilestones: (milestones) => set({ milestones }),
   setWeeklyProgressView: (progress) => set({ weeklyProgress: progress }),
+
+  // Burnout actions
+  setBurnoutReport: (report) => set({ burnoutReport: report }),
+  setBurnoutLiveRisk: (risk) => set({ burnoutLiveRisk: risk }),
+
+  fetchBurnoutReport: async () => {
+    const state = get();
+    const now = Date.now();
+    const THROTTLE_MS = 5 * 60 * 1000; // 5 minutes
+
+    // Throttle: skip if fetched recently
+    if (
+      state.burnoutReportFetchedAt !== null &&
+      now - state.burnoutReportFetchedAt < THROTTLE_MS
+    ) {
+      return;
+    }
+
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const api = (window as any).api;
+      if (!api?.burnout?.getReport) return;
+
+      const res = await api.burnout.getReport();
+      if (res?.success && res.data) {
+        set({
+          burnoutReport: res.data as BurnoutReport,
+          burnoutReportFetchedAt: now,
+        });
+      }
+    } catch (err) {
+      console.warn('[useStore] fetchBurnoutReport failed:', err);
+    }
+  },
+
+  fetchBurnoutLiveRisk: async () => {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const api = (window as any).api;
+      if (!api?.burnout?.getLiveRisk) return;
+
+      const res = await api.burnout.getLiveRisk();
+      if (res?.success && res.data) {
+        set({ burnoutLiveRisk: res.data as BurnoutLiveRisk });
+      }
+    } catch (err) {
+      console.warn('[useStore] fetchBurnoutLiveRisk failed:', err);
+    }
+  },
 }));

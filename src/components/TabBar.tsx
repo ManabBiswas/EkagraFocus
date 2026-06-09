@@ -1,31 +1,61 @@
-import React from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { useStore } from '../store/useStore';
 
 export function TabBar() {
   const { activeTab, setActiveTab } = useStore();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [sliderStyle, setSliderStyle] = useState({ left: 0, width: 0 });
 
   const tabs = [
-    { id: 'chat', label: 'Chat', color: 'cyan' },
-    { id: 'timer', label: 'Timer', color: 'green' },
-    { id: 'logger', label: 'Log', color: 'blue' },
-    { id: 'stats', label: 'Stats', color: 'purple' },
-    { id: 'plan', label: 'Plan', color: 'orange' },
-    { id: 'notes', label: 'Notes', color: 'pink' },
+    { id: 'chat', label: 'Chat' },
+    { id: 'timer', label: 'Timer' },
+    { id: 'logger', label: 'Log' },
+    { id: 'stats', label: 'Stats' },
+    { id: 'plan', label: 'Plan' },
+    { id: 'notes', label: 'Notes' },
   ] as const;
 
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const activeEl = container.querySelector(
+      `[data-tab="${activeTab}"]`
+    ) as HTMLElement;
+
+    if (activeEl) {
+      setSliderStyle({
+        left: activeEl.offsetLeft,
+        width: activeEl.offsetWidth,
+      });
+    }
+  }, [activeTab]);
+
   return (
-    <div className="flex gap-1 border-b border-slate-700/50 bg-linear-to-r from-slate-900/40 to-slate-800/30 backdrop-blur-sm p-2">
+    <div
+      ref={containerRef}
+      className="relative flex border-b border-slate-700/50 p-3"
+    >
+      {/* 🔷 Sliding Indicator */}
+      <div
+        className="absolute top-2 bottom-2 transition-all duration-300"
+        style={{
+          left: sliderStyle.left,
+          width: sliderStyle.width,
+        }}
+      >
+        <div className="w-full h-full tab-slider" />
+      </div>
+
+      {/* Tabs */}
       {tabs.map((tab) => (
         <button
           key={tab.id}
+          data-tab={tab.id}
           onClick={() => setActiveTab(tab.id)}
-          className={`tab-btn transition-all duration-300 ${
-            activeTab === tab.id
-              ? 'tab-btn-active shadow-glow-sm'
-              : 'border-slate-600/30 bg-transparent text-slate-400 hover:bg-slate-800/30 hover:text-slate-200'
-          }`}
+          className="tab-btn tab-btn-idle"
         >
-          {tab.label}
+          <span className="relative z-10">{tab.label}</span>
         </button>
       ))}
     </div>

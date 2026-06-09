@@ -1,6 +1,8 @@
 import { getFullContext } from '../db/queries';
 import type { IPCDayContext } from '../../shared/ipc';
 import { GOAL_CONFIG } from '../../shared/goalConfig';
+import { generateBurnoutReport } from '../db/burnoutQueries';
+import type { BurnoutReport } from '../db/burnoutQueries';
 
 export interface DailyGoalStatus {
   date: string;
@@ -42,7 +44,10 @@ export function calculateDailyGoal(
   debtFromPrevious = 0,
   penaltyExpirationDate: string | null = null
 ): DailyGoalStatus {
-  const today = new Date().toISOString().split('T')[0];
+  const now = new Date();
+  const offset = now.getTimezoneOffset();
+  const local = new Date(now.getTime() - offset * 60 * 1000);
+  const today = local.toISOString().split('T')[0];
   
   // Check if penalty mode is still active
   const penaltyModeActive = penaltyExpirationDate
@@ -142,7 +147,12 @@ export function evaluatePreviousDayGoal(
  * @returns Full goal status
  */
 export function getTodayGoalStatus(
-  date: string = new Date().toISOString().split('T')[0],
+  date: string = (() => {
+    const now = new Date();
+    const offset = now.getTimezoneOffset();
+    const local = new Date(now.getTime() - offset * 60 * 1000);
+    return local.toISOString().split('T')[0];
+  })(),
   debtFromPrevious = 0,
   penaltyDate: string | null = null
 ): DailyGoalStatus {
@@ -209,6 +219,46 @@ export function calculateMissConsequence(currentStreak: number): string {
   return `Missing today will reset your streak to 0.`;
 }
 
+// ─── Burnout context for AI assistant ────────────────────────────────────────
+
+/**
+ * Generate a concise burnout context string for injection into the AI
+ * assistant's system prompt. Keeps it short so it doesn't crowd the context
+ * window — only includes actionable information.
+ */
+export function getBurnoutContextForAI(): string {
+  let report: BurnoutReport;
+  try {
+    report = generateBurnoutReport();
+  } catch {
+    return '';
+  }
+
+  if (report.riskLevel === 'none') {
+    return '[Burnout check] No burnout signals detected in the past 7 days.';
+  }
+
+  const lines: string[] = [
+    `[Burnout check] Risk level: ${report.riskLevel.toUpperCase()}`,
+    `Stats (7-day): avg ${report.stats.avgDailyHoursLast7.toFixed(1)}h/day, ` +
+      `longest continuous block ${report.stats.longestContinuousBlockHours.toFixed(1)}h, ` +
+      `consistency ${report.stats.consistencyScore}%.`,
+  ];
+
+  // Include only critical/warning messages, capped at 3 to avoid prompt bloat
+  const topWarnings = report.warnings.slice(0, 3);
+  if (topWarnings.length > 0) {
+    lines.push('Signals:');
+    topWarnings.forEach((w) => lines.push(`  - [${w.severity}] ${w.message}`));
+  }
+
+  if (report.recommendations.length > 0) {
+    lines.push('Top recommendation: ' + report.recommendations[0]);
+  }
+
+  return lines.join('\n');
+}
+
 export default {
   calculateDailyGoal,
   evaluatePreviousDayGoal,
@@ -216,6 +266,7 @@ export default {
   formatGoalSummary,
   checkStreakRisk,
   calculateMissConsequence,
+  getBurnoutContextForAI,
   BASE_GOAL_HOURS,
   PENALTY_ACTIVATION_STREAK,
   PENALTY_DURATION_DAYS,

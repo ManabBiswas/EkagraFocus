@@ -325,12 +325,13 @@ We welcome contributions from developers of all skill levels. Whether you're int
 
 ### Getting Started as a Contributor
 
-1. **Fork** the repository
-2. **Clone** your fork locally
-3. **Create** a feature branch: `git checkout -b feature/amazing-feature`
-4. **Make** your changes with clear commits
-5. **Push** to your branch: `git push origin feature/amazing-feature`
-6. **Open** a Pull Request with description of changes
+1. **Star** the repository
+2. **Fork** the repository
+3. **Clone** your fork locally
+4. **Create** a feature branch: `git checkout -b feature/amazing-feature`
+5. **Make** your changes with clear commits
+6. **Push** to your branch: `git push origin feature/amazing-feature`
+7. **Open** a Pull Request with description of changes
 
 ### Contribution Guidelines
 

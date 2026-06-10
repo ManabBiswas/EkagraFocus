@@ -357,7 +357,7 @@ export function recalculateStreak(): number {
 
   // Account for today
   streak = pastStreak;
-  const todayHrs = dailyHours.get(todayIsoStr) || 0;
+  const todayHrs = dailyHours.get(todayIso) || 0; // FIXED: todayIsoStr to todayIso
   if (todayHrs >= baseGoal) {
     streak++;
   }
@@ -858,8 +858,6 @@ export function estimateWeekDateRange(weekNumber: number): { start: string; end:
   const planStart = activePlan?.start_date || todayIso();
   return getWeekDateRangeFromStart(planStart, weekNumber);
 }
-
-// Add after getUpcomingTasks or at end of file
 
 export function getBurnoutAnalysisData(lookbackDays = 7): {
   dailyHours: Array<{ date: string; total_minutes: number }>;

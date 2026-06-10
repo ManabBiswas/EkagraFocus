@@ -341,7 +341,7 @@ export function setupDatabaseHandlers(): void {
    */
   ipcMain.handle('db:getBurnoutReport', async () => {
     try {
-      const report = detectBurnoutRisk(7);
+      const report = detectBurnoutRisk(7); // <-- THIS IS CAUSING THE ERROR
       return { success: true, data: report } as IPCResponse;
     } catch (error) {
       console.error('Error getting burnout report:', error);

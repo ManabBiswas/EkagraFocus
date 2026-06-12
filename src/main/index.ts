@@ -39,9 +39,9 @@ const stepZoom = (delta: number): number => {
   return setZoomFactor(current + delta);
 };
 
-const PRELOAD_PATH = app.isPackaged
-  ? path.join(__dirname, "preload.js")
-  : path.join(__dirname, "../../.webpack/main/preload.js");
+// const PRELOAD_PATH = app.isPackaged
+//   ? path.join(__dirname, "preload.js")
+//   : path.join(__dirname, "../../.webpack/main/preload.js");
 
 const createWindow = (): void => {
   mainWindow = new BrowserWindow({
@@ -53,7 +53,7 @@ const createWindow = (): void => {
     show: false,
     autoHideMenuBar: true,
     webPreferences: {
-      preload: PRELOAD_PATH,
+      preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
       nodeIntegration: false,
       contextIsolation: true,
     },

@@ -26,17 +26,12 @@ module.exports = {
     { name: '@electron-forge/maker-deb' },
     { name: '@electron-forge/maker-rpm' },
   ],
-  hooks: {
-    generateAssets: async () => {
-      await buildPreload();
-    },
-  },
   plugins: [
     {
       name: '@electron-forge/plugin-webpack',
       config: {
         mainConfig: './webpack.main.config.js',
-        devContentSecurityPolicy: `default-src 'self' 'unsafe-inline' data:; script-src 'self' 'unsafe-eval' 'unsafe-inline' data:`,
+        devContentSecurityPolicy: `default-src 'self' 'unsafe-inline' data: http://localhost:9000; script-src 'self' 'unsafe-eval' 'unsafe-inline' data: http://localhost:9000 ws://localhost:9000; style-src 'self' 'unsafe-inline' http://localhost:9000; font-src 'self' data: http://localhost:9000`,
         renderer: {
           config: './webpack.renderer.config.js',
           entryPoints: [
@@ -44,6 +39,9 @@ module.exports = {
               html: './src/index.html',
               js: './src/main.tsx',
               name: 'main_window',
+              preload: {
+                js: './src/preload.ts',
+              },
             },
           ],
         },

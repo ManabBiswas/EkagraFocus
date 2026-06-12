@@ -165,8 +165,13 @@ export function App() {
 
   useEffect(() => {
     // Initialize store on mount
+    console.log('[App] Initializing store, isInitialized:', isInitialized);
     if (!isInitialized) {
-      initializeStore();
+      try {
+        initializeStore();
+      } catch (error) {
+        console.error('[App] Store initialization error:', error);
+      }
     }
   }, [isInitialized, initializeStore]);
 
@@ -195,11 +200,14 @@ export function App() {
   useEffect(() => {
     const refreshContext = async () => {
       try {
+        console.log('[App] Starting refreshContext');
         if (!window.api?.db?.getDayContext) {
+          console.warn('[App] window.api.db.getDayContext not available yet');
           return;
         }
 
         const date = getTodayDate();
+        console.log('[App] Fetching data for date:', date);
         const [
           context,
           weeklyStatsRows,
@@ -217,6 +225,7 @@ export function App() {
           window.api.plan.getWeeklyProgress(),
           window.api.redistribution.getHoursForDate(date),
         ]);
+        console.log('[App] Data fetched successfully');
         const hoursCompleted = context.totalMinutes / 60;
 
         // Compute daily goal: base + debt + penalty (capped at MAX_DAILY_HOURS)
@@ -319,12 +328,13 @@ export function App() {
         setCurrentStreak(planUserState?.streak_days || 0);
       } catch (error) {
         console.error('[App] Failed to refresh day context:', error);
+        console.error('[App] Error details:', error instanceof Error ? error.stack : String(error));
       }
     };
 
     refreshContext();
 
-    const unsubscribe = window.api?.events?.onDbStateChanged((payload) => {
+    const unsubscribe = window.api?.events?.onDbStateChanged?.((payload) => {
       console.log('[App] DB state changed:', payload.event);
       refreshContext();
     });

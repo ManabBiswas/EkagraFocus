@@ -65,14 +65,15 @@ All your data stays on your device. All processing happens locally.
 
 | Component | Technology | Version |
 |-----------|-----------|---------|
-| **Framework** | Electron | 41 |
-| **Frontend** | React | 19 |
-| **Language** | TypeScript | 5.1 |
+| **Framework** | Electron | 41.7.2 |
+| **Frontend** | React | 19.2.4|
+| **Language** | TypeScript | 5.1.6 |
 | **Styling** | Tailwind CSS | 4 |
 | **State Management** | Zustand | 5 |
 | **Database** | SQLite (better-sqlite3) | Latest |
 | **Local AI** | node-llama-cpp | Latest |
 | **Build Tool** | Webpack + Electron Forge | Latest |
+|**Managing commits**|husky | 9.1.7|
 
 ## 📦 System Requirements
 

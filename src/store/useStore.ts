@@ -275,9 +275,19 @@ export const useStore = create<FocusAgentState>((set, get) => ({
     }),
   stopTimer: () => set({ timerRunning: false }),
   tickTimer: () =>
-    set((state) => ({
-      timerSeconds: state.timerRunning ? state.timerSeconds + 1 : state.timerSeconds,
-    })),
+    set((state) => {
+      if (!state.timerRunning) {
+        return { timerSeconds: state.timerSeconds };
+      }
+
+      const nextSeconds = state.timerSeconds + 1;
+      const durationSeconds = state.timerDurationMinutes * 60;
+
+      return {
+        timerSeconds: nextSeconds,
+        timerRunning: durationSeconds > 0 ? nextSeconds < durationSeconds : true,
+      };
+    }),
   resetTimer: () =>
     set({
       timerSeconds: 0,

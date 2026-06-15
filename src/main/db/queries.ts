@@ -370,7 +370,7 @@ const minimumContentLength = Math.max(5,Math.min(options?.minimumContentLength |
        WHERE linked_session_id IS NULL
          AND content IS NOT NULL
          AND LENGTH(content) >= ?
-         AND trim(content) != "
+         AND content != "
          AND datetime(updated_at) >= datetime('now', ?)
        ORDER BY datetime(updated_at) DESC
        LIMIT ?

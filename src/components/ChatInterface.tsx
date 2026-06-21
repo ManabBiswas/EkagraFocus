@@ -62,7 +62,7 @@ export function ChatInterface() {
   }, [messages]);
 
   const handleSendMessage = async () => {
-    if (!input.trim() || isAgentThinking) return;
+    if (!input.trim() || isAgentThinking || !activeChatSessionId) return;
 
     const userMessage = input.trim();
 
@@ -86,7 +86,7 @@ export function ChatInterface() {
       }
 
       // Call the real AI pipeline
-      const sessionId = activeChatSessionId || 'default';
+      const sessionId = activeChatSessionId;
       const response = await api.agent.sendMessage(sessionId, userMessage);
 
       console.log('[ChatInterface] Response received:', response);
@@ -288,13 +288,15 @@ export function ChatInterface() {
           onKeyDown={handleKeyDown}
           // placeholder={`Ask about ${planSummary ? planSummary.title : 'your schedule'}...`}
           placeholder={`Ask about your schedule ...`}
-          className="metal-input flex-1 resize-none rounded-2xl px-3 py-2 text-sm"
+          className="metal-input flex-1 resize-none rounded-2xl px-3 py-2 text-sm disabled:opacity-50"
           style={{ minHeight: '3.5rem' }}
           rows={2}
+          disabled={!activeChatSessionId || isAgentThinking}
         />
         <button
           onClick={handleSendMessage}
-          className="btn-primary px-4 py-2"
+          className="btn-primary px-4 py-2 disabled:opacity-50"
+          disabled={!activeChatSessionId || isAgentThinking}
         >
           SEND
         </button>

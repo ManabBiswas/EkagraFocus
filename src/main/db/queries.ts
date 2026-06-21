@@ -14,6 +14,8 @@ import type {
   IPCTask,
   IPCUserState,
   IPCWeeklyProgress,
+  IPCChatSession,
+  IPCChatMessage,
 } from '../../shared/ipc';
 
 export interface PlanImportMetadataInput {
@@ -882,4 +884,30 @@ export function getBurnoutAnalysisData(lookbackDays = 7): {
   ).all(start, end) as Array<{ date: string; duration_minutes: number; start_time: string | null; end_time: string | null }>;
 
   return { dailyHours, longSessions };
+}
+
+export function getChatSessions(): IPCChatSession[] {
+  const db = getDatabase();
+  return db.prepare('SELECT * FROM chat_sessions ORDER BY created_at DESC').all() as IPCChatSession[];
+}
+
+export function getChatMessages(sessionId: string): IPCChatMessage[] {
+  const db = getDatabase();
+  return db.prepare('SELECT * FROM chat_messages WHERE session_id = ? ORDER BY timestamp ASC').all(sessionId) as IPCChatMessage[];
+}
+
+export function createChatSession(title: string): IPCChatSession {
+  const db = getDatabase();
+  const id = createId('chat_session');
+  db.prepare('INSERT INTO chat_sessions (id, title) VALUES (?, ?)').run(id, title);
+  return db.prepare('SELECT * FROM chat_sessions WHERE id = ?').get(id) as IPCChatSession;
+}
+
+export function saveChatMessage(sessionId: string, message: Omit<IPCChatMessage, 'id' | 'timestamp' | 'session_id'>): IPCChatMessage {
+  const db = getDatabase();
+  const id = createId('chat_msg');
+  db.prepare(
+    'INSERT INTO chat_messages (id, session_id, role, content) VALUES (?, ?, ?, ?)'
+  ).run(id, sessionId, message.role, message.content);
+  return db.prepare('SELECT * FROM chat_messages WHERE id = ?').get(id) as IPCChatMessage;
 }

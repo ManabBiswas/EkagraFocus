@@ -20,6 +20,11 @@ export function ChatInterface() {
     startTimer,
     addSession,
     weeklyProgress,
+    activeChatSessionId,
+    chatSessions,
+    loadChatSessions,
+    loadMessagesForSession,
+    createNewSession,
   } = useStore();
 
   const [input, setInput] = useState('');
@@ -27,7 +32,7 @@ export function ChatInterface() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Check if API is available
+  // Check if API is available and init chat sessions
   useEffect(() => {
     const hasApi = !!(window as WindowWithApi).api?.agent?.sendMessage;
     if (!hasApi) {
@@ -36,15 +41,28 @@ export function ChatInterface() {
     } else {
       console.log('[ChatInterface] API is available');
       setHasApiError(false);
+      
+      const initChat = async () => {
+        await loadChatSessions();
+        setTimeout(() => {
+          const state = useStore.getState();
+          if (state.chatSessions.length === 0) {
+            state.createNewSession('New Chat');
+          } else if (!state.activeChatSessionId) {
+            state.loadMessagesForSession(state.chatSessions[0].id);
+          }
+        }, 100);
+      };
+      initChat();
     }
-  }, []);
+  }, [loadChatSessions]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
   const handleSendMessage = async () => {
-    if (!input.trim() || isAgentThinking) return;
+    if (!input.trim() || isAgentThinking || !activeChatSessionId) return;
 
     const userMessage = input.trim();
 
@@ -62,13 +80,14 @@ export function ChatInterface() {
     try {
       console.log('[ChatInterface] Sending message:', userMessage);
       
-      const api = (window as WindowWithApi).api;
+      const api = (window as WindowWithApi).api as any;
       if (!api?.agent?.sendMessage) {
         throw new Error('API not available');
       }
 
       // Call the real AI pipeline
-      const response = await api.agent.sendMessage(userMessage);
+      const sessionId = activeChatSessionId;
+      const response = await api.agent.sendMessage(sessionId, userMessage);
 
       console.log('[ChatInterface] Response received:', response);
 
@@ -165,6 +184,28 @@ export function ChatInterface() {
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-transparent">
+      {/* Session Dropdown Header */}
+      <div className="flex justify-between items-center px-4 py-2 border-b border-white/20">
+        <select 
+          className="bg-slate-800 text-slate-200 text-sm rounded px-2 py-1 outline-none border border-slate-700 max-w-[200px] truncate"
+          value={activeChatSessionId || ''}
+          onChange={(e) => {
+            if (e.target.value === 'NEW_SESSION') {
+              createNewSession('New Chat');
+            } else {
+              loadMessagesForSession(e.target.value);
+            }
+          }}
+        >
+          {chatSessions.map(session => (
+            <option key={session.id} value={session.id}>
+              {session.title} ({new Date(session.created_at).toLocaleDateString()})
+            </option>
+          ))}
+          <option value="NEW_SESSION">+ New Chat Session</option>
+        </select>
+      </div>
+
       {/* Messages Container */}
       <div
         className="flex-1 space-y-3 overflow-y-auto p-4 pr-3"
@@ -247,13 +288,15 @@ export function ChatInterface() {
           onKeyDown={handleKeyDown}
           // placeholder={`Ask about ${planSummary ? planSummary.title : 'your schedule'}...`}
           placeholder={`Ask about your schedule ...`}
-          className="metal-input flex-1 resize-none rounded-2xl px-3 py-2 text-sm"
+          className="metal-input flex-1 resize-none rounded-2xl px-3 py-2 text-sm disabled:opacity-50"
           style={{ minHeight: '3.5rem' }}
           rows={2}
+          disabled={!activeChatSessionId || isAgentThinking}
         />
         <button
           onClick={handleSendMessage}
-          className="btn-primary px-4 py-2"
+          className="btn-primary px-4 py-2 disabled:opacity-50"
+          disabled={!activeChatSessionId || isAgentThinking}
         >
           SEND
         </button>

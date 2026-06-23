@@ -1,40 +1,46 @@
 const path = require('path');
+const webpack = require('webpack');
+
+function buildPreload() {
+  return new Promise((resolve, reject) => {
+    const preloadConfig = require('./webpack.preload.config.js');
+    webpack(preloadConfig, (err, stats) => {
+      if (err) { reject(err); return; }
+      if (stats.hasErrors()) {
+        console.error(stats.toString());
+        reject(new Error('Preload build failed'));
+        return;
+      }
+      console.log('[Preload] ✓ Built to .webpack/main/preload.js');
+      resolve();
+    });
+  });
+}
 
 module.exports = {
-  packagerConfig: {
-    asar: true,
-  },
+  packagerConfig: { asar: true },
   rebuildConfig: {},
   makers: [
-    {
-      name: '@electron-forge/maker-squirrel',
-      config: {},
-    },
-    {
-      name: '@electron-forge/maker-zip',
-      platforms: ['darwin'],
-    },
-    {
-      name: '@electron-forge/maker-deb',
-    },
-    {
-      name: '@electron-forge/maker-rpm',
-    },
+    { name: '@electron-forge/maker-squirrel', config: {} },
+    { name: '@electron-forge/maker-zip', platforms: ['darwin'] },
+    { name: '@electron-forge/maker-deb' },
+    { name: '@electron-forge/maker-rpm' },
   ],
   plugins: [
     {
       name: '@electron-forge/plugin-webpack',
       config: {
-        mainConfig: path.join(__dirname, 'webpack.main.config.js'),
+        mainConfig: './webpack.main.config.js',
+        devContentSecurityPolicy: `default-src 'self' 'unsafe-inline' data: http://localhost:9000; script-src 'self' 'unsafe-eval' 'unsafe-inline' data: http://localhost:9000 ws://localhost:9000; style-src 'self' 'unsafe-inline' http://localhost:9000; font-src 'self' data: http://localhost:9000`,
         renderer: {
-          config: path.join(__dirname, 'webpack.renderer.config.js'),
+          config: './webpack.renderer.config.js',
           entryPoints: [
             {
-              html: path.join(__dirname, 'src/index.html'),
-              js: path.join(__dirname, 'src/main.tsx'),
+              html: './src/index.html',
+              js: './src/main.tsx',
               name: 'main_window',
               preload: {
-                js: path.join(__dirname, 'src/preload.ts'),
+                js: './src/preload.ts',
               },
             },
           ],

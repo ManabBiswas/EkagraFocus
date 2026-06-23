@@ -339,15 +339,15 @@ export function setupDatabaseHandlers(): void {
    /**
    * Get burnout risk report for last 7 days
    */
-  ipcMain.handle('db:getBurnoutReport', async () => {
-    try {
-      const report = detectBurnoutRisk(7);
-      return { success: true, data: report } as IPCResponse;
-    } catch (error) {
-      console.error('Error getting burnout report:', error);
-      return { success: false, error: 'Failed to fetch burnout report' } as IPCResponse;
-    }
-  });
+  // ipcMain.handle('db:getBurnoutReport', async () => {
+  //   try {
+  //     const report = detectBurnoutRisk(7); // <-- THIS IS CAUSING THE ERROR
+  //     return { success: true, data: report } as IPCResponse;
+  //   } catch (error) {
+  //     console.error('Error getting burnout report:', error);
+  //     return { success: false, error: 'Failed to fetch burnout report' } as IPCResponse;
+  //   }
+  // });
 }
 
 export function setupPlanHandlers(): void {

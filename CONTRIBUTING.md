@@ -61,6 +61,8 @@ Please be respectful and constructive in all interactions. We're committed to pr
    git push origin your-branch-name
    ```
 
+   > Commits are linted automatically via Husky + commitlint. Invalid messages are rejected. See [Commit Message Format](#commit-message-format) below.
+
 7. **Create Pull Request**
    - Provide a clear title and description
    - Link any related issues
@@ -87,6 +89,82 @@ npm start
 ```bash
 npm run make
 ```
+
+## Commit Message Format
+
+This project enforces [Conventional Commits](https://www.conventionalcommits.org/). Husky runs `commitlint` on every commit — invalid messages are rejected before they land.
+
+### Structure
+
+```
+<type>(<scope>): <subject>
+
+[optional body]
+
+[optional footer(s)]
+```
+
+- **type** — required, lowercase
+- **scope** — optional, lowercase, describes the affected area
+- **subject** — required, lowercase, no trailing period, max 100 chars total
+
+### Allowed Types
+
+| Type       | When to use                                      |
+|------------|--------------------------------------------------|
+| `feat`     | New feature                                      |
+| `fix`      | Bug fix                                          |
+| `docs`     | Documentation only                               |
+| `style`    | Formatting, missing semicolons (no logic change) |
+| `refactor` | Code change that is neither feat nor fix         |
+| `perf`     | Performance improvement                          |
+| `test`     | Adding or updating tests                         |
+| `build`    | Build system or external dependency changes      |
+| `ci`       | CI/CD configuration                              |
+| `chore`    | Maintenance tasks (e.g. husky, lint config)      |
+| `revert`   | Reverts a previous commit                        |
+
+### Good Examples
+
+```
+feat(timer): add pomodoro break notification
+fix(auth): prevent session token from expiring early
+docs: add commit message guidelines to CONTRIBUTING
+refactor(notes): extract markdown renderer to utility
+chore: update husky to v9
+```
+
+### Bad Examples
+
+```
+# Missing type
+Updated the timer component
+
+# Type not lowercase
+Fix: resolve crash on startup
+
+# Subject starts with capital letter
+feat: Add dark mode toggle
+
+# Subject ends with period
+fix(auth): handle null user object.
+
+# Vague subject
+fix: stuff
+
+# Type not in allowed list
+update: refresh dependencies
+```
+
+### Breaking Changes
+
+Add `!` after the type/scope in the footer:
+
+```
+feat(api)!: remove deprecated /v1/sessions endpoint
+```
+
+---
 
 ## Code Style
 

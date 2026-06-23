@@ -1,3 +1,4 @@
+/// <reference types="node" />
 import { contextBridge, ipcRenderer, webFrame } from 'electron';
 import type {
   IPCDayContext,

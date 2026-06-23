@@ -1,19 +1,37 @@
-const { rules } = require('./webpack.rules');
 const { plugins } = require('./webpack.plugins');
-
-// Add CSS loader rules
-rules.push({
-  test: /\.css$/,
-  use: [
-    { loader: 'style-loader' },
-    { loader: 'css-loader' },
-    { loader: 'postcss-loader' },
-  ],
-});
 
 module.exports = {
   module: {
-    rules,
+    rules: [
+      // 1. Process TypeScript (React)
+      {
+        test: /\.tsx?$/,
+        exclude: /(node_modules|\.webpack)/,
+        use: {
+          loader: 'ts-loader',
+          options: {
+            transpileOnly: true,
+          },
+        },
+      },
+      // 2. Process Tailwind CSS v4
+      {
+        test: /\.css$/,
+        use: [
+          'style-loader',
+          {
+            loader: 'css-loader',
+            options: { importLoaders: 1 },
+          },
+          'postcss-loader',
+        ],
+      },
+      // 3. Process Images/Assets
+      {
+        test: /\.(?:ico|gif|png|jpg|jpeg|webp|svg)$/i,
+        type: 'asset/resource',
+      },
+    ],
   },
   plugins,
   resolve: {

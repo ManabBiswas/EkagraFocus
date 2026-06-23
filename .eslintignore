@@ -1,0 +1,7 @@
+dist/
+.webpack/
+node_modules/
+*.d.ts
+
+
+*.config.js

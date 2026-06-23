@@ -1,8 +1,9 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
-import * as dotenv from 'dotenv';
-import { initializeDatabase, closeDatabase, seedDatabase } from './db/database';
-import { setupAllHandlers } from './handlers/ipcHandlers';
-import { llmService } from './services/llmService';
+import { app, BrowserWindow, ipcMain } from "electron";
+import * as dotenv from "dotenv";
+import { initializeDatabase, closeDatabase, seedDatabase } from "./db/database";
+import { setupAllHandlers } from "./handlers/ipcHandlers";
+import { llmService } from "./services/llmService";
+import path from "path";
 
 // Load environment variables
 dotenv.config();
@@ -12,8 +13,10 @@ declare const MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY: string;
 
 // Handle squirrel installer events only for packaged Windows builds.
 // In development, this guard can cause the app to quit before `ready`.
-if (app.isPackaged && require('electron-squirrel-startup')) {
-  console.log('[Main] Squirrel startup event detected, quitting packaged app process');
+if (app.isPackaged && require("electron-squirrel-startup")) {
+  console.log(
+    "[Main] Squirrel startup event detected, quitting packaged app process",
+  );
   app.quit();
 }
 
@@ -22,7 +25,10 @@ let mainWindow: BrowserWindow | null = null;
 
 const setZoomFactor = (nextFactor: number): number => {
   if (!mainWindow) return 1;
-  const clamped = Math.max(0.7, Math.min(1.8, Math.round(nextFactor * 100) / 100));
+  const clamped = Math.max(
+    0.7,
+    Math.min(1.8, Math.round(nextFactor * 100) / 100),
+  );
   mainWindow.webContents.setZoomFactor(clamped);
   return clamped;
 };
@@ -33,13 +39,17 @@ const stepZoom = (delta: number): number => {
   return setZoomFactor(current + delta);
 };
 
+// const PRELOAD_PATH = app.isPackaged
+//   ? path.join(__dirname, "preload.js")
+//   : path.join(__dirname, "../../.webpack/main/preload.js");
+
 const createWindow = (): void => {
   mainWindow = new BrowserWindow({
     height: 950,
     width: 1500,
     minHeight: 760,
     minWidth: 1180,
-    title: 'EkagraFocus',
+    title: "EkagraFocus",
     show: false,
     autoHideMenuBar: true,
     webPreferences: {
@@ -49,36 +59,37 @@ const createWindow = (): void => {
     },
   });
 
-  mainWindow.once('ready-to-show', () => {
+  mainWindow.once("ready-to-show", () => {
     mainWindow?.maximize();
     mainWindow?.show();
     mainWindow?.focus();
-    console.log('[Main] Window ready and shown');
+    console.log("[Main] Window ready and shown");
   });
 
-  mainWindow.on('closed', () => {
+  mainWindow.on("closed", () => {
     mainWindow = null;
-    console.log('[Main] Window closed');
+    console.log("[Main] Window closed");
   });
 
-  mainWindow.webContents.on('did-fail-load', (_event, code, description) => {
-    console.error('[Main] Renderer failed to load:', code, description);
+  mainWindow.webContents.on("did-fail-load", (_event, code, description) => {
+    console.error("[Main] Renderer failed to load:", code, description);
   });
 
-  mainWindow.webContents.on('render-process-gone', (_event, details) => {
-    console.error('[Main] Renderer process gone:', details.reason);
+  mainWindow.webContents.on("render-process-gone", (_event, details) => {
+    console.error("[Main] Renderer process gone:", details.reason);
   });
 
   mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY);
 
-  const shouldOpenDevTools = !app.isPackaged && process.env.OPEN_DEVTOOLS === '1';
+  const shouldOpenDevTools =
+    !app.isPackaged && process.env.OPEN_DEVTOOLS === "1";
   if (shouldOpenDevTools) {
-    mainWindow.webContents.openDevTools({ mode: 'detach' });
+    mainWindow.webContents.openDevTools({ mode: "detach" });
   }
 };
 
 const bootstrap = (): void => {
-  console.log('[Main] Bootstrap started');
+  console.log("[Main] Bootstrap started");
 
   // Initialize database
   initializeDatabase();
@@ -88,12 +99,12 @@ const bootstrap = (): void => {
   setupAllHandlers();
 
   // Add window control IPC handlers
-  ipcMain.handle('window:minimize', () => {
+  ipcMain.handle("window:minimize", () => {
     mainWindow?.minimize();
     return true;
   });
 
-  ipcMain.handle('window:maximize', () => {
+  ipcMain.handle("window:maximize", () => {
     if (mainWindow?.isMaximized()) {
       mainWindow.unmaximize();
     } else {
@@ -102,20 +113,20 @@ const bootstrap = (): void => {
     return true;
   });
 
-  ipcMain.handle('window:close', () => {
+  ipcMain.handle("window:close", () => {
     mainWindow?.close();
     return true;
   });
 
-  ipcMain.handle('window:zoomIn', () => {
+  ipcMain.handle("window:zoomIn", () => {
     return stepZoom(0.1);
   });
 
-  ipcMain.handle('window:zoomOut', () => {
+  ipcMain.handle("window:zoomOut", () => {
     return stepZoom(-0.1);
   });
 
-  ipcMain.handle('window:zoomReset', () => {
+  ipcMain.handle("window:zoomReset", () => {
     return setZoomFactor(1);
   });
 
@@ -127,17 +138,17 @@ const bootstrap = (): void => {
     })
     .then((loaded) => {
       if (!loaded) {
-        console.log('[Main] Embedded LLM unavailable, using fallback modes');
+        console.log("[Main] Embedded LLM unavailable, using fallback modes");
       }
     })
     .catch((error) => {
-      console.log('[Main] LLM init failed, fallback will be used:', error);
+      console.log("[Main] LLM init failed, fallback will be used:", error);
     });
 
   // Create main window
   createWindow();
 
-  console.log('[Main] App initialized');
+  console.log("[Main] App initialized");
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -145,36 +156,36 @@ const bootstrap = (): void => {
 // ─────────────────────────────────────────────────────────────
 
 app.whenReady().then(() => {
-  console.log('[Main] app.whenReady resolved');
+  console.log("[Main] app.whenReady resolved");
   bootstrap();
 });
 
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
+app.on("window-all-closed", () => {
+  if (process.platform !== "darwin") {
     closeDatabase();
     app.quit();
   }
 });
 
-app.on('before-quit', () => {
+app.on("before-quit", () => {
   llmService.shutdown().catch(() => {
     // ignore shutdown errors during quit
   });
   closeDatabase();
 });
 
-app.on('activate', () => {
+app.on("activate", () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow();
   }
 });
 
-console.log('Main process initialized');
+console.log("Main process initialized");
 
-process.on('uncaughtException', (error) => {
-  console.error('[Main] Uncaught exception:', error);
+process.on("uncaughtException", (error) => {
+  console.error("[Main] Uncaught exception:", error);
 });
 
-process.on('unhandledRejection', (reason) => {
-  console.error('[Main] Unhandled rejection:', reason);
+process.on("unhandledRejection", (reason) => {
+  console.error("[Main] Unhandled rejection:", reason);
 });

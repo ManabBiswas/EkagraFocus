@@ -1,14 +1,29 @@
 const { rules } = require('./webpack.rules');
 const { plugins } = require('./webpack.plugins');
 
+// Add CSS loader rules
+rules.push({
+  test: /\.css$/,
+  use: [
+    { loader: 'style-loader' },
+    { loader: 'css-loader' },
+    { loader: 'postcss-loader' },
+  ],
+});
+
+// Add image/font loaders
+rules.push({
+  test: /\.(?:ico|gif|png|jpg|jpeg|webp|svg)$/i,
+  type: 'asset/resource',
+});
+
+rules.push({
+  test: /\.woff2?$/i,
+  type: 'asset/resource',
+});
+
 module.exports = {
-  /**
-   * This is the main entry point for your application, it's the first file
-   * that runs in the main process.
-   * Updated to use the new structure: src/main/index.ts (backend)
-   */
   entry: './src/main/index.ts',
-  // Put your normal webpack config below here
   module: {
     rules,
   },

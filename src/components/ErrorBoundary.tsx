@@ -13,9 +13,11 @@ export class ErrorBoundary extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
     this.state = { hasError: false, error: null };
+    console.log('[ErrorBoundary] Initialized');
   }
 
   static getDerivedStateFromError(error: Error): State {
+    console.error('[ErrorBoundary] Got derived state error:', error);
     return { hasError: true, error };
   }
 

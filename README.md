@@ -88,13 +88,13 @@ All your data stays on your device. All processing happens locally.
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/ManabBiswas/EkagraFocus.git
-cd EkagraFocus
+git clone [https://github.com/ManabBiswas/EkagraFocus.git](https://github.com/ManabBiswas/EkagraFocus.git)
 ```
 
 ### 2. Install Dependencies
 
 ```bash
+cd EkagraFocus
 npm install
 ```
 

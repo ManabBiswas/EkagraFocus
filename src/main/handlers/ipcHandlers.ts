@@ -26,6 +26,7 @@ import {
   getUserState,
   calculateAndUpsertWeeklyProgress,
   getTotalMinutesToday,
+  todayIso,
 } from '../db/queries';
 import { receiveMessage } from '../services/messageReceiver';
 import { processPlanFile } from '../services/planParser';
@@ -427,7 +428,7 @@ export function setupTaskHandlers(): void {
       }
       const updated = getTaskById(taskId);
 
-      const today = new Date().toISOString().split('T')[0];
+      const today = todayIso();
       notifyRendererStateChange('TASK_UPDATED', {
         taskId,
         status: 'done',
@@ -457,7 +458,7 @@ export function setupTaskHandlers(): void {
     ) => {
       try {
         const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        const today = new Date().toISOString().split('T')[0];
+        const today = todayIso();
 
         insertSession({
           id: sessionId,
@@ -504,7 +505,7 @@ export function setupTaskHandlers(): void {
         throw new Error('Task not found');
       }
 
-      const today = new Date().toISOString().split('T')[0];
+      const today = todayIso();
       notifyRendererStateChange('TASK_UPDATED', {
         taskId,
         status,
@@ -551,7 +552,7 @@ export function setupAgentHandlers(): void {
    */
   ipcMain.handle('agent:getTodayContext', async () => {
     try {
-      const today = new Date().toISOString().split('T')[0];
+      const today = todayIso();
       const context = getFullContext(today);
       return { success: true, data: context } as IPCResponse;
     } catch (error) {
@@ -704,11 +705,11 @@ export function setupFileHandlers(): void {
         console.log(`[FileHandler] Read file: ${fileName} (${content.length} bytes)`);
         
         // Parse markdown and import to database
-        const parseResult = await processPlanFile(content, new Date().toISOString().split('T')[0], filePath);
+        const parseResult = await processPlanFile(content, todayIso(), filePath);
         console.log(`[FileHandler] Parse result:`, parseResult);
 
         if (parseResult.success) {
-          const today = new Date().toISOString().split('T')[0];
+          const today = todayIso();
           notifyRendererStateChange('PLAN_IMPORTED', {
             fileName,
             filePath,
@@ -871,7 +872,7 @@ export function setupBurnoutHandlers(): void {
    */
   ipcMain.handle('burnout:getLiveRisk', async () => {
     try {
-      const today = new Date().toISOString().split('T')[0];
+      const today = todayIso();
       const todayMinutes = getTotalMinutesToday(today);
       const risk = getTodayLiveRisk(todayMinutes);
       return { success: true, data: risk } as IPCResponse;

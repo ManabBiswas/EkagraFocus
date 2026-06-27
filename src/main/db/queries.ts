@@ -93,7 +93,7 @@ export type NoteUpdateInput = IPCNoteUpdateInput;
 export type NotesListParams = IPCNotesListParams;
 
 const round2 = (value: number): number => Math.round(value * 100) / 100;
-const todayIso = (): string => {
+export const todayIso = (): string => {
   const now = new Date();
   const offset = now.getTimezoneOffset();
   const local = new Date(now.getTime() - offset * 60 * 1000);

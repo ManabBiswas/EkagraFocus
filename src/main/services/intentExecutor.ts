@@ -1,6 +1,6 @@
 import type { IPCAgentMessage } from '../../shared/ipc';
 import { BrowserWindow } from 'electron';
-import { updateTaskStatus, insertSession, getTaskById, getFullContext } from '../db/queries';
+import { updateTaskStatus, insertSession, getTaskById, getFullContext, todayIso } from '../db/queries';
 
 
 interface AIResponse {
@@ -112,7 +112,7 @@ function executeLogSession(data: Record<string, unknown>, reply: string): IPCAge
     }
 
     const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    const today = new Date().toISOString().split('T')[0];
+    const today = todayIso();
 
     insertSession({
       id: sessionId,
@@ -214,7 +214,7 @@ function executeMarkDone(data: Record<string, unknown>, reply: string): IPCAgent
     }
 
     const task = getTaskById(taskId);
-    const today = new Date().toISOString().split('T')[0];
+    const today = todayIso();
 
     notifyDbStateChanged('TASK_UPDATED', {
       taskId,

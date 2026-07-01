@@ -461,13 +461,15 @@ export function getWeeklySubjectBreakdown(endDate?: string): Array<{ subject: st
 
   return db
     .prepare(
-      `SELECT COALESCE(notes, 'Untagged') as subject,
-              COUNT(*) as sessions,
-              SUM(duration_minutes) as total_minutes
-       FROM sessions
-       WHERE date >= ? AND date <= ?
-       GROUP BY subject
-       ORDER BY total_minutes DESC`
+      `SELECT COALESCE(t.name, s.notes, 'Untagged') as subject,
+       COUNT(*) as sessions,
+       SUM(s.duration_minutes) as total_minutes
+FROM sessions s
+LEFT JOIN tasks t
+  ON s.task_id = t.id
+WHERE s.date >= ? AND s.date <= ?
+GROUP BY COALESCE(t.name, s.notes, 'Untagged')
+ORDER BY total_minutes DESC`
     )
     .all(start, end) as Array<{ subject: string; sessions: number; total_minutes: number }>;
 }
@@ -716,10 +718,13 @@ export function calculateAndUpsertWeeklyProgress(planId?: string, weekNumber?: n
 
   const subjectRows = db
     .prepare(
-      `SELECT COALESCE(notes, 'Untagged') as subject, SUM(duration_minutes) as total_minutes
-       FROM sessions
-       WHERE date >= ? AND date <= ?
-       GROUP BY subject`
+      `SELECT COALESCE(t.name, s.notes, 'Untagged') as subject,
+       SUM(s.duration_minutes) as total_minutes
+FROM sessions s
+LEFT JOIN tasks t
+  ON s.task_id = t.id
+WHERE s.date >= ? AND s.date <= ?
+GROUP BY COALESCE(t.name, s.notes, 'Untagged')`
     )
     .all(weekStart, weekEnd) as Array<{ subject: string; total_minutes: number }>;
 

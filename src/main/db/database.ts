@@ -170,6 +170,7 @@ export function initializeDatabase(): Database.Database {
       linked_task_id TEXT,
       linked_session_id TEXT,
       attachments TEXT,
+      source_urls TEXT,
       ai_summary TEXT,
       ai_keywords TEXT,
       is_pinned INTEGER DEFAULT 0,
@@ -204,6 +205,13 @@ export function initializeDatabase(): Database.Database {
   db.prepare(`
     UPDATE user_state SET base_goal_hours = 9 WHERE state_id = 'singleton'
   `).run();
+
+  // Migration: add source_urls column if it doesn't exist (added in url-importer feature)
+  const notesCols = db.prepare('PRAGMA table_info(notes)').all() as Array<{ name: string }>;
+  if (!notesCols.some(col => col.name === 'source_urls')) {
+    db.exec('ALTER TABLE notes ADD COLUMN source_urls TEXT');
+    console.log('✓ Migrated: added source_urls column to notes');
+  }
    ensureRedistributionTable();
   console.log(' Database initialized:', dbPath);
   return db;

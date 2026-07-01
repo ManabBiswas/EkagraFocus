@@ -52,6 +52,8 @@ import {
   detectIncompleteGoal,
 } from '../db/redistributionQueries';
 import { generateBurnoutReport, getTodayLiveRisk } from '../db/burnoutQueries';
+import * as https from 'https';
+import * as http from 'http';
 
 // Guard to prevent duplicate handler registration
 let handlersInitialized = false;
@@ -663,6 +665,279 @@ export function setupNotesHandlers(): void {
     } catch (error) {
       console.error('Error generating note insights:', error);
       return { success: false, error: 'Failed to generate note insights' } as IPCResponse;
+    }
+  });
+
+  ipcMain.handle('notes:fetchUrl', async (_event, url: string) => {
+    try {
+      if (!url || typeof url !== 'string') {
+        return { success: false, error: 'Invalid URL' } as IPCResponse;
+      }
+
+      // Validate URL
+      let parsedUrl: URL;
+      try {
+        parsedUrl = new URL(url);
+      } catch {
+        return { success: false, error: 'Malformed URL' } as IPCResponse;
+      }
+
+      if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+        return { success: false, error: 'Only http and https URLs are supported' } as IPCResponse;
+      }
+
+      // Fetch raw HTML from main process (no CORS)
+      const rawHtml = await new Promise<string>((resolve, reject) => {
+        const client = parsedUrl.protocol === 'https:' ? https : http;
+        const req = client.get(url, { headers: { 'User-Agent': 'Mozilla/5.0 EkagraFocus/1.0' } }, (res) => {
+          // Follow redirects
+          if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+            const redirectUrl = new URL(res.headers.location, url).toString();
+            const redirectClient = redirectUrl.startsWith('https') ? https : http;
+            redirectClient.get(redirectUrl, { headers: { 'User-Agent': 'Mozilla/5.0 EkagraFocus/1.0' } }, (res2) => {
+              let data = '';
+              res2.on('data', (chunk: Buffer) => { data += chunk.toString(); });
+              res2.on('end', () => resolve(data));
+              res2.on('error', reject);
+            }).on('error', reject);
+            return;
+          }
+          let data = '';
+          res.on('data', (chunk: Buffer) => { data += chunk.toString(); });
+          res.on('end', () => resolve(data));
+          res.on('error', reject);
+        });
+        req.on('error', reject);
+        req.setTimeout(10000, () => { req.destroy(); reject(new Error('Request timed out')); });
+      });
+
+      // Extract page title
+      const titleMatch = rawHtml.match(/<title[^>]*>([^<]*)<\/title>/i);
+      const pageTitle = titleMatch ? titleMatch[1].trim() : parsedUrl.hostname;
+
+      // Strip scripts, styles, nav, footer, header, ads
+      const cleaned = rawHtml
+        .replace(/<script[\s\S]*?<\/script>/gi, '')
+        .replace(/<style[\s\S]*?<\/style>/gi, '')
+        .replace(/<nav[\s\S]*?<\/nav>/gi, '')
+        .replace(/<footer[\s\S]*?<\/footer>/gi, '')
+        .replace(/<header[\s\S]*?<\/header>/gi, '')
+        .replace(/<aside[\s\S]*?<\/aside>/gi, '')
+        .replace(/<!--[\s\S]*?-->/g, '');
+
+      // Extract heading+paragraph pairs as sections
+      const sections: { heading: string; text: string }[] = [];
+
+      // Pull all headings and paragraphs in document order
+      const blockRegex = /<(h[1-3]|p|li)[^>]*>([\s\S]*?)<\/\1>/gi;
+      let currentHeading = 'Introduction';
+      let currentTexts: string[] = [];
+
+      let match: RegExpExecArray | null;
+      while ((match = blockRegex.exec(cleaned)) !== null) {
+        const tag = match[1].toLowerCase();
+        // Strip inner HTML tags to get plain text
+        const text = match[2].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+        if (!text || text.length < 20) continue;
+
+        if (tag.startsWith('h')) {
+          // Flush previous section
+          if (currentTexts.length > 0) {
+            sections.push({ heading: currentHeading, text: currentTexts.join(' ') });
+            currentTexts = [];
+          }
+          currentHeading = text;
+        } else {
+          currentTexts.push(text);
+        }
+      }
+
+      // Flush last section
+      if (currentTexts.length > 0) {
+        sections.push({ heading: currentHeading, text: currentTexts.join(' ') });
+      }
+
+      if (sections.length === 0) {
+        return { success: false, error: 'Could not extract readable content from this URL. Try a different page.' } as IPCResponse;
+      }
+
+      return {
+        success: true,
+        data: { url, title: pageTitle, sections },
+      } as IPCResponse;
+    } catch (error) {
+      console.error('[Notes] fetchUrl error:', error);
+      return { success: false, error: 'Failed to fetch URL content' } as IPCResponse;
+    }
+  });
+
+  ipcMain.handle('notes:analyzeUrls', async (_event, urls: string[]) => {
+    try {
+      if (!Array.isArray(urls) || urls.length === 0) {
+        return { success: false, error: 'No URLs provided' } as IPCResponse;
+      }
+
+      // Fetch and extract text from all URLs
+      const fetchedContents: string[] = [];
+
+      for (const url of urls) {
+        try {
+          let parsedUrl: URL;
+          try { parsedUrl = new URL(url); } catch { continue; }
+          if (!['http:', 'https:'].includes(parsedUrl.protocol)) continue;
+
+          const rawHtml = await new Promise<string>((resolve, reject) => {
+            const client = parsedUrl.protocol === 'https:' ? https : http;
+            const req = client.get(url, { headers: { 'User-Agent': 'Mozilla/5.0 EkagraFocus/1.0' } }, (res) => {
+              if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+                const redirectUrl = new URL(res.headers.location, url).toString();
+                const redirectClient = redirectUrl.startsWith('https') ? https : http;
+                redirectClient.get(redirectUrl, { headers: { 'User-Agent': 'Mozilla/5.0 EkagraFocus/1.0' } }, (res2) => {
+                  let data = '';
+                  res2.on('data', (chunk: Buffer) => { data += chunk.toString(); });
+                  res2.on('end', () => resolve(data));
+                  res2.on('error', reject);
+                }).on('error', reject);
+                return;
+              }
+              let data = '';
+              res.on('data', (chunk: Buffer) => { data += chunk.toString(); });
+              res.on('end', () => resolve(data));
+              res.on('error', reject);
+            });
+            req.on('error', reject);
+            req.setTimeout(15000, () => { req.destroy(); reject(new Error('Timeout')); });
+          });
+
+          // Strip HTML and extract readable text
+          const cleaned = rawHtml
+            .replace(/<script[\s\S]*?<\/script>/gi, '')
+            .replace(/<style[\s\S]*?<\/style>/gi, '')
+            .replace(/<nav[\s\S]*?<\/nav>/gi, '')
+            .replace(/<footer[\s\S]*?<\/footer>/gi, '')
+            .replace(/<header[\s\S]*?<\/header>/gi, '')
+            .replace(/<aside[\s\S]*?<\/aside>/gi, '')
+            .replace(/<!--[\s\S]*?-->/g, '');
+
+          const blockRegex = /<(h[1-3]|p|li)[^>]*>([\s\S]*?)<\/\1>/gi;
+          const textParts: string[] = [];
+          let match: RegExpExecArray | null;
+          while ((match = blockRegex.exec(cleaned)) !== null) {
+            const text = match[2].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+            if (text && text.length >= 20) textParts.push(text);
+          }
+
+          if (textParts.length > 0) {
+            fetchedContents.push(`--- Source: ${url} ---\n${textParts.join('\n')}`);
+          }
+        } catch (err) {
+          console.warn(`[Notes] analyzeUrls: failed to fetch ${url}:`, err);
+        }
+      }
+
+      if (fetchedContents.length === 0) {
+        return { success: false, error: 'Could not extract content from any of the provided URLs.' } as IPCResponse;
+      }
+
+      const combinedText = fetchedContents.join('\n\n');
+      // Truncate to avoid overwhelming the LLM context window
+      const truncated = combinedText.slice(0, 4000);
+
+      const prompt = [
+        'You are a study assistant. Analyze the following web content and generate structured study notes.',
+        'Return ONLY a JSON array of sections with this exact shape:',
+        '[{"heading":"Section Title","text":"Full explanation of this topic in clear, student-friendly language."}]',
+        'Rules:',
+        '- Create 5-12 meaningful sections based on the content.',
+        '- Each heading should be a clear topic name.',
+        '- Each text should be a thorough explanation (3-8 sentences).',
+        '- Focus on key concepts, definitions, examples, and important points.',
+        '- Do NOT include source URLs or metadata in the output.',
+        '- Return ONLY the JSON array, no other text.',
+        '',
+        'Content to analyze:',
+        truncated,
+      ].join('\n');
+
+      let raw = '';
+
+      if (llmService.isInitialized()) {
+        try {
+          raw = await llmService.generateResponse(prompt, { temperature: 0.3, maxTokens: 2000 });
+        } catch (err) {
+          console.warn('[Notes] analyzeUrls: local LLM failed, trying Ollama:', err);
+        }
+      }
+
+      if (!raw) {
+        const ollamaRaw = await generateViaOllama(prompt, 'tinyllama');
+        raw = ollamaRaw || '';
+      }
+
+      if (!raw) {
+        return { success: false, error: 'No AI model available. Please set up a local LLM or Ollama to use this feature.' } as IPCResponse;
+      }
+
+      // Parse AI response
+      let sections: { heading: string; text: string }[] = [];
+      try {
+        console.log('[Notes] analyzeUrls raw AI response:', raw.slice(0, 500));
+        const normalized = raw.trim().replace(/```(?:json)?\s*([\s\S]*?)```/i, '$1').trim();
+        const parsed = JSON.parse(normalized);
+        if (Array.isArray(parsed)) {
+          sections = parsed
+            .filter(s => s && typeof s.heading === 'string' && typeof s.text === 'string')
+            .map(s => ({ heading: s.heading.trim(), text: s.text.trim() }))
+            .filter(s => s.heading.length > 0 && s.text.length > 0);
+        }
+      } catch {
+        console.warn('[Notes] analyzeUrls: JSON parse failed, falling back to plain text parsing');
+      }
+
+      // Fallback: parse plain text into sections if JSON failed
+      if (sections.length === 0 && raw.trim().length > 0) {
+        const lines = raw.trim().split('\n').filter(l => l.trim().length > 0);
+        let currentHeading = 'Overview';
+        let currentTexts: string[] = [];
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          const isHeading =
+            /^\d+\.\s+[A-Z]/.test(trimmed) ||
+            (trimmed.endsWith(':') && trimmed.length < 60) ||
+            /^#{1,3}\s/.test(trimmed);
+
+          if (isHeading) {
+            if (currentTexts.length > 0) {
+              sections.push({ heading: currentHeading, text: currentTexts.join(' ') });
+              currentTexts = [];
+            }
+            currentHeading = trimmed.replace(/^#{1,3}\s/, '').replace(/:$/, '').replace(/^\d+\.\s*/, '');
+          } else {
+            currentTexts.push(trimmed);
+            // Split into new section every ~400 chars to avoid one giant blob
+            const combined = currentTexts.join(' ');
+            if (combined.length >= 400) {
+              sections.push({ heading: currentHeading, text: combined });
+              currentTexts = [];
+              currentHeading = `${currentHeading} (cont.)`;
+            }
+          }
+        }
+
+        if (currentTexts.length > 0) {
+          sections.push({ heading: currentHeading, text: currentTexts.join(' ') });
+        }
+      }
+
+      if (sections.length === 0) {
+        return { success: false, error: 'AI could not generate structured notes from the provided content.' } as IPCResponse;
+      }
+
+      return { success: true, data: { sections } } as IPCResponse;
+    } catch (error) {
+      console.error('[Notes] analyzeUrls error:', error);
+      return { success: false, error: 'Failed to analyze URLs' } as IPCResponse;
     }
   });
 }

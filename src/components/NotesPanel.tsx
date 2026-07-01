@@ -15,6 +15,7 @@ interface NoteEditorState {
   linkedTaskId: string;
   canvasData: string;
   attachments: NoteAttachment[];
+  sourceUrls: string[];
   isPinned: boolean;
 }
 
@@ -25,7 +26,33 @@ const EMPTY_EDITOR: NoteEditorState = {
   linkedTaskId: '',
   canvasData: '',
   attachments: [],
+  sourceUrls: [],
   isPinned: false,
+};
+
+interface UrlSection {
+  heading: string;
+  text: string;
+}
+
+interface UrlImportState {
+  urlInput: string;
+  sections: UrlSection[];
+  isOpen: boolean;
+  isAnalyzing: boolean;
+  error: string;
+  activeSectionIndex: number | null;
+  analyzerEnabled: boolean;
+}
+
+const EMPTY_URL_IMPORT: UrlImportState = {
+  urlInput: '',
+  sections: [],
+  isOpen: false,
+  isAnalyzing: false,
+  error: '',
+  activeSectionIndex: null,
+  analyzerEnabled: false,
 };
 
 function parseStringList(source: string | null | undefined): string[] {
@@ -83,6 +110,7 @@ function noteToEditorState(note: IPCNote): NoteEditorState {
     linkedTaskId: note.linked_task_id || '',
     canvasData: note.canvas_data || '',
     attachments: parseAttachmentList(note.attachments),
+    sourceUrls: parseStringList(note.source_urls),
     isPinned: note.is_pinned === 1,
   };
 }
@@ -305,6 +333,79 @@ export function NotesPanel() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [statusMessage, setStatusMessage] = useState('');
+  const [urlImport, setUrlImport] = useState<UrlImportState>(EMPTY_URL_IMPORT);
+  const urlInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleAddUrl = () => {
+    const url = urlImport.urlInput.trim();
+    if (!url) return;
+    try {
+      new URL(url); // validate
+    } catch {
+      setUrlImport(prev => ({ ...prev, error: 'Invalid URL format' }));
+      return;
+    }
+    if (editor.sourceUrls.includes(url)) {
+      setUrlImport(prev => ({ ...prev, error: 'URL already added', urlInput: '' }));
+      return;
+    }
+    setEditor(prev => ({ ...prev, sourceUrls: [...prev.sourceUrls, url] }));
+    setUrlImport(prev => ({ ...prev, urlInput: '', error: '' }));
+  };
+
+  const handleAnalyzeUrls = async () => {
+    if (editor.sourceUrls.length === 0) return;
+    setUrlImport(prev => ({ ...prev, isAnalyzing: true, error: '', sections: [] }));
+    try {
+      const result = await window.api.notes.analyzeUrls(editor.sourceUrls);
+      setUrlImport(prev => ({
+        ...prev,
+        isAnalyzing: false,
+        isOpen: true,
+        sections: result.sections,
+        activeSectionIndex: 0,
+      }));
+    } catch (err) {
+      setUrlImport(prev => ({
+        ...prev,
+        isAnalyzing: false,
+        error: err instanceof Error ? err.message : 'Analysis failed',
+      }));
+    }
+  };
+
+  const handleImportSelection = () => {
+    const selection = window.getSelection()?.toString().trim();
+    if (!selection) return;
+    const separator = editor.content.trim() ? '\n\n---\n\n' : '';
+    setEditor(prev => ({ ...prev, content: prev.content + separator + selection }));
+    setStatusMessage('Imported selected text from AI analysis');
+    setUrlImport(prev => ({ ...prev, isOpen: false }));
+  };
+
+  const handleImportFullSection = () => {
+    if (urlImport.activeSectionIndex === null) return;
+    const section = urlImport.sections[urlImport.activeSectionIndex];
+    if (!section) return;
+    const separator = editor.content.trim() ? '\n\n---\n\n' : '';
+    setEditor(prev => ({
+      ...prev,
+      content: prev.content + separator + `### ${section.heading}\n\n${section.text}`,
+    }));
+    setStatusMessage('Imported full section from AI analysis');
+    setUrlImport(prev => ({ ...prev, isOpen: false }));
+  };
+
+  const handleAppendAll = () => {
+    if (urlImport.sections.length === 0) return;
+    const markdown = urlImport.sections
+      .map(s => `### ${s.heading}\n\n${s.text}`)
+      .join('\n\n---\n\n');
+    const separator = editor.content.trim() ? '\n\n---\n\n' : '';
+    setEditor(prev => ({ ...prev, content: prev.content + separator + markdown }));
+    setStatusMessage('Appended all AI-analyzed sections to note');
+    setUrlImport(prev => ({ ...prev, isOpen: false }));
+  };
 
   const selectedNote = useMemo(
     () => notes.find((note) => note.id === selectedNoteId) || null,
@@ -358,10 +459,12 @@ export function NotesPanel() {
     if (selectedNote) {
       setEditor(noteToEditorState(selectedNote));
       setStatusMessage('');
+      setUrlImport(EMPTY_URL_IMPORT);
       return;
     }
 
     setEditor(EMPTY_EDITOR);
+    setUrlImport(EMPTY_URL_IMPORT);
   }, [selectedNote]);
 
   const handleCreateNew = () => {
@@ -412,6 +515,7 @@ export function NotesPanel() {
       tags: parsedTags.length > 0 ? JSON.stringify(parsedTags) : null,
       linked_task_id: editor.linkedTaskId || null,
       attachments: editor.attachments.length > 0 ? JSON.stringify(editor.attachments) : null,
+      source_urls: editor.sourceUrls.length > 0 ? JSON.stringify(editor.sourceUrls) : null,
       is_pinned: editor.isPinned ? 1 : 0,
     };
   };
@@ -691,8 +795,194 @@ export function NotesPanel() {
                 </div>
               )}
             </div>
-          </div>
 
+            {/* Source URLs */}
+            <div className="rounded-xl border border-white/15 bg-black/20 p-3">
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <p className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-300">
+                  Source URLs
+                </p>
+                {/* AI Analyzer Toggle */}
+                <label className="flex cursor-pointer items-center gap-2">
+                  <span className="text-[10px] text-slate-400">AI Analyzer</span>
+                  <div className="relative">
+                    <input
+                      type="checkbox"
+                      className="sr-only"
+                      checked={urlImport.analyzerEnabled}
+                      onChange={e => setUrlImport(prev => ({ ...prev, analyzerEnabled: e.target.checked, error: '' }))}
+                    />
+                    <div className={`h-4 w-8 rounded-full transition-colors ${urlImport.analyzerEnabled ? 'bg-cyan-500' : 'bg-slate-600'}`} />
+                    <div className={`absolute top-0.5 h-3 w-3 rounded-full bg-white shadow transition-transform ${urlImport.analyzerEnabled ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                  </div>
+                </label>
+              </div>
+
+              {/* URL input */}
+              <div className="flex gap-2">
+                <input
+                  ref={urlInputRef}
+                  type="url"
+                  value={urlImport.urlInput}
+                  onChange={e => setUrlImport(prev => ({ ...prev, urlInput: e.target.value, error: '' }))}
+                  onKeyDown={e => e.key === 'Enter' && handleAddUrl()}
+                  placeholder="https://geeksforgeeks.org/..."
+                  className="metal-input flex-1 rounded-xl px-3 py-2 text-xs"
+                />
+                <button
+                  onClick={handleAddUrl}
+                  disabled={!urlImport.urlInput.trim()}
+                  className="btn-accent px-3 py-1.5 text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Add
+                </button>
+              </div>
+
+              {urlImport.error && (
+                <p className="mt-1.5 text-xs text-red-300">{urlImport.error}</p>
+              )}
+
+              {/* Saved URLs list */}
+              {editor.sourceUrls.length === 0 && (
+                <p className="mt-2 text-xs text-slate-500">No source URLs added yet.</p>
+              )}
+
+              {editor.sourceUrls.length > 0 && (
+                <div className="mt-2 space-y-1">
+                  {editor.sourceUrls.map((url, i) => (
+                    <div key={i} className="flex items-center justify-between gap-2 rounded-lg border border-white/10 bg-black/35 px-2 py-1">
+                      <a
+                        href={url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="truncate text-[10px] text-cyan-300 hover:underline"
+                      >
+                        {url}
+                      </a>
+                      <button
+                        onClick={() => setEditor(prev => ({
+                          ...prev,
+                          sourceUrls: prev.sourceUrls.filter((_, idx) => idx !== i),
+                        }))}
+                        className="shrink-0 rounded border border-red-400/50 bg-red-400/20 px-1.5 py-0.5 text-[10px] font-bold text-red-200 hover:bg-red-400/30"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Analyze button — only when toggle is on and URLs exist */}
+              {urlImport.analyzerEnabled && editor.sourceUrls.length > 0 && (
+                <button
+                  onClick={handleAnalyzeUrls}
+                  disabled={urlImport.isAnalyzing}
+                  className="mt-3 w-full rounded-xl border border-cyan-400/30 bg-cyan-400/10 py-2 text-xs font-semibold text-cyan-300 hover:bg-cyan-400/20 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {urlImport.isAnalyzing
+                    ? `Analyzing ${editor.sourceUrls.length} URL(s)...`
+                    : `🤖 Analyze with AI (${editor.sourceUrls.length} URL${editor.sourceUrls.length > 1 ? 's' : ''})`
+                  }
+                </button>
+              )}
+
+              {urlImport.analyzerEnabled && editor.sourceUrls.length === 0 && (
+                <p className="mt-2 text-[10px] text-slate-500 italic">Add at least one URL to enable analysis.</p>
+              )}
+            </div>
+
+            {/* AI Analysis Result Modal */}
+            {urlImport.isOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+              <div className="flex max-h-[85vh] w-full max-w-4xl flex-col rounded-2xl border border-white/20 bg-slate-900 shadow-2xl">
+
+                {/* Header */}
+                <div className="flex items-start justify-between gap-3 border-b border-white/15 p-4">
+                  <div>
+                    <p className="text-sm font-bold text-white">AI Study Notes</p>
+                    <p className="mt-0.5 text-[10px] text-slate-400">
+                      Analyzed {editor.sourceUrls.length} source{editor.sourceUrls.length > 1 ? 's' : ''} · {urlImport.sections.length} sections generated
+                    </p>
+                    <p className="mt-1 text-xs text-slate-300">
+                      Click a section · select text · import what you need
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setUrlImport(prev => ({ ...prev, isOpen: false }))}
+                    className="shrink-0 rounded-lg border border-white/15 bg-white/5 px-2 py-1 text-xs text-slate-300 hover:bg-white/10"
+                  >
+                    ✕ Close
+                  </button>
+                </div>
+
+                {/* Two-panel layout */}
+                <div className="flex min-h-0 flex-1 overflow-hidden">
+                  {/* Left: section headings */}
+                  <div className="w-52 shrink-0 space-y-1 overflow-y-auto border-r border-white/10 p-3">
+                    <p className="mb-2 text-[10px] uppercase tracking-widest text-slate-500">Sections</p>
+                    {urlImport.sections.map((section, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setUrlImport(prev => ({ ...prev, activeSectionIndex: i }))}
+                        className={`w-full rounded-lg border px-2 py-2 text-left text-[11px] transition-colors ${
+                          urlImport.activeSectionIndex === i
+                            ? 'border-cyan-400/40 bg-cyan-400/10 text-cyan-200'
+                            : 'border-white/10 bg-black/30 text-slate-300 hover:bg-black/45'
+                        }`}
+                      >
+                        {section.heading}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Right: section content */}
+                  <div className="flex-1 cursor-text select-text overflow-y-auto p-4 text-xs leading-7 text-slate-200 whitespace-pre-wrap">
+                    {urlImport.activeSectionIndex !== null ? (
+                      <>
+                        <p className="mb-3 text-sm font-bold text-white">
+                          {urlImport.sections[urlImport.activeSectionIndex]?.heading}
+                        </p>
+                        <p className="text-slate-300">
+                          {urlImport.sections[urlImport.activeSectionIndex]?.text}
+                        </p>
+                        <p className="mt-4 text-[10px] text-slate-500 italic">
+                          Highlight text you want, then click "Import Selected Text" below.
+                        </p>
+                      </>
+                    ) : (
+                      <p className="text-slate-500">← Click a section to preview</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Import buttons */}
+                <div className="flex gap-2 border-t border-white/15 p-4">
+                  <button
+                    onClick={handleImportSelection}
+                    className="btn-success flex-1 py-2.5 text-sm font-semibold"
+                  >
+                    Import Selected Text
+                  </button>
+                  <button
+                    onClick={handleImportFullSection}
+                    disabled={urlImport.activeSectionIndex === null}
+                    className="btn-accent px-4 py-2.5 text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Import Full Section
+                  </button>
+                  <button
+                    onClick={handleAppendAll}
+                    className="rounded-xl border border-slate-400/30 bg-slate-400/10 px-4 py-2.5 text-sm font-semibold text-slate-300 hover:bg-slate-400/20"
+                  >
+                    Append All
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+          </div>
+          
           <div className="min-h-0 space-y-3 overflow-y-auto rounded-xl border border-white/15 bg-black/25 p-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-300">Markdown preview</p>

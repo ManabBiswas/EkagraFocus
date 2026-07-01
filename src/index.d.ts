@@ -21,6 +21,8 @@ import type {
   IPCPlanTask,
   IPCWeeklyProgress,
   IPCUserState,
+  IPCFetchUrlResult,
+  IPCAnalyzeUrlsResult,
 } from './shared/ipc';
 
 /**
@@ -76,12 +78,14 @@ interface IPCFile {
 }
 
 interface IPCNotes {
+  fetchUrl: (url: string) => Promise<IPCFetchUrlResult>;
   list: (params?: IPCNotesListParams) => Promise<IPCNote[]>;
   getById: (noteId: string) => Promise<IPCNote | null>;
   create: (note: IPCNoteCreateInput) => Promise<IPCNote>;
   update: (noteId: string, updates: IPCNoteUpdateInput) => Promise<IPCNote | null>;
   delete: (noteId: string) => Promise<{ deleted: boolean }>;
   generateInsights: (noteId: string) => Promise<IPCNote | null>;
+  analyzeUrls: (urls: string[]) => Promise<IPCAnalyzeUrlsResult>;
 }
 
 interface IPCPlan {

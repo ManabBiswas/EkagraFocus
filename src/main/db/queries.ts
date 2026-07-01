@@ -192,8 +192,8 @@ export function insertNote(note: NoteCreateInput): IPCNote {
   db.prepare(
     `INSERT INTO notes (
       id, title, content, canvas_data, tags, linked_task_id, linked_session_id,
-      attachments, ai_summary, ai_keywords, is_pinned
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      attachments, source_urls, ai_summary, ai_keywords, is_pinned
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).run(
     id,
     title,
@@ -203,6 +203,7 @@ export function insertNote(note: NoteCreateInput): IPCNote {
     note.linked_task_id ?? null,
     note.linked_session_id ?? null,
     note.attachments ?? null,
+    note.source_urls ?? null,
     note.ai_summary ?? null,
     note.ai_keywords ?? null,
     note.is_pinned ? 1 : 0
@@ -227,6 +228,7 @@ export function updateNote(noteId: string, updates: NoteUpdateInput): IPCNote | 
     'linked_task_id',
     'linked_session_id',
     'attachments',
+    'source_urls',
     'ai_summary',
     'ai_keywords',
     'is_pinned',

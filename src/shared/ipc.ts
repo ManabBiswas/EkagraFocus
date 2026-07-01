@@ -148,6 +148,7 @@ export interface IPCNote {
   linked_task_id: string | null;
   linked_session_id: string | null;
   attachments: string | null;
+  source_urls: string | null;
   ai_summary: string | null;
   ai_keywords: string | null;
   is_pinned: number;
@@ -163,6 +164,7 @@ export interface IPCNoteCreateInput {
   linked_task_id?: string | null;
   linked_session_id?: string | null;
   attachments?: string | null;
+  source_urls?: string | null;
   ai_summary?: string | null;
   ai_keywords?: string | null;
   is_pinned?: number;
@@ -176,6 +178,7 @@ export interface IPCNoteUpdateInput {
   linked_task_id?: string | null;
   linked_session_id?: string | null;
   attachments?: string | null;
+  source_urls?: string | null;
   ai_summary?: string | null;
   ai_keywords?: string | null;
   is_pinned?: number;
@@ -216,6 +219,21 @@ export interface IPCResponse<T = unknown> {
 export interface IPCSessionLogResult {
   sessionId: string;
   linkedNotesCount: number;
+}
+
+export interface IPCUrlSection {
+  heading: string;
+  text: string;
+}
+
+export interface IPCFetchUrlResult {
+  url: string;
+  title: string;
+  sections: IPCUrlSection[];
+}
+
+export interface IPCAnalyzeUrlsResult {
+  sections: IPCUrlSection[];
 }
 
 /**

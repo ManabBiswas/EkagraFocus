@@ -92,6 +92,9 @@ interface FocusAgentState {
   activeTab: 'chat' | 'timer' | 'logger' | 'stats' | 'plan' | 'notes';
   isInitialized: boolean;
 
+  activeTheme: 'default' | 'deepFocus' | 'midnightPurple' | 'cyberNeon' | 'forestHacker';
+  setTheme: (theme: 'default' | 'deepFocus' | 'midnightPurple' | 'cyberNeon' | 'forestHacker') => void;
+
   // ── Goal & Status ─────────────────────────────────────────
   dailyStatus: DailyStatus | null;
   userState: UserState | null;
@@ -202,6 +205,7 @@ export const useStore = create<FocusAgentState>((set, get) => ({
   // Initial state
   activeTab: 'chat',
   isInitialized: false,
+  activeTheme: 'default',
 
   dailyStatus: getInitialDailyStatus(),
   userState: getInitialUserState(),
@@ -244,6 +248,7 @@ export const useStore = create<FocusAgentState>((set, get) => ({
   setActiveTab: (tab) => set({ activeTab: tab }),
   initializeStore: () => set({ isInitialized: true }),
   setInitialized: (value) => set({ isInitialized: value }),
+  setTheme: (theme) => set({ activeTheme: theme }),
 
   // Status actions
   setDailyStatus: (status) => set({ dailyStatus: status }),

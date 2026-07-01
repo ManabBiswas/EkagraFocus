@@ -3,14 +3,48 @@ import { useStore } from '../store/useStore';
 
 // How often to poll live risk while timer is running (ms)
 const LIVE_RISK_POLL_INTERVAL_MS = 60 * 1000; // every 1 minute
-
-// Warn the user in-session if they've been running the current timer this long
 const IN_SESSION_WARN_MINUTES = 90;
 const IN_SESSION_CRIT_MINUTES = 150;
 
 function formatHHMM(date: Date): string {
-  return date.toTimeString().slice(0, 5); // "HH:MM"
+  return date.toTimeString().slice(0, 5);
 }
+
+// ── Theme Definitions ────────────────────────────────────────────────────────
+const THEMES = {
+  default: {
+    swatch: 'bg-cyan-500',
+    container: 'bg-transparent',
+    text: 'text-cyan-300',
+    label: 'text-cyan-300',
+  },
+  deepFocus: {
+    swatch: 'bg-slate-800',
+    container: 'bg-slate-900 rounded-3xl shadow-inner border border-slate-800',
+    text: 'text-indigo-400',
+    label: 'text-indigo-500',
+  },
+  midnightPurple: {
+    swatch: 'bg-purple-500',
+    container: 'bg-[#0a0514] rounded-3xl border border-purple-500/20 shadow-[inset_0_0_20px_rgba(168,85,247,0.05)]',
+    text: 'text-purple-300',
+    label: 'text-purple-400/70',
+  },
+  cyberNeon: {
+    swatch: 'bg-pink-500',
+    container: 'bg-slate-950 rounded-3xl border border-cyan-500/30',
+    text: 'text-pink-400',
+    label: 'text-cyan-400',
+  },
+  forestHacker: {
+    swatch: 'bg-green-500',
+    container: 'bg-black rounded-3xl border border-green-500/20',
+    text: 'text-green-400',
+    label: 'text-green-600',
+  },
+};
+
+type ThemeKey = keyof typeof THEMES;
 
 export function TimerPanel() {
   const {
@@ -25,20 +59,19 @@ export function TimerPanel() {
     burnoutLiveRisk,
     fetchBurnoutReport,
     fetchBurnoutLiveRisk,
+    activeTheme = 'default',
+    setTheme,
   } = useStore();
 
   const [sessionSubject, setSessionSubject] = useState(currentSessionSubject);
-
-  // Track wall-clock start/end times for accurate burnout analysis
   const sessionStartTimeRef = useRef<string | null>(null);
 
-  // ── Fetch burnout data on mount ─────────────────────────────────────────────
+  // ── Existing Effects & Logic ────────────────────────────────────────────────
   useEffect(() => {
     fetchBurnoutReport();
     fetchBurnoutLiveRisk();
   }, [fetchBurnoutReport, fetchBurnoutLiveRisk]);
 
-  // ── Poll live risk every minute while timer is running ──────────────────────
   useEffect(() => {
     if (!timerRunning) return;
     const interval = setInterval(() => {
@@ -47,30 +80,23 @@ export function TimerPanel() {
     return () => clearInterval(interval);
   }, [timerRunning, fetchBurnoutLiveRisk]);
 
-  // ── Record wall-clock start time when timer begins ──────────────────────────
   useEffect(() => {
     if (timerRunning && sessionStartTimeRef.current === null) {
       sessionStartTimeRef.current = formatHHMM(new Date());
     }
     if (!timerRunning && timerSeconds === 0) {
-      // Timer was reset — clear start time
       sessionStartTimeRef.current = null;
     }
   }, [timerRunning, timerSeconds]);
 
-  // ── Derived values ──────────────────────────────────────────────────────────
   const hours = Math.floor(timerSeconds / 3600);
   const minutes = Math.floor((timerSeconds % 3600) / 60);
   const seconds = timerSeconds % 60;
-
   const currentSessionMinutes = timerSeconds / 60;
-  const inSessionWarnActive =
-    timerRunning && currentSessionMinutes >= IN_SESSION_WARN_MINUTES;
-  const inSessionCritActive =
-    timerRunning && currentSessionMinutes >= IN_SESSION_CRIT_MINUTES;
+  
+  const inSessionWarnActive = timerRunning && currentSessionMinutes >= IN_SESSION_WARN_MINUTES;
+  const inSessionCritActive = timerRunning && currentSessionMinutes >= IN_SESSION_CRIT_MINUTES;
 
-  // ── Burnout warning display logic ───────────────────────────────────────────
-  // Priority: in-session timer warnings > live risk > historical report warnings
   const timerWarnings: Array<{ severity: 'warning' | 'critical'; message: string }> = [];
 
   if (inSessionCritActive) {
@@ -92,13 +118,9 @@ export function TimerPanel() {
     });
   }
 
-  // Show up to 2 historical warnings only when not already showing timer/live warnings
-  const historicalWarnings =
-    timerWarnings.length === 0 && burnoutReport
-      ? burnoutReport.warnings
-          .filter((w) => w.severity !== 'info')
-          .slice(0, 2)
-      : [];
+  const historicalWarnings = timerWarnings.length === 0 && burnoutReport
+    ? burnoutReport.warnings.filter((w) => w.severity !== 'info').slice(0, 2)
+    : [];
 
   // ── Handlers ────────────────────────────────────────────────────────────────
   const handleStartStop = useCallback(() => {
@@ -113,31 +135,17 @@ export function TimerPanel() {
 
   const handleSaveSession = useCallback(async () => {
     if (timerSeconds === 0) return;
-
     try {
       const durationMinutes = Math.round((timerSeconds / 60) * 4) / 4;
-
       const result = await window.api.task.logSession(
         null,
         durationMinutes,
         `${currentSessionSubject} (${timerSeconds}s)`,
       );
-
-      // Refresh live risk now that a new session has been logged
       await fetchBurnoutLiveRisk();
-
       sessionStartTimeRef.current = null;
       resetTimer();
       setSessionSubject('');
-
-
-      if (result.linkedNotesCount > 0) {
-        console.log(
-          `✓ Saved ${durationMinutes}m of ${currentSessionSubject}. Auto-linked notes: ${result.linkedNotesCount}`
-        );
-      } else {
-        console.log(`✓ Saved ${durationMinutes}m of ${currentSessionSubject}`);
-      }
     } catch (error) {
       console.error('[TimerPanel] Error saving session:', error);
     }
@@ -148,30 +156,50 @@ export function TimerPanel() {
     resetTimer();
   }, [resetTimer]);
 
+  // Apply current theme safely
+  const currentTheme = THEMES[activeTheme as ThemeKey] || THEMES.default;
+
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
-    <div className="flex h-full min-h-0 flex-col items-center justify-center gap-6 bg-transparent p-6 text-center">
+    <div className={`flex h-full min-h-0 flex-col items-center justify-center gap-6 p-6 text-center transition-colors duration-500 ${currentTheme.container}`}>
+      
+      {/* Theme Switcher UI (Color Swatches) */}
+      <div className="flex gap-3 self-end mb-[-0.5rem] mr-2">
+        {(Object.keys(THEMES) as ThemeKey[]).map((t) => (
+          <button
+            key={t}
+            onClick={() => setTheme(t)}
+            title={t.replace(/([A-Z])/g, ' $1').trim()}
+            className={`h-5 w-5 rounded-full transition-all duration-300 ${THEMES[t].swatch} ${
+              activeTheme === t 
+                ? 'ring-2 ring-offset-2 ring-offset-[#0d1321] ring-white scale-110' 
+                : 'opacity-50 hover:opacity-100 hover:scale-110'
+            }`}
+          />
+        ))}
+      </div>
 
       {/* Timer Display */}
       <div className={`panel-shell rounded-4xl px-10 py-12 transition-all duration-500 ${
         inSessionCritActive
-          ? 'border-red-400/50 shadow-[0_0_24px_rgba(248,113,113,0.18)]'
+          ? 'border-red-400/50 shadow-[0_0_24px_rgba(248,113,113,0.18)] bg-red-900/10'
           : inSessionWarnActive
-          ? 'border-orange-400/40 shadow-[0_0_16px_rgba(251,146,60,0.14)]'
+          ? 'border-orange-400/40 shadow-[0_0_16px_rgba(251,146,60,0.14)] bg-orange-900/10'
           : ''
       }`}>
-        <p className="section-label text-cyan-300 mb-3">Study timer</p>
+        <p className={`section-label mb-3 transition-colors duration-300 ${currentTheme.label}`}>
+          Study timer
+        </p>
         <p className={`font-mono text-6xl font-black tracking-[0.08em] md:text-7xl transition-colors duration-300 ${
           inSessionCritActive
-            ? 'text-red-300'
+            ? 'text-red-400'
             : inSessionWarnActive
-            ? 'text-orange-300'
-            : 'text-cyan-300'
+            ? 'text-orange-400'
+            : currentTheme.text
         }`}>
           {hours.toString().padStart(2, '0')}:{minutes.toString().padStart(2, '0')}:{seconds.toString().padStart(2, '0')}
         </p>
 
-        {/* In-session duration nudge shown inside the clock panel */}
         {inSessionWarnActive && (
           <p className={`mt-3 text-xs font-semibold tracking-wide ${
             inSessionCritActive ? 'text-red-400' : 'text-orange-400'
@@ -196,7 +224,6 @@ export function TimerPanel() {
               {w.severity === 'critical' ? '⛔' : '⚠️'} {w.message}
             </div>
           ))}
-
           {historicalWarnings.map((w, i) => (
             <div
               key={`hist-${i}`}
@@ -212,14 +239,12 @@ export function TimerPanel() {
         </div>
       )}
 
-      {/* Recommendation strip — only show top recommendation when at risk */}
-      {burnoutReport &&
-        burnoutReport.riskLevel !== 'none' &&
-        burnoutReport.recommendations.length > 0 && (
-          <div className="w-full max-w-md rounded-xl border border-sky-400/25 bg-sky-500/8 px-4 py-2.5 text-xs text-sky-300 text-left">
-            💡 {burnoutReport.recommendations[0]}
-          </div>
-        )}
+      {/* Recommendation strip */}
+      {burnoutReport && burnoutReport.riskLevel !== 'none' && burnoutReport.recommendations.length > 0 && (
+        <div className="w-full max-w-md rounded-xl border border-sky-400/25 bg-sky-500/8 px-4 py-2.5 text-xs text-sky-300 text-left">
+          💡 {burnoutReport.recommendations[0]}
+        </div>
+      )}
 
       {/* Subject Input */}
       <div className="flex w-full max-w-md gap-2">
@@ -231,7 +256,7 @@ export function TimerPanel() {
             setTimerSubject(e.target.value);
           }}
           placeholder="Subject"
-          className="metal-input flex-1 rounded-2xl px-4 py-3 text-sm"
+          className="metal-input flex-1 rounded-2xl px-4 py-3 text-sm transition-colors duration-300"
         />
       </div>
 
@@ -246,10 +271,7 @@ export function TimerPanel() {
         >
           {timerRunning ? 'PAUSE' : 'START'}
         </button>
-        <button
-          onClick={handleReset}
-          className="btn-secondary"
-        >
+        <button onClick={handleReset} className="btn-secondary">
           RESET
         </button>
         <button

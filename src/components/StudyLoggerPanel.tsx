@@ -19,6 +19,7 @@ export function StudyLoggerPanel() {
   const [subject, setSubject] = useState('');
   const [hours, setHours] = useState('');
   const [notes, setNotes] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Inline warning shown above the submit button before the user logs
   const [preLogWarning, setPreLogWarning] = useState<{
@@ -82,6 +83,8 @@ export function StudyLoggerPanel() {
       alert('Please fill in subject and hours');
       return;
     }
+     if (isSubmitting) return;
+     setIsSubmitting(true);
 
     try {
       const minutes = Math.round(parseFloat(hours) * 60);
@@ -110,8 +113,10 @@ export function StudyLoggerPanel() {
     } catch (error) {
       console.error('[StudyLoggerPanel] Error:', error);
       alert('Error logging session. Check console.');
+    } finally{
+      setIsSubmitting(false);
     }
-  }, [subject, hours, notes, fetchBurnoutLiveRisk]);
+  }, [subject, hours, notes, fetchBurnoutLiveRisk, isSubmitting]);
 
   const totalHours = todaySessions.reduce((sum, s) => sum + s.durationHours, 0);
 
@@ -178,10 +183,10 @@ export function StudyLoggerPanel() {
 
           <button
             onClick={handleLogSession}
-            disabled={!subject || hours === ''}
+            disabled={!subject || hours === '' || isSubmitting}
             className="btn-primary w-full disabled:cursor-not-allowed disabled:opacity-50"
           >
-            LOG SESSION
+           {isSubmitting ? 'LOGGING…' : 'LOG SESSION'}
           </button>
         </div>
       </div>

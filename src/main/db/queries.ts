@@ -14,6 +14,8 @@ import type {
   IPCTask,
   IPCUserState,
   IPCWeeklyProgress,
+  IPCChatSession,
+  IPCChatMessage,
 } from '../../shared/ipc';
 
 export interface PlanImportMetadataInput {
@@ -93,7 +95,7 @@ export type NoteUpdateInput = IPCNoteUpdateInput;
 export type NotesListParams = IPCNotesListParams;
 
 const round2 = (value: number): number => Math.round(value * 100) / 100;
-const todayIso = (): string => {
+export const todayIso = (): string => {
   const now = new Date();
   const offset = now.getTimezoneOffset();
   const local = new Date(now.getTime() - offset * 60 * 1000);
@@ -463,13 +465,15 @@ export function getWeeklySubjectBreakdown(endDate?: string): Array<{ subject: st
 
   return db
     .prepare(
-      `SELECT COALESCE(notes, 'Untagged') as subject,
-              COUNT(*) as sessions,
-              SUM(duration_minutes) as total_minutes
-       FROM sessions
-       WHERE date >= ? AND date <= ?
-       GROUP BY subject
-       ORDER BY total_minutes DESC`
+      `SELECT COALESCE(t.name, s.notes, 'Untagged') as subject,
+       COUNT(*) as sessions,
+       SUM(s.duration_minutes) as total_minutes
+FROM sessions s
+LEFT JOIN tasks t
+  ON s.task_id = t.id
+WHERE s.date >= ? AND s.date <= ?
+GROUP BY COALESCE(t.name, s.notes, 'Untagged')
+ORDER BY total_minutes DESC`
     )
     .all(start, end) as Array<{ subject: string; sessions: number; total_minutes: number }>;
 }
@@ -718,10 +722,13 @@ export function calculateAndUpsertWeeklyProgress(planId?: string, weekNumber?: n
 
   const subjectRows = db
     .prepare(
-      `SELECT COALESCE(notes, 'Untagged') as subject, SUM(duration_minutes) as total_minutes
-       FROM sessions
-       WHERE date >= ? AND date <= ?
-       GROUP BY subject`
+      `SELECT COALESCE(t.name, s.notes, 'Untagged') as subject,
+       SUM(s.duration_minutes) as total_minutes
+FROM sessions s
+LEFT JOIN tasks t
+  ON s.task_id = t.id
+WHERE s.date >= ? AND s.date <= ?
+GROUP BY COALESCE(t.name, s.notes, 'Untagged')`
     )
     .all(weekStart, weekEnd) as Array<{ subject: string; total_minutes: number }>;
 
@@ -884,4 +891,30 @@ export function getBurnoutAnalysisData(lookbackDays = 7): {
   ).all(start, end) as Array<{ date: string; duration_minutes: number; start_time: string | null; end_time: string | null }>;
 
   return { dailyHours, longSessions };
+}
+
+export function getChatSessions(): IPCChatSession[] {
+  const db = getDatabase();
+  return db.prepare('SELECT * FROM chat_sessions ORDER BY created_at DESC').all() as IPCChatSession[];
+}
+
+export function getChatMessages(sessionId: string): IPCChatMessage[] {
+  const db = getDatabase();
+  return db.prepare('SELECT * FROM chat_messages WHERE session_id = ? ORDER BY timestamp ASC').all(sessionId) as IPCChatMessage[];
+}
+
+export function createChatSession(title: string): IPCChatSession {
+  const db = getDatabase();
+  const id = createId('chat_session');
+  db.prepare('INSERT INTO chat_sessions (id, title) VALUES (?, ?)').run(id, title);
+  return db.prepare('SELECT * FROM chat_sessions WHERE id = ?').get(id) as IPCChatSession;
+}
+
+export function saveChatMessage(sessionId: string, message: Omit<IPCChatMessage, 'id' | 'timestamp' | 'session_id'>): IPCChatMessage {
+  const db = getDatabase();
+  const id = createId('chat_msg');
+  db.prepare(
+    'INSERT INTO chat_messages (id, session_id, role, content) VALUES (?, ?, ?, ?)'
+  ).run(id, sessionId, message.role, message.content);
+  return db.prepare('SELECT * FROM chat_messages WHERE id = ?').get(id) as IPCChatMessage;
 }

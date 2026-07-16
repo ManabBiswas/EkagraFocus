@@ -81,6 +81,7 @@ function getDayContext(): IPCDayContext {
  * @returns IPCResponse with agent response or error
  */
 export async function receiveMessage(
+  sessionId: string,
   message: string,
 ): Promise<IPCResponse<IPCAgentMessage>> {
   try {
@@ -129,7 +130,7 @@ export async function receiveMessage(
 
     // STEP 3: Route to Agent Pipeline
     // The agent pipeline (runAgent) gets its own context internally
-    const response = await routeToContextBuilder(validatedMsg);
+    const response = await routeToContextBuilder(sessionId, validatedMsg);
 
     console.info('[MessageReceiver] Route complete', {
       action: response.data?.action,
@@ -147,6 +148,7 @@ export async function receiveMessage(
 }
 
 async function routeToContextBuilder(
+  sessionId: string,
   message: ValidatedMessage,
   // context is passed but used internally by agent pipeline
 ): Promise<IPCResponse<IPCAgentMessage>> {
@@ -155,7 +157,7 @@ async function routeToContextBuilder(
     const { runAgent } = await import('./agent');
 
     // Call complete agent pipeline
-    const agentResponse = await runAgent(message.content);
+    const agentResponse = await runAgent(sessionId, message.content);
 
     if (!agentResponse.success) {
       console.warn('[MessageReceiver] Agent pipeline failed:', agentResponse.error);

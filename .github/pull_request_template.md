@@ -1,38 +1,54 @@
-# Pull Request
+# Pull Request Title
+[Add the title here]
+## 📝 Description
+<!-- Briefly describe your changes -->
+[Write here...]
 
-## Description
-<!-- Provide a brief description of your changes -->
+---
 
-## Type of Change
-<!-- Mark the relevant option with an "x" -->
-- [ ] 🐛 Bug fix (non-breaking change that fixes an issue)
-- [ ] ✨ New feature (non-breaking change that adds functionality)
-- [ ] 💥 Breaking change (fix or feature that would cause existing functionality to change)
-- [ ] 📝 Documentation update
+## 🔄 Type of Change
+<!-- Select one -->
+- [ ] 🐛 Bug fix  
+- [ ] ✨ New feature  
+- [ ] 💥 Breaking change  
+- [ ] 📝 Documentation update  
 
-## Related Issues
-<!-- Link related issues using #issue-number -->
-Closes #
+---
 
-## Changes Made
-<!-- List the specific changes made -->
-- 
-- 
-- 
+## 🔗 Related Issues
+<!-- Example: Closes #123 -->
+[Issue reference...]
 
-## Testing
-<!-- Describe how you tested your changes -->
+---
 
-## Checklist
-<!-- Ensure you've completed the following -->
-- [ ] I have followed the code style guidelines
-- [ ] I have updated relevant documentation
-- [ ] I have tested my changes locally
-- [ ] I have added/updated tests (if applicable)
-- [ ] My changes don't introduce new warnings or errors
+## 📌 Changes Made
+<!-- List your changes -->
+- [ ] Change 1  
+- [ ] Change 2  
+- [ ] Change 3  
 
-## Screenshots
-<!-- Add screenshots if UI changes were made -->
+---
 
-## Additional Context
-<!-- Any other relevant information -->
+## ✅ Testing
+<!-- How did you test your changes? -->
+[Steps or notes...]
+
+---
+
+## 📋 Checklist
+- [ ] Code style guidelines followed  
+- [ ] Documentation updated  
+- [ ] Changes tested locally  
+- [ ] Tests added/updated (if applicable)  
+- [ ] No new warnings or errors  
+
+---
+
+## 🖼️ Screenshots / GIFs (if UI changes)
+[Attach images here]
+
+---
+
+## 💡 Additional Context
+Thank you for contributing! 🌟  
+If you find this project useful, consider giving it a star — it helps others discover the work and supports the project.

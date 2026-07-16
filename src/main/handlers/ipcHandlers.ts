@@ -26,6 +26,10 @@ import {
   getUserState,
   calculateAndUpsertWeeklyProgress,
   getTotalMinutesToday,
+  todayIso,
+  getChatSessions,
+  getChatMessages,
+  createChatSession,
 } from '../db/queries';
 import { receiveMessage } from '../services/messageReceiver';
 import { processPlanFile } from '../services/planParser';
@@ -429,7 +433,7 @@ export function setupTaskHandlers(): void {
       }
       const updated = getTaskById(taskId);
 
-      const today = new Date().toISOString().split('T')[0];
+      const today = todayIso();
       notifyRendererStateChange('TASK_UPDATED', {
         taskId,
         status: 'done',
@@ -459,7 +463,7 @@ export function setupTaskHandlers(): void {
     ) => {
       try {
         const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        const today = new Date().toISOString().split('T')[0];
+        const today = todayIso();
 
         insertSession({
           id: sessionId,
@@ -506,7 +510,7 @@ export function setupTaskHandlers(): void {
         throw new Error('Task not found');
       }
 
-      const today = new Date().toISOString().split('T')[0];
+      const today = todayIso();
       notifyRendererStateChange('TASK_UPDATED', {
         taskId,
         status,
@@ -527,7 +531,7 @@ export function setupAgentHandlers(): void {
    * Entry point for chat messages from React UI
    * Routes through Message Receiver → Context Builder → LLM/SLM → Response
    */
-  ipcMain.handle('agent:sendMessage', async (event, message: string) => {
+  ipcMain.handle('agent:sendMessage', async (event, sessionId: string, message: string) => {
     try {
       if (typeof message !== 'string') {
         return {
@@ -536,7 +540,7 @@ export function setupAgentHandlers(): void {
         } as IPCResponse;
       }
 
-      const response = await receiveMessage(message);
+      const response = await receiveMessage(sessionId, message);
       return response;
     } catch (error) {
       console.error('Error in agent:sendMessage handler:', error);
@@ -553,12 +557,44 @@ export function setupAgentHandlers(): void {
    */
   ipcMain.handle('agent:getTodayContext', async () => {
     try {
-      const today = new Date().toISOString().split('T')[0];
+      const today = todayIso();
       const context = getFullContext(today);
       return { success: true, data: context } as IPCResponse;
     } catch (error) {
       console.error('Error in agent:getTodayContext handler:', error);
       return { success: false, error: 'Failed to fetch context' } as IPCResponse;
+    }
+  });
+}
+
+export function setupChatHandlers(): void {
+  ipcMain.handle('chat:getSessions', async () => {
+    try {
+      const sessions = getChatSessions();
+      return { success: true, data: sessions } as IPCResponse;
+    } catch (error) {
+      console.error('Error fetching chat sessions:', error);
+      return { success: false, error: 'Failed to fetch chat sessions' } as IPCResponse;
+    }
+  });
+
+  ipcMain.handle('chat:getMessages', async (event, sessionId: string) => {
+    try {
+      const messages = getChatMessages(sessionId);
+      return { success: true, data: messages } as IPCResponse;
+    } catch (error) {
+      console.error('Error fetching chat messages:', error);
+      return { success: false, error: 'Failed to fetch chat messages' } as IPCResponse;
+    }
+  });
+
+  ipcMain.handle('chat:createSession', async (event, title: string) => {
+    try {
+      const session = createChatSession(title);
+      return { success: true, data: session } as IPCResponse;
+    } catch (error) {
+      console.error('Error creating chat session:', error);
+      return { success: false, error: 'Failed to create chat session' } as IPCResponse;
     }
   });
 }
@@ -979,11 +1015,11 @@ export function setupFileHandlers(): void {
         console.log(`[FileHandler] Read file: ${fileName} (${content.length} bytes)`);
         
         // Parse markdown and import to database
-        const parseResult = await processPlanFile(content, new Date().toISOString().split('T')[0], filePath);
+        const parseResult = await processPlanFile(content, todayIso(), filePath);
         console.log(`[FileHandler] Parse result:`, parseResult);
 
         if (parseResult.success) {
-          const today = new Date().toISOString().split('T')[0];
+          const today = todayIso();
           notifyRendererStateChange('PLAN_IMPORTED', {
             fileName,
             filePath,
@@ -1146,7 +1182,7 @@ export function setupBurnoutHandlers(): void {
    */
   ipcMain.handle('burnout:getLiveRisk', async () => {
     try {
-      const today = new Date().toISOString().split('T')[0];
+      const today = todayIso();
       const todayMinutes = getTotalMinutesToday(today);
       const risk = getTodayLiveRisk(todayMinutes);
       return { success: true, data: risk } as IPCResponse;
@@ -1181,6 +1217,10 @@ export function setupAllHandlers(): void {
   console.log('[IPC] Setting up agent handlers...');
   setupAgentHandlers();
   console.log('[IPC] ✓ Agent handlers done');
+
+  console.log('[IPC] Setting up chat handlers...');
+  setupChatHandlers();
+  console.log('[IPC] ✓ Chat handlers done');
 
   console.log('[IPC] Setting up notes handlers...');
   setupNotesHandlers();

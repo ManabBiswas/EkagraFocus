@@ -1,4 +1,4 @@
-import type { IPCDayContext } from '../../shared/ipc';
+import type { IPCDayContext, IPCChatMessage } from '../../shared/ipc';
 
 function buildSystemPrompt(): string {
   return `You are a study assistant. Respond with JSON only (no markdown).
@@ -46,7 +46,7 @@ function formatContextToText(context: IPCDayContext): string {
  * 
  * UPDATED: Now includes current time for time-aware suggestions
  */
-export function buildPrompt(message: string, context: IPCDayContext): string {
+export function buildPrompt(message: string, context: IPCDayContext, history: IPCChatMessage[] = []): string {
   const systemPrompt = buildSystemPrompt();
   const contextText = formatContextToText(context);
   const timestamp = new Date().toISOString();
@@ -64,6 +64,10 @@ export function buildPrompt(message: string, context: IPCDayContext): string {
     day: 'numeric'
   });
 
+  const historyText = history.length > 0 
+    ? "\nCHAT HISTORY:\n" + history.map(msg => `${msg.role.toUpperCase()}: ${msg.content}`).join('\n')
+    : "";
+
   const fullPrompt = `${systemPrompt}
 
 ═══════════════════════════════════════════
@@ -73,6 +77,7 @@ CURRENT TIME: ${currentTime} (24-hour format)
 TIMESTAMP: ${timestamp}
 
 ${contextText}
+${historyText}
 
 ═══════════════════════════════════════════
 

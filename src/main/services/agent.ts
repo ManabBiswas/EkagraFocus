@@ -20,7 +20,7 @@ import type { IPCResponse, IPCAgentMessage } from '../../shared/ipc';
 import { executeIntent } from './intentExecutor';
 import { buildPrompt } from './contextBuilder';
 import { generateViaOllama, llmService } from './llmService';
-import { getFullContext } from '../db/queries';
+import { getFullContext, getChatMessages, saveChatMessage } from '../db/queries';
 
 interface AgentPipelineMetrics {
   messageLength: number;
@@ -38,7 +38,7 @@ const metrics: AgentPipelineMetrics[] = [];
  * @param userMessage - Raw text from user chat input
  * @returns Structured response with action and reply
  */
-export async function runAgent(userMessage: string): Promise<IPCResponse<IPCAgentMessage>> {
+export async function runAgent(sessionId: string, userMessage: string): Promise<IPCResponse<IPCAgentMessage>> {
   const startTime = Date.now();
   const pipelineId = `agent_${Date.now()}`;
 
@@ -61,9 +61,13 @@ export async function runAgent(userMessage: string): Promise<IPCResponse<IPCAgen
       time: `${contextTime}ms`,
     });
 
+    // Step 1.5: Manage chat history
+    const history = getChatMessages(sessionId).slice(-6);
+    saveChatMessage(sessionId, { role: 'user', content: userMessage });
+
     // Step 2: Build prompt for LLM
     const step2Start = Date.now();
-    const prompt = buildPrompt(userMessage, context);
+    const prompt = buildPrompt(userMessage, context, history);
     const promptTime = Date.now() - step2Start;
 
     console.debug(`[Agent] Prompt built [${pipelineId}]`, {
@@ -127,6 +131,9 @@ export async function runAgent(userMessage: string): Promise<IPCResponse<IPCAgen
       responseLength: llmResponse.length,
       time: `${generationTime}ms`,
     });
+
+    // Save assistant message to history
+    saveChatMessage(sessionId, { role: 'assistant', content: llmResponse });
 
     // Step 4: Parse and execute intent
     const step4Start = Date.now();

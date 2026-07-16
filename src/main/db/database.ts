@@ -179,6 +179,23 @@ export function initializeDatabase(): Database.Database {
       FOREIGN KEY (linked_session_id) REFERENCES sessions(id)
     );
 
+    -- Chat Sessions table
+    CREATE TABLE IF NOT EXISTS chat_sessions (
+      id TEXT PRIMARY KEY,
+      title TEXT,
+      created_at DATETIME DEFAULT (datetime('now', 'localtime'))
+    );
+
+    -- Chat Messages table
+    CREATE TABLE IF NOT EXISTS chat_messages (
+      id TEXT PRIMARY KEY,
+      session_id TEXT,
+      role TEXT,
+      content TEXT,
+      timestamp DATETIME DEFAULT (datetime('now', 'localtime')),
+      FOREIGN KEY(session_id) REFERENCES chat_sessions(id)
+    );
+
     -- Create indexes for performance
     CREATE INDEX IF NOT EXISTS idx_tasks_date ON tasks(date);
     CREATE INDEX IF NOT EXISTS idx_sessions_date ON sessions(date);
@@ -193,6 +210,7 @@ export function initializeDatabase(): Database.Database {
     CREATE INDEX IF NOT EXISTS idx_notes_tags ON notes(tags);
     CREATE INDEX IF NOT EXISTS idx_notes_created ON notes(created_at);
     CREATE INDEX IF NOT EXISTS idx_notes_updated ON notes(updated_at);
+    CREATE INDEX IF NOT EXISTS idx_chat_messages_session ON chat_messages(session_id);
   `);
 
   // Ensure singleton user_state row exists.
@@ -280,6 +298,8 @@ export function clearDatabase(): void {
       DELETE FROM plan_phases;
       DELETE FROM plan_metadata;
       DELETE FROM notes;
+      DELETE FROM chat_messages;
+      DELETE FROM chat_sessions;
       DELETE FROM sessions;
       DELETE FROM goals;
       DELETE FROM tasks;

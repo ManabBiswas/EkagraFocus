@@ -149,7 +149,12 @@ export function App() {
     isInitialized,
     initializeStore,
     timerRunning,
+    timerSeconds,
+    timerDurationMinutes,
+    currentSessionSubject,
     tickTimer,
+    stopTimer,
+    resetTimer,
     setDailyStatus,
     setTodaySessions,
     setUserState,
@@ -158,10 +163,18 @@ export function App() {
     setPlanSummary,
     setWeeklyProgressView,
     setCurrentStreak,
+    addNotification,
+    fetchBurnoutLiveRisk,
   } = useStore();
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const isSavingRef = useRef(false);
 
-  const getTodayDate = () => new Date().toISOString().split('T')[0];
+  const getTodayDate = () => {
+    const now = new Date();
+    const offset = now.getTimezoneOffset();
+    const local = new Date(now.getTime() - offset * 60 * 1000);
+    return local.toISOString().split('T')[0];
+  };
 
   useEffect(() => {
     // Initialize store on mount
@@ -196,6 +209,64 @@ export function App() {
       }
     };
   }, [timerRunning, tickTimer]);
+
+  // Auto-save timer when target duration is completed
+  useEffect(() => {
+    if (
+      timerRunning &&
+      timerDurationMinutes > 0 &&
+      timerSeconds >= timerDurationMinutes * 60 &&
+      !isSavingRef.current
+    ) {
+      isSavingRef.current = true;
+
+      const handleTimerCompletion = async () => {
+        try {
+          console.log('[App] Timer completed, auto-saving session...');
+          // Stop timer immediately to prevent further ticks and double-saves
+          stopTimer();
+
+          const durationMinutes = timerDurationMinutes;
+          const subject = currentSessionSubject || 'Focus Session';
+
+          await window.api.task.logSession(
+            null,
+            durationMinutes,
+            `${subject} (Completed Timer)`,
+          );
+
+          // Reset timer state
+          resetTimer();
+
+          // Refresh live risk and stats
+          await fetchBurnoutLiveRisk();
+
+          addNotification({
+            id: `timer_complete_${Date.now()}`,
+            type: 'success',
+            title: 'Timer Completed! 🎉',
+            message: `Completed ${durationMinutes}m focus session on "${subject}".`,
+            timestamp: new Date().toISOString(),
+          });
+        } catch (error) {
+          console.error('[App] Error saving completed timer session:', error);
+        } finally {
+          isSavingRef.current = false;
+        }
+      };
+
+      handleTimerCompletion();
+    }
+  }, [
+    timerRunning,
+    timerSeconds,
+    timerDurationMinutes,
+    currentSessionSubject,
+    stopTimer,
+    resetTimer,
+    addNotification,
+    fetchBurnoutLiveRisk,
+  ]);
 
   useEffect(() => {
     const refreshContext = async () => {

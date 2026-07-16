@@ -194,6 +194,20 @@ export interface IPCNoteInsights {
   keywords: string[];
 }
 
+export interface IPCChatSession {
+  id: string;
+  title: string;
+  created_at: string;
+}
+
+export interface IPCChatMessage {
+  id: string;
+  session_id: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  timestamp: string;
+}
+
 export interface IPCAgentMessage {
   action:
     | 'mark_done'
@@ -249,11 +263,16 @@ export interface IPCHandlers {
   'notes:generateInsights': (noteId: string) => Promise<IPCNote | null>;
 
   // Agent communication
-  'agent:sendMessage': (message: string) => Promise<IPCResponse<IPCAgentMessage>>;
+  'agent:sendMessage': (sessionId: string, message: string) => Promise<IPCResponse<IPCAgentMessage>>;
   'agent:getTodayContext': () => Promise<IPCResponse<IPCDayContext>>;
 
   // Task operations
   'task:markDone': (taskId: string) => Promise<IPCResponse>;
   'task:logSession': (taskId: string, minutes: number, notes?: string) => Promise<IPCResponse<IPCSessionLogResult>>;
   'task:updateStatus': (taskId: string, status: string) => Promise<IPCResponse>;
+
+  // Chat operations
+  'chat:getSessions': () => Promise<IPCResponse<IPCChatSession[]>>;
+  'chat:getMessages': (sessionId: string) => Promise<IPCResponse<IPCChatMessage[]>>;
+  'chat:createSession': (title: string) => Promise<IPCResponse<IPCChatSession>>;
 }

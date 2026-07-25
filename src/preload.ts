@@ -17,6 +17,8 @@ import type {
   IPCTask,
   IPCUserState,
   IPCWeeklyProgress,
+  IPCFetchUrlResult,
+  IPCAnalyzeUrlsResult,
 } from './shared/ipc';
 
 interface DBStateChangedPayload {
@@ -274,6 +276,18 @@ const api = {
       const result = await ipcRenderer.invoke('notes:generateInsights', noteId);
       if (!result.success) throw new Error(result.error);
       return result.data || null;
+    },
+
+    fetchUrl: async (url: string): Promise<IPCFetchUrlResult> => {
+      const result = await ipcRenderer.invoke('notes:fetchUrl', url);
+      if (!result.success) throw new Error(result.error);
+      return result.data;
+    },
+
+    analyzeUrls: async (urls: string[]): Promise<IPCAnalyzeUrlsResult> => {
+      const result = await ipcRenderer.invoke('notes:analyzeUrls', urls);
+      if (!result.success) throw new Error(result.error);
+      return result.data;
     },
   },
 

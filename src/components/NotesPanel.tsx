@@ -27,6 +27,14 @@ const EMPTY_EDITOR: NoteEditorState = {
   attachments: [],
   isPinned: false,
 };
+const MAX_ATTACHMENT_SIZE_BYTES = 50 * 1024 * 1024; 
+const ALLOWED_ATTACHMENT_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.pdf', '.doc', '.docx', '.txt', '.md'];
+
+function isAllowedAttachmentType(fileName: string): boolean {
+  const lastDot = fileName.lastIndexOf('.');
+  const ext = lastDot === -1 ? '' : fileName.slice(lastDot).toLowerCase();
+  return ALLOWED_ATTACHMENT_EXTENSIONS.includes(ext);
+}
 
 function parseStringList(source: string | null | undefined): string[] {
   if (!source) return [];
@@ -370,27 +378,63 @@ export function NotesPanel() {
     setStatusMessage('Creating a new note draft.');
   };
 
-  const handleAttachmentSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (!files || files.length === 0) return;
+const handleAttachmentSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files
+    if (!files || files.length === 0) return
 
-    const nextAttachments = Array.from(files).map((file) => {
-      const fileWithPath = file as File & { path?: string };
-      return {
-        name: file.name,
-        type: file.type || 'file',
-        size: file.size,
-        path: fileWithPath.path || file.name,
-      };
-    });
+    const skipped: string[] = []
 
-    setEditor((prev) => ({
-      ...prev,
-      attachments: [...prev.attachments, ...nextAttachments],
-    }));
+    setEditor(prev => {
+        const existing = prev.attachments
+        const accepted: NoteAttachment[] = []
 
-    event.target.value = '';
-  };
+        Array.from(files).forEach(file => {
+            const fileWithPath = file as File & { path?: string }
+
+            const isDuplicate =
+                existing.some(
+                    a => a.name === file.name && a.size === file.size
+                ) ||
+                accepted.some(a => a.name === file.name && a.size === file.size)
+
+            if (isDuplicate) {
+                skipped.push(`${file.name} (duplicate)`)
+                return
+            }
+            if (!isAllowedAttachmentType(file.name)) {
+                skipped.push(`${file.name} (unsupported type)`)
+                return
+            }
+
+            if (file.size > MAX_ATTACHMENT_SIZE_BYTES) {
+                skipped.push(`${file.name} (too large)`)
+                return
+            }
+
+            accepted.push({
+                name: file.name,
+                type: file.type || "file",
+                size: file.size,
+                path: fileWithPath.path || file.name,
+            })
+        })
+
+        return {
+            ...prev,
+            attachments: [...existing, ...accepted],
+        }
+    })
+
+    if (skipped.length > 0) {
+        setErrorMessage(
+           `Skipped ${skipped.length} file(s): ${skipped.join(", ")}. Accepted types: ${ALLOWED_ATTACHMENT_EXTENSIONS.join(", ")}.`
+        )
+    } else {
+        setErrorMessage("")
+    }
+
+    event.target.value = ""
+}
 
   const removeAttachment = (index: number) => {
     setEditor((prev) => ({
@@ -658,7 +702,7 @@ export function NotesPanel() {
                 <p className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-300">Attachments</p>
                 <label className="cursor-pointer rounded-lg border border-white/15 bg-white/5 px-2 py-1 text-xs text-slate-300 hover:bg-white/10">
                   Add files
-                  <input type="file" multiple className="hidden" onChange={handleAttachmentSelect} />
+                  <input type="file" multiple className="hidden" accept=".png,.jpg,.jpeg,.pdf,.doc,.docx,.txt,.md" onChange={handleAttachmentSelect} />
                 </label>
               </div>
 

@@ -2,6 +2,7 @@ import Database from 'better-sqlite3';
 import { ensureRedistributionTable } from './redistributionQueries';
 import path from 'path';
 import { app } from 'electron';
+import { getDatabaseEncryptionKey } from './encryption';
 
 let db: Database.Database | null = null;
 
@@ -11,6 +12,18 @@ export function initializeDatabase(): Database.Database {
   // Store database in app user data directory
   const dbPath = path.join(app.getPath('userData'), 'focus-agent.db');
   db = new Database(dbPath);
+
+  // Enable SQLCipher encryption using Electron's safeStorage
+  // This protects the database from unauthorized access at the OS level
+  const encryptionKey = getDatabaseEncryptionKey();
+  if (encryptionKey) {
+    try {
+      db.pragma(`key = 'hex:${encryptionKey}'`);
+      console.log('[Encryption] Database encryption enabled');
+    } catch (error) {
+      console.error('[Encryption] Failed to enable database encryption:', error);
+    }
+  }
 
   // Enable foreign keys
   db.pragma('foreign_keys = ON');
@@ -223,7 +236,7 @@ export function initializeDatabase(): Database.Database {
     UPDATE user_state SET base_goal_hours = 9 WHERE state_id = 'singleton'
   `).run();
    ensureRedistributionTable();
-  console.log(' Database initialized:', dbPath);
+  console.log('[Database] Initialized:', dbPath, '(encrypted with SQLCipher)');
   return db;
 }
 
@@ -244,7 +257,7 @@ export function closeDatabase(): void {
   if (db) {
     db.close();
     db = null;
-    console.log(' Database closed');
+    console.log('[Database] Closed');
   }
 }
 
@@ -278,7 +291,7 @@ export function seedDatabase(): void {
     insertGoal.run('goal_01', today, 'Complete all 3 subjects without distractions', 1);
     insertGoal.run('goal_02', today, 'Finish Physics homework by 11 AM', 1);
 
-    console.log(' Sample data seeded');
+    console.log('[Database] Sample data seeded');
   } catch (error) {
     console.error('Error seeding database:', error);
   }
@@ -315,7 +328,7 @@ export function clearDatabase(): void {
           updated_at = CURRENT_TIMESTAMP
       WHERE state_id = 'singleton';
     `);
-    console.log(' Database cleared');
+    console.log('[Database] Cleared');
   } catch (error) {
     console.error('Error clearing database:', error);
   }

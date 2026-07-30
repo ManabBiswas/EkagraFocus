@@ -1,5 +1,7 @@
-import { safeStorage } from 'electron';
+import { safeStorage, app } from 'electron';
 import crypto from 'crypto';
+import fs from 'fs';
+import path from 'path';
 
 /**
  * Database encryption utility using Electron's safeStorage API
@@ -7,28 +9,47 @@ import crypto from 'crypto';
  */
 
 const ENCRYPTION_PREFIX = 'enc:';
+const KEY_FILE = path.join(app.getPath('userData'), 'db_key.enc');
 
 /**
- * Generate or retrieve a stable encryption key using Electron's safeStorage
- * The key is stored as an encrypted string and can only be decrypted by the same user
+ * Get or create a stable database encryption key
+ * Generates a random 32-byte key on first run and persists it encrypted
+ * On subsequent runs, retrieves and decrypts the persisted key
+ */
+export function getOrCreateDatabaseKey(): Buffer | null {
+  if (!safeStorage.isEncryptionAvailable()) {
+    console.warn('[Encryption] Electron safeStorage not available, encryption unavailable');
+    return null;
+  }
+
+  try {
+    if (fs.existsSync(KEY_FILE)) {
+      const storedEncrypted = fs.readFileSync(KEY_FILE, 'utf8');
+      const encryptedBuf = Buffer.from(storedEncrypted, 'base64');
+      const rawKeyBase64 = safeStorage.decryptString(encryptedBuf);
+      return Buffer.from(rawKeyBase64, 'base64');
+    } else {
+      const rawKey = crypto.randomBytes(32);
+      const rawKeyBase64 = rawKey.toString('base64');
+      const encryptedBuf = safeStorage.encryptString(rawKeyBase64);
+      fs.writeFileSync(KEY_FILE, encryptedBuf.toString('base64'), { mode: 0o600 });
+      return rawKey;
+    }
+  } catch (error) {
+    console.error('[Encryption] Failed to get or create database key:', error);
+    return null;
+  }
+}
+
+/**
+ * Get the encryption key as a hex string for use with SQLCipher PRAGMA key
  */
 export function getDatabaseEncryptionKey(): string {
-  try {
-    if (!safeStorage.isEncryptionAvailable()) {
-      console.warn('[Encryption] Electron safeStorage not available, using unencrypted storage');
-      return '';
-    }
-
-    // Use a fixed seed string to generate a consistent key for this application
-    const keySeed = 'ekagrafocus-db-encryption-key-v1';
-    const encryptedKey = safeStorage.encryptString(keySeed);
-
-    // Convert to hex for use as SQLCipher key
-    return encryptedKey.toString('hex').substring(0, 64);
-  } catch (error) {
-    console.error('[Encryption] Failed to initialize encryption key:', error);
+  const rawKey = getOrCreateDatabaseKey();
+  if (!rawKey) {
     return '';
   }
+  return rawKey.toString('hex');
 }
 
 /**
@@ -40,6 +61,7 @@ export function encryptField(value: string): string {
 
   try {
     if (!safeStorage.isEncryptionAvailable()) {
+      console.warn('[Encryption] safeStorage not available, storing plaintext');
       return value;
     }
 
@@ -62,6 +84,7 @@ export function decryptField(value: string): string {
 
   try {
     if (!safeStorage.isEncryptionAvailable()) {
+      console.warn('[Encryption] safeStorage not available, cannot decrypt');
       return value;
     }
 
@@ -90,7 +113,5 @@ export function getEncryptionPragma(): string {
     return '';
   }
 
-  // SQLCipher uses the PRAGMA key command to encrypt the database
-  // Format: "PRAGMA key = 'hex:HEXKEY';"
   return `PRAGMA key = 'hex:${key}';`;
 }

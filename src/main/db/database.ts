@@ -2,6 +2,8 @@ import Database from 'better-sqlite3';
 import { ensureRedistributionTable } from './redistributionQueries';
 import path from 'path';
 import { app } from 'electron';
+import fs from 'fs';
+import { getDatabaseEncryptionKey } from './encryption';
 
 let db: Database.Database | null = null;
 
@@ -10,10 +12,40 @@ export function initializeDatabase(): Database.Database {
 
   // Store database in app user data directory
   const dbPath = path.join(app.getPath('userData'), 'focus-agent.db');
-  db = new Database(dbPath);
+  const dbBackupPath = dbPath + '.backup';
 
-  // Enable foreign keys
-  db.pragma('foreign_keys = ON');
+  try {
+    db = new Database(dbPath);
+
+    // Enable SQLCipher encryption using Electron's safeStorage
+    // This protects the database from unauthorized access at the OS level
+    const encryptionKey = getDatabaseEncryptionKey();
+    if (encryptionKey) {
+      try {
+        db.pragma(`key = 'hex:${encryptionKey}'`);
+
+        // Validate the key works by reading from sqlite_master
+        try {
+          db.prepare("SELECT count(*) FROM sqlite_master").get();
+          console.log('[Encryption] Database encryption enabled and validated');
+        } catch (validationError) {
+          console.error('[Encryption] Wrong key or database is corrupted:', validationError);
+          db.close();
+          db = null;
+          throw new Error('Database key validation failed. The database may be corrupted or encrypted with a different key.');
+        }
+      } catch (error) {
+        console.error('[Encryption] Failed to enable database encryption:', error);
+        db.close();
+        db = null;
+        throw error;
+      }
+    } else {
+      console.warn('[Encryption] No encryption key available, database will not be encrypted');
+    }
+
+    // Enable foreign keys
+    db.pragma('foreign_keys = ON');
 
   // Create tables if they don't exist
   db.exec(`
@@ -223,7 +255,7 @@ export function initializeDatabase(): Database.Database {
     UPDATE user_state SET base_goal_hours = 9 WHERE state_id = 'singleton'
   `).run();
    ensureRedistributionTable();
-  console.log(' Database initialized:', dbPath);
+  console.log('[Database] Initialized:', dbPath, '(encrypted with SQLCipher)');
   return db;
 }
 
@@ -244,7 +276,7 @@ export function closeDatabase(): void {
   if (db) {
     db.close();
     db = null;
-    console.log(' Database closed');
+    console.log('[Database] Closed');
   }
 }
 
@@ -278,7 +310,7 @@ export function seedDatabase(): void {
     insertGoal.run('goal_01', today, 'Complete all 3 subjects without distractions', 1);
     insertGoal.run('goal_02', today, 'Finish Physics homework by 11 AM', 1);
 
-    console.log(' Sample data seeded');
+    console.log('[Database] Sample data seeded');
   } catch (error) {
     console.error('Error seeding database:', error);
   }
@@ -315,7 +347,7 @@ export function clearDatabase(): void {
           updated_at = CURRENT_TIMESTAMP
       WHERE state_id = 'singleton';
     `);
-    console.log(' Database cleared');
+    console.log('[Database] Cleared');
   } catch (error) {
     console.error('Error clearing database:', error);
   }

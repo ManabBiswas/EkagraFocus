@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useStore } from '../store/useStore';
+import { AmbientSoundPanel } from './AmbientSoundPanel';
 
 // How often to poll live risk while timer is running (ms)
 const LIVE_RISK_POLL_INTERVAL_MS = 60 * 1000; // every 1 minute
@@ -61,6 +62,8 @@ export function TimerPanel() {
     fetchBurnoutLiveRisk,
     activeTheme = 'default',
     setTheme,
+    ambient,
+    setAmbientKind,
   } = useStore();
 
   const [sessionSubject, setSessionSubject] = useState(currentSessionSubject);
@@ -130,8 +133,18 @@ export function TimerPanel() {
       if (!sessionSubject.trim()) return;
       sessionStartTimeRef.current = formatHHMM(new Date());
       startTimer(sessionSubject);
+      // Ambient sound scheduler — auto-start the remembered sound when the
+      // user starts a session. The AmbientSoundPlayer watches `ambient.kind`
+      // and starts/stops the right noise generator, so flipping it here is
+      // all we need to do.
+      if (ambient.autoStart && ambient.kind === 'off') {
+        // Default to "rain" the very first time someone starts a session
+        // with autoStart on but no sound selected yet. This avoids the
+        // surprising "I checked auto-start but nothing plays" case.
+        setAmbientKind('rain');
+      }
     }
-  }, [timerRunning, sessionSubject, startTimer, stopTimer]);
+  }, [timerRunning, sessionSubject, startTimer, stopTimer, ambient.autoStart, ambient.kind, setAmbientKind]);
 
   const handleSaveSession = useCallback(async () => {
     if (timerSeconds === 0) return;
@@ -282,6 +295,9 @@ export function TimerPanel() {
           SAVE
         </button>
       </div>
+
+      {/* Ambient Sound Scheduler (issue #56) */}
+      <AmbientSoundPanel />
     </div>
   );
 }

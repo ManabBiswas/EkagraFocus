@@ -88,6 +88,43 @@ export interface BurnoutLiveRisk {
 
 // ─── Store interface ──────────────────────────────────────────────────────────
 
+// ─── Ambient Sound Scheduler ─────────────────────────────────────────────────
+export type AmbientSoundKind = 'rain' | 'forest' | 'whiteNoise' | 'off';
+
+export interface AmbientSoundSettings {
+  /** Currently selected sound (or 'off'). Persisted across sessions. */
+  kind: AmbientSoundKind;
+  /** 0–100 volume slider value. */
+  volume: number;
+  /** Auto-start the selected sound whenever the study timer transitions to running. */
+  autoStart: boolean;
+}
+
+const AMBIENT_SOUND_STORAGE_KEY = 'ekagrafocus:ambient-sound:v1';
+
+function loadAmbientSettings(): AmbientSoundSettings {
+  const defaults: AmbientSoundSettings = { kind: 'off', volume: 60, autoStart: true };
+  if (typeof window === 'undefined') return defaults;
+  try {
+    const raw = window.localStorage.getItem(AMBIENT_SOUND_STORAGE_KEY);
+    if (!raw) return defaults;
+    const parsed = JSON.parse(raw) as Partial<AmbientSoundSettings>;
+    return {
+      kind: (['rain', 'forest', 'whiteNoise', 'off'] as AmbientSoundKind[]).includes(
+        parsed.kind as AmbientSoundKind,
+      )
+        ? (parsed.kind as AmbientSoundKind)
+        : 'off',
+      volume: typeof parsed.volume === 'number' && parsed.volume >= 0 && parsed.volume <= 100
+        ? parsed.volume
+        : 60,
+      autoStart: typeof parsed.autoStart === 'boolean' ? parsed.autoStart : true,
+    };
+  } catch {
+    return defaults;
+  }
+}
+
 interface FocusAgentState {
   // ── UI State ──────────────────────────────────────────────
   activeTab: 'chat' | 'timer' | 'logger' | 'stats' | 'plan' | 'notes';
@@ -95,6 +132,14 @@ interface FocusAgentState {
 
   activeTheme: 'default' | 'deepFocus' | 'midnightPurple' | 'cyberNeon' | 'forestHacker';
   setTheme: (theme: 'default' | 'deepFocus' | 'midnightPurple' | 'cyberNeon' | 'forestHacker') => void;
+
+  // ── Ambient Sound ─────────────────────────────────────────
+  ambient: AmbientSoundSettings;
+  setAmbientKind: (kind: AmbientSoundKind) => void;
+  setAmbientVolume: (volume: number) => void;
+  setAmbientAutoStart: (autoStart: boolean) => void;
+  /** Persist current ambient settings to localStorage. */
+  persistAmbientSettings: () => void;
 
   // ── Goal & Status ─────────────────────────────────────────
   dailyStatus: DailyStatus | null;
@@ -214,6 +259,8 @@ export const useStore = create<FocusAgentState>((set, get) => ({
   isInitialized: false,
   activeTheme: 'default',
 
+  ambient: loadAmbientSettings(),
+
   dailyStatus: getInitialDailyStatus(),
   userState: getInitialUserState(),
 
@@ -258,6 +305,56 @@ export const useStore = create<FocusAgentState>((set, get) => ({
   initializeStore: () => set({ isInitialized: true }),
   setInitialized: (value) => set({ isInitialized: value }),
   setTheme: (theme) => set({ activeTheme: theme }),
+
+  // ── Ambient Sound actions ──────────────────────────────────
+  setAmbientKind: (kind) =>
+    set((state) => {
+      const next = { ...state.ambient, kind };
+      if (typeof window !== 'undefined') {
+        try {
+          window.localStorage.setItem(AMBIENT_SOUND_STORAGE_KEY, JSON.stringify(next));
+        } catch {
+          // Storage may be disabled — non-fatal
+        }
+      }
+      return { ambient: next };
+    }),
+  setAmbientVolume: (volume) =>
+    set((state) => {
+      const clamped = Math.max(0, Math.min(100, Math.round(volume)));
+      const next = { ...state.ambient, volume: clamped };
+      if (typeof window !== 'undefined') {
+        try {
+          window.localStorage.setItem(AMBIENT_SOUND_STORAGE_KEY, JSON.stringify(next));
+        } catch {
+          // Storage may be disabled — non-fatal
+        }
+      }
+      return { ambient: next };
+    }),
+  setAmbientAutoStart: (autoStart) =>
+    set((state) => {
+      const next = { ...state.ambient, autoStart };
+      if (typeof window !== 'undefined') {
+        try {
+          window.localStorage.setItem(AMBIENT_SOUND_STORAGE_KEY, JSON.stringify(next));
+        } catch {
+          // Storage may be disabled — non-fatal
+        }
+      }
+      return { ambient: next };
+    }),
+  persistAmbientSettings: () => {
+    if (typeof window === 'undefined') return;
+    try {
+      window.localStorage.setItem(
+        AMBIENT_SOUND_STORAGE_KEY,
+        JSON.stringify(get().ambient),
+      );
+    } catch {
+      // Storage may be disabled — non-fatal
+    }
+  },
 
   // Status actions
   setDailyStatus: (status) => set({ dailyStatus: status }),

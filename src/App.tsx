@@ -10,6 +10,7 @@ import { StatsPanel } from './components/StatsPanel';
 import { PlanViewer } from './components/PlanViewer';
 import { NotesPanel } from './components/NotesPanel';
 import { NotificationToast } from './components/NotificationToast';
+import { AmbientSoundPlayer } from './components/AmbientSoundPlayer';
 import { GOAL_CONFIG } from './shared/goalConfig';
 
 function DashboardOverview() {
@@ -470,6 +471,7 @@ export function App() {
       </div>
 
       <NotificationToast />
+      <AmbientSoundPlayer />
     </div>
   );
 }

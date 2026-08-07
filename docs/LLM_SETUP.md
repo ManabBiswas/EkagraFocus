@@ -2,7 +2,7 @@
 
 ## Quick Start: 
 
-### Fastest Setup - Phi-2 Recommended ⭐
+### Fastest Setup - Ollama Qwen3.5 Recommended ⭐
 
 **Step 1: Download (1 minute)**
 ```bash
@@ -35,13 +35,13 @@ npm start
 
 **Done!** AI features are now active. Total: ~2 minutes ⚡
 
-### Why Phi-2 for EkagraFocus?
+### Why qwen3.5:4b for EkagraFocus?
 
-✅ **Perfect size** (1.4GB) - Fast download & loads
-✅ **Good quality** - Trained on quality data
-✅ **Study-focused** - Works well for planning advice
-✅ **Fast responses** - Completes in 2-5 seconds
-✅ **Low resources** - Works with 4GB RAM
+✅ **Balanced size** (~3.4GB) - still practical for local use
+✅ **Strong quality** - a better baseline than older tiny models
+✅ **Study-focused** - works well for planning advice
+✅ **Fast enough** - good for chat and task help
+✅ **Local privacy** - stays on your machine
 
 ---
 
@@ -85,24 +85,21 @@ This is **normal and expected** if you haven't set up an LLM model. The app is w
 
 **2. Download a Lightweight Model**
 
-Choose one of these lightweight Ollama models (1-2GB):
+Choose one of these Ollama models:
 
 ```bash
-# Lightweight options (1-2GB) recommended for most users
-ollama pull phi              # ~1.6GB - best balance of quality and speed
-ollama pull orca-mini        # ~1.3GB - good alternative
-ollama pull tinyllama        # ~600MB  - smallest option
+# Recommended default for this repo
+ollama pull qwen3.5:4b       # ~3.4GB - strong local assistant
 
-# If you have more space (3-4GB+)
-ollama pull neural-chat      # ~3.8GB - study-focused
-ollama pull mistral          # ~4.4GB - most capable
+# Smaller fallback options
+ollama pull phi              # ~1.6GB - faster, smaller model
+ollama pull tinyllama        # ~600MB  - smallest option
 ```
 
-**Recommended default for EkagraFocus:** `ollama pull phi`
-- Balanced response quality and speed
-- Good fit for study planning and short assistant prompts
-- Smaller and faster than Mistral-class models
-- Suitable for typical laptop hardware
+**Recommended default for EkagraFocus:** `ollama pull qwen3.5:4b`
+- Better quality than tiny models while staying fully local
+- Good fit for study planning and multi-step prompts
+- Matches the model you already have in `ollama list`
 
 **3. Configure in EkagraFocus**
 ```bash
@@ -113,7 +110,7 @@ cp .env.example .env
 Edit `.env`:
 ```bash
 OLLAMA_HOST=http://localhost:11434
-OLLAMA_MODEL=phi
+OLLAMA_MODEL=qwen3.5:4b
 OLLAMA_TIMEOUT_MS=30000
 ```
 
@@ -129,22 +126,17 @@ If you want to use **Ollama** with minimal download size, here are your options:
 
 | Model | Size | Speed | Quality | Download Time | Best For |
 |-------|------|-------|---------|----------------|----------|
-| **phi** ⭐ | ~1.6GB | ⚡⚡⚡ | ⭐⭐⭐ | 5-10 min | Study planning (recommended) |
+| **qwen3.5:4b** ⭐ | ~3.4GB | ⚡⚡ | ⭐⭐⭐⭐ | 10-20 min | Best overall Ollama option for this repo |
+| phi | ~1.6GB | ⚡⚡⚡ | ⭐⭐⭐ | 5-10 min | Smaller fallback |
 | tinyllama | ~600MB | ⚡⚡⚡⚡ | ⭐⭐ | 3-5 min | Fastest responses |
-| orca-mini | ~1.3GB | ⚡⚡⚡ | ⭐⭐⭐ | 5-10 min | Good alternative |
-| neural-chat | ~3.8GB | ⚡⚡ | ⭐⭐⭐⭐ | 15-30 min | Best education-focused |
-| mistral | ~4.4GB | ⚡⚡ | ⭐⭐⭐⭐ | 20-40 min | Most capable |
 
 **Quick Commands:**
 ```bash
-# Smallest (600MB)
-ollama pull tinyllama
+# Recommended for this repo
+ollama pull qwen3.5:4b
 
-# Best balance (~1.6GB) recommended
+# Smaller fallback
 ollama pull phi
-
-# Education-focused (3.8GB)
-ollama pull neural-chat
 ```
 
 ---

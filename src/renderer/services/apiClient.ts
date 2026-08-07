@@ -42,7 +42,7 @@ export const taskApi = () => ({
  * Agent / AI API
  */
 export const agentApi = () => ({
-  sendMessage: (message: string) => window.api.agent.sendMessage(message),
+  sendMessage: (sessionId: string, message: string) => window.api.agent.sendMessage(sessionId, message),
   getTodayContext: () => window.api.agent.getTodayContext(),
 });
 

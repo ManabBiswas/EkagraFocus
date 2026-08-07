@@ -3,7 +3,6 @@ import * as dotenv from "dotenv";
 import { initializeDatabase, closeDatabase, seedDatabase } from "./db/database";
 import { setupAllHandlers } from "./handlers/ipcHandlers";
 import { llmService } from "./services/llmService";
-import path from "path";
 
 // Load environment variables
 dotenv.config();

@@ -229,11 +229,17 @@ export function App() {
 
           const durationMinutes = timerDurationMinutes;
           const subject = currentSessionSubject || 'Focus Session';
+          const fmtHHMM = (d: Date): string =>
+            `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+          const now = new Date();
+          const start = new Date(now.getTime() - durationMinutes * 60 * 1000);
 
           await window.api.task.logSession(
             null,
             durationMinutes,
             `${subject} (Completed Timer)`,
+            fmtHHMM(start),
+            fmtHHMM(now),
           );
 
           // Reset timer state

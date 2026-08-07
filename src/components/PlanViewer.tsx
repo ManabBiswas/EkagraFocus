@@ -58,6 +58,15 @@ export function PlanViewer() {
         totalHoursEstimated: metadata.total_hours_estimated,
         weeklyHoursAvg: metadata.weekly_hours_avg,
       });
+
+      // Persist a plan exists across restarts so the dashboard does not show
+      // the empty "No Plan Imported Yet" state when a plan is already active.
+      setSchedulePlan({
+        fileName: metadata.title,
+        filePath: metadata.file_path || '',
+        content: metadata.file_content || '',
+        importedAt: metadata.imported_at || new Date().toISOString(),
+      });
     }
 
     if (analysis) {

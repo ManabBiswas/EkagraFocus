@@ -240,7 +240,7 @@ class EmbeddedLLMService {
 // Try to generate response via Ollama (fallback)
 export async function generateViaOllama(
   prompt: string,
-  model = process.env.OLLAMA_MODEL?.trim() || 'phi'
+  model = process.env.OLLAMA_MODEL?.trim() || 'granite4.1:3b'
 ): Promise<string | null> {
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
@@ -249,10 +249,12 @@ export async function generateViaOllama(
     const configuredTimeout = Number(process.env.OLLAMA_TIMEOUT_MS || 30000);
     const timeoutMs = Number.isFinite(configuredTimeout) && configuredTimeout > 0 ? configuredTimeout : 30000;
     timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    const ollamaHost = process.env.OLLAMA_HOST?.trim() || 'http://localhost:11434';
+    const ollamaBaseUrl = ollamaHost.replace(/\/$/, '');
 
     console.debug('[LLMService] Trying Ollama fallback...');
 
-    const response = await fetch('http://localhost:11434/api/generate', {
+    const response = await fetch(`${ollamaBaseUrl}/api/generate`, {
       method: 'POST',
       signal: controller.signal,
       headers: {

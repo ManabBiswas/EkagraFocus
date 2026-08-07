@@ -82,7 +82,6 @@ export function AmbientSoundPlayer(): null {
     return () => {
       // No-op — the next effect run owns the cleanup.
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ambient.kind]);
 
   // Apply volume changes without restarting the source.

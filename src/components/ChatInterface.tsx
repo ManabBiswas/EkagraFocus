@@ -5,7 +5,7 @@ import type { IPCAgentMessage, IPCResponse } from '../shared/ipc';
 type WindowWithApi = Window & {
   api?: {
     agent?: {
-      sendMessage: (message: string) => Promise<IPCResponse<IPCAgentMessage>>;
+      sendMessage: (sessionId: string, message: string) => Promise<IPCResponse<IPCAgentMessage>>;
     };
   };
 };
@@ -80,7 +80,7 @@ export function ChatInterface() {
     try {
       console.log('[ChatInterface] Sending message:', userMessage);
       
-      const api = (window as WindowWithApi).api as any;
+      const api = (window as WindowWithApi).api;
       if (!api?.agent?.sendMessage) {
         throw new Error('API not available');
       }

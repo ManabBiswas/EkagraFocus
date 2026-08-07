@@ -342,7 +342,7 @@ export function recalculateStreak(): number {
 
   // Calculate past streak mapping backwards from yesterday
   let pastStreak = 0;
-  const checkDate = new Date(todayDate);
+  const checkDate = new Date(todayDate.getTime() - offset * 60 * 1000);
   checkDate.setDate(checkDate.getDate() - 1);
 
   let checking = true;
@@ -424,7 +424,7 @@ export function getWeeklySessions(endDate?: string): IPCSession[] {
   const db = getDatabase();
   const end = endDate || todayIso();
   const startDateObj = new Date(end);
-  startDateObj.setDate(startDateObj.getDate() - 7);
+  startDateObj.setDate(startDateObj.getDate() - 6);
   const start = startDateObj.toISOString().split('T')[0];
 
   return db
@@ -440,7 +440,7 @@ export function getWeeklyStatsByDate(endDate?: string): Array<{ date: string; to
   const db = getDatabase();
   const end = endDate || todayIso();
   const startDateObj = new Date(end);
-  startDateObj.setDate(startDateObj.getDate() - 7);
+  startDateObj.setDate(startDateObj.getDate() - 6);
   const start = startDateObj.toISOString().split('T')[0];
 
   return db
@@ -458,7 +458,7 @@ export function getWeeklySubjectBreakdown(endDate?: string): Array<{ subject: st
   const db = getDatabase();
   const end = endDate || todayIso();
   const startDateObj = new Date(end);
-  startDateObj.setDate(startDateObj.getDate() - 7);
+  startDateObj.setDate(startDateObj.getDate() - 6);
   const start = startDateObj.toISOString().split('T')[0];
 
   return db

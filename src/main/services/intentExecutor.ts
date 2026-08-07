@@ -86,11 +86,11 @@ function isValidAIResponse(obj: unknown): obj is AIResponse {
 
 function executeLogSession(data: Record<string, unknown>, reply: string): IPCAgentMessage {
   try {
-    // Support both field name formats
-    let taskId = typeof data.task_id === 'string' ? data.task_id : 
-                 (typeof data.subject === 'string' ? data.subject : null);
+    // task_id is only ever a real DB task id — never fall back to subject.
+    const taskId = typeof data.task_id === 'string' && data.task_id ? data.task_id : null;
     const minutes = typeof data.minutes === 'number' ? data.minutes : 
                     (typeof data.durationMinutes === 'number' ? data.durationMinutes : 0);
+    const subject = typeof data.subject === 'string' ? data.subject : null;
     const notes = typeof data.notes === 'string' ? data.notes : null;
 
     if (minutes <= 0) {
@@ -102,39 +102,43 @@ function executeLogSession(data: Record<string, unknown>, reply: string): IPCAge
     }
 
     // Validate that task exists if task_id is provided
-    if (taskId) {
-      const task = getTaskById(taskId);
+    let resolvedTaskId: string | null = taskId;
+    if (resolvedTaskId) {
+      const task = getTaskById(resolvedTaskId);
       if (!task) {
         // Task doesn't exist, log without linking to a specific task
-        console.warn('[IntentExecutor] Task not found:', taskId, '- logging as free-form session');
-        taskId = null;
+        console.warn('[IntentExecutor] Task not found:', resolvedTaskId, '- logging as free-form session');
+        resolvedTaskId = null;
       }
     }
+
+    // Preserve the AI-provided subject so the session is not logged untagged.
+    const effectiveNotes = notes || subject;
 
     const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const today = todayIso();
 
     insertSession({
       id: sessionId,
-      task_id: taskId,
+      task_id: resolvedTaskId,
       date: today,
       duration_minutes: minutes,
-      notes: notes,
+      notes: effectiveNotes,
     });
 
     notifyDbStateChanged('SESSION_LOGGED', {
       sessionId,
-      taskId,
+      taskId: resolvedTaskId,
       minutes,
       context: getFullContext(today),
     });
 
-    const subjectText = notes || (taskId ? `task ${taskId}` : 'study');
-    console.info('[IntentExecutor] Session logged', { sessionId, minutes, taskId, notes });
+    const subjectText = effectiveNotes || (resolvedTaskId ? `task ${resolvedTaskId}` : 'study');
+    console.info('[IntentExecutor] Session logged', { sessionId, minutes, taskId: resolvedTaskId, notes: effectiveNotes });
 
     return {
       action: 'log_session',
-      data: { sessionId, minutes, taskId },
+      data: { sessionId, minutes, durationMinutes: minutes, taskId: resolvedTaskId, subject: subjectText },
       reply: reply || `Great! Logged ${minutes} minutes of ${subjectText}. 📚`,
     };
   } catch (error) {

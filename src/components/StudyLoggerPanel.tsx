@@ -89,10 +89,18 @@ export function StudyLoggerPanel() {
     try {
       const minutes = Math.round(parseFloat(hours) * 60);
 
+      // Approximate session window for burnout analysis (manual log).
+      const now = new Date();
+      const start = new Date(now.getTime() - minutes * 60 * 1000);
+      const fmtHHMM = (d: Date): string =>
+        `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+
       const result = await window.api.task.logSession(
         null,
         minutes,
         `${subject}${notes ? ` - ${notes}` : ''}`,
+        fmtHHMM(start),
+        fmtHHMM(now),
       );
 
       // Refresh live risk now that a new session was logged

@@ -42,13 +42,16 @@ const OVERLOAD_STREAK_DAYS = 4; // N consecutive high-hour days
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function todayIso(): string {
-  return new Date().toISOString().split('T')[0];
+  const now = new Date();
+  const local = new Date(now.getTime() - now.getTimezoneOffset() * 60 * 1000);
+  return local.toISOString().split('T')[0];
 }
 
 function dateNDaysAgo(n: number): string {
-  const d = new Date();
-  d.setDate(d.getDate() - n);
-  return d.toISOString().split('T')[0];
+  const now = new Date();
+  const local = new Date(now.getTime() - now.getTimezoneOffset() * 60 * 1000);
+  local.setDate(local.getDate() - n);
+  return local.toISOString().split('T')[0];
 }
 
 // ─── Raw session rows ─────────────────────────────────────────────────────────

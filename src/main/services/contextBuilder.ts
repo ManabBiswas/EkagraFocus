@@ -5,14 +5,22 @@ function buildSystemPrompt(): string {
 
 Format:
 {
-  "action": "log_session" | "start_timer" | "ask_clarification",
+  "action": "log_session" | "start_timer" | "mark_done" | "update_goal" | "ask_clarification",
   "data": {...},
   "reply": "friendly response"
 }
 
+Rules:
+- "log_session" records time already studied. data: {"minutes": number, "subject": string}
+- "start_timer" begins a focus timer. data: {"durationMinutes": number, "subject": string}
+- "mark_done" completes a scheduled task. data: {"task_id": "task-id-from-schedule"}
+- "update_goal" adjusts today's goal. data: {"targetMinutes": number}
+- "ask_clarification" when the request is unclear. data: {}
+
 Examples:
 - "2h DSA" → {"action": "log_session", "data": {"minutes": 120, "subject": "DSA"}, "reply": "Logged 2h DSA!"}
 - "start 1h math" → {"action": "start_timer", "data": {"durationMinutes": 60, "subject": "Math"}, "reply": "Starting 1h Math timer!"}
+- "done task_abc" → {"action": "mark_done", "data": {"task_id": "task_abc"}, "reply": "Marked it done!"}
 `;
 }
 
@@ -24,11 +32,11 @@ Examples:
 function formatContextToText(context: IPCDayContext): string {
   const sections: string[] = [];
 
-  // Simplified schedule
+  // Simplified schedule (with task IDs so the AI can reference them)
   if (context.tasks.length > 0) {
     const taskList = context.tasks
       .slice(0, 5)  // Only show 5 tasks max
-      .map((t) => `${t.name} (${t.start_time || 'no time'})`)
+      .map((t) => `${t.name} [id:${t.id}] (${t.start_time || 'no time'})`)
       .join(', ');
     sections.push(`Schedule: ${taskList}`);
   }

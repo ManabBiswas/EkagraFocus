@@ -213,18 +213,52 @@ export function initializeDatabase(): Database.Database {
     CREATE INDEX IF NOT EXISTS idx_chat_messages_session ON chat_messages(session_id);
   `);
 
+  migrateMissingColumns(db);
+  ensureRedistributionTable();
+  console.log(' Database initialized:', dbPath);
+  return db;
+}
+
+/**
+ * Migrate existing databases that were created by an older schema version.
+ * CREATE TABLE IF NOT EXISTS never alters existing tables, so any columns
+ * added to the schema after the DB was first created are missing here.
+ * We add them with ALTER TABLE if they are absent.
+ */
+function migrateMissingColumns(db: Database.Database): void {
+  const tableColumns = new Map<string, Set<string>>();
+
+  function hasColumn(table: string, column: string): boolean {
+    if (!tableColumns.has(table)) {
+      const cols = db.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
+      tableColumns.set(table, new Set(cols.map((c) => c.name)));
+    }
+    return tableColumns.get(table)?.has(column) ?? false;
+  }
+
+  function addColumnIfMissing(table: string, column: string, definition: string): void {
+    if (hasColumn(table, column)) return;
+    db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+    console.log(` Migration: added column ${table}.${column}`);
+  }
+
+  // sessions gained start_time / end_time after the initial schema.
+  addColumnIfMissing('sessions', 'start_time', 'TEXT');
+  addColumnIfMissing('sessions', 'end_time', 'TEXT');
+
+  // notes gained ai_summary / ai_keywords / is_pinned after the initial schema.
+  addColumnIfMissing('notes', 'ai_summary', 'TEXT');
+  addColumnIfMissing('notes', 'ai_keywords', 'TEXT');
+  addColumnIfMissing('notes', 'is_pinned', 'INTEGER DEFAULT 0');
+
   // Ensure singleton user_state row exists.
- db.prepare(`
+  // NOTE: Only inserts the default when the row is missing. Never overwrites
+  // an existing value — the previous unconditional UPDATE clobbered any
+  // user-configured goal hours on every startup.
+  db.prepare(`
     INSERT OR IGNORE INTO user_state (state_id, base_goal_hours)
     VALUES ('singleton', 9)
   `).run();
-
-  db.prepare(`
-    UPDATE user_state SET base_goal_hours = 9 WHERE state_id = 'singleton'
-  `).run();
-   ensureRedistributionTable();
-  console.log(' Database initialized:', dbPath);
-  return db;
 }
 
 /**

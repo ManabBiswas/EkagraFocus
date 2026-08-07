@@ -17,6 +17,8 @@ import type {
   IPCTask,
   IPCUserState,
   IPCWeeklyProgress,
+  IPCChatSession,
+  IPCChatMessage,
 } from './shared/ipc';
 
 interface DBStateChangedPayload {
@@ -200,8 +202,8 @@ const api = {
      * Send a message to the AI agent
      * Receives parsed response with action + reply
      */
-    sendMessage: async (message: string) => {
-      const result = await ipcRenderer.invoke('agent:sendMessage', message);
+    sendMessage: async (sessionId: string, message: string) => {
+      const result = await ipcRenderer.invoke('agent:sendMessage', sessionId, message);
       return result;
     },
 
@@ -212,6 +214,34 @@ const api = {
       const result = await ipcRenderer.invoke('agent:getTodayContext');
       if (!result.success) throw new Error(result.error);
       return result.data;
+    },
+  },
+
+  // ─────────────────────────────────────────────────────────────
+  // CHAT OPERATIONS
+  // ─────────────────────────────────────────────────────────────
+
+  chat: {
+    /**
+     * Get all chat sessions
+     * Returns the full IPCResponse — the store checks res.success / res.data.
+     */
+    getSessions: async (): Promise<IPCResponse<IPCChatSession[]>> => {
+      return await ipcRenderer.invoke('chat:getSessions');
+    },
+
+    /**
+     * Get messages for a chat session
+     */
+    getMessages: async (sessionId: string): Promise<IPCResponse<IPCChatMessage[]>> => {
+      return await ipcRenderer.invoke('chat:getMessages', sessionId);
+    },
+
+    /**
+     * Create a new chat session
+     */
+    createSession: async (title: string): Promise<IPCResponse<IPCChatSession>> => {
+      return await ipcRenderer.invoke('chat:createSession', title);
     },
   },
 

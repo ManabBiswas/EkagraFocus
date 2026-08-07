@@ -303,7 +303,7 @@ npm run build
 For more detailed information, please refer to:
 
 - **[Quick Start Setup](SETUP.md)** - Installation and basic setup
-- **[LLM/AI Setup Guide](docs/LLM_SETUP.md)** - Enable AI chat with local models (optional)
+- **[LLM/AI Setup Guide](docs/LLM_SETUP.md)** - Enable AI chat with local models (optional, qwen3.5:4b recommended)
 - **[Architecture Guide](docs/Architecture.md)** - System design and component overview
 - **[Advanced Setup](docs/SETUP.md)** - Development and troubleshooting
 - **[Contributing Guidelines](CONTRIBUTING.md)** - How to contribute to the project

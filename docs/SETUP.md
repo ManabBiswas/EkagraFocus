@@ -30,6 +30,7 @@ cp .env.example .env
 Edit `.env` to configure optional settings:
 - **LLM_MODEL_PATH**: Path to a local GGUF model file (for advanced users)
 - **OLLAMA_HOST**: Ollama server endpoint if using Ollama instead of embedded LLM
+- **OLLAMA_MODEL**: Ollama model tag to use, for example `qwen3.5:4b`
 
 **Note:** EkagraFocus works **offline by default** without configuration. Set these only if you want to use a specific local model.
 
@@ -197,6 +198,7 @@ npm install
 2. If using Ollama, ensure it's running:
    ```bash
    ollama serve
+   ollama list
    ```
 3. Check logs in developer console (`Ctrl+Shift+I`)
 
@@ -220,6 +222,7 @@ LLM_MODEL_PATH=/path/to/model.gguf
 
 # Ollama server (optional)
 OLLAMA_HOST=http://localhost:11434
+OLLAMA_MODEL=qwen3.5:4b
 ```
 
 ## Database

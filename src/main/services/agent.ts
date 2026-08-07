@@ -20,7 +20,7 @@ import type { IPCResponse, IPCAgentMessage } from '../../shared/ipc';
 import { executeIntent } from './intentExecutor';
 import { buildPrompt } from './contextBuilder';
 import { generateViaOllama, llmService } from './llmService';
-import { getFullContext, getChatMessages, saveChatMessage } from '../db/queries';
+import { getFullContext, getChatMessages, saveChatMessage, todayIso } from '../db/queries';
 
 interface AgentPipelineMetrics {
   messageLength: number;
@@ -28,6 +28,27 @@ interface AgentPipelineMetrics {
   llmUsed: string;
   generationTime: number;
   success: boolean;
+}
+
+const VALID_AGENT_ACTIONS = ['log_session', 'start_timer', 'mark_done', 'update_goal', 'ask_clarification'];
+
+/**
+ * Returns true when the LLM output is valid JSON with an action + reply.
+ * Used to decide whether to run the intent executor or pattern matching.
+ */
+function isParseableAgentJson(text: string): boolean {
+  try {
+    const obj = JSON.parse(text);
+    return (
+      typeof obj === 'object' &&
+      obj !== null &&
+      typeof (obj as { action?: unknown }).action === 'string' &&
+      VALID_AGENT_ACTIONS.includes((obj as { action: string }).action) &&
+      typeof (obj as { reply?: unknown }).reply === 'string'
+    );
+  } catch {
+    return false;
+  }
 }
 
 const metrics: AgentPipelineMetrics[] = [];
@@ -49,7 +70,7 @@ export async function runAgent(sessionId: string, userMessage: string): Promise<
 
     // Step 1: Get today's fresh context from database
     const step1Start = Date.now();
-    const today = new Date().toISOString().split('T')[0];
+    const today = todayIso();
     const context = getFullContext(today);
     const contextTime = Date.now() - step1Start;
 
@@ -79,7 +100,7 @@ export async function runAgent(sessionId: string, userMessage: string): Promise<
     const step3Start = Date.now();
     let llmResponse: string;
     let llmUsed: string;
-    const ollamaModel = process.env.OLLAMA_MODEL?.trim() || 'phi';
+    const ollamaModel = process.env.OLLAMA_MODEL?.trim() || 'granite4.1:3b';
 
     if (llmService.isInitialized()) {
       // USE AI FIRST - This is the primary path now
@@ -137,7 +158,12 @@ export async function runAgent(sessionId: string, userMessage: string): Promise<
 
     // Step 4: Parse and execute intent
     const step4Start = Date.now();
-    const result = executeIntent(llmResponse);
+    // If the LLM returned prose (common with small local models) instead of
+    // the requested JSON, fall back to schedule-aware pattern matching rather
+    // than the generic "please rephrase" clarification.
+    const result = isParseableAgentJson(llmResponse)
+      ? executeIntent(llmResponse)
+      : JSON.parse(getSimpleResponse(userMessage, context));
     const executionTime = Date.now() - step4Start;
 
     const totalTime = Date.now() - startTime;
@@ -201,14 +227,17 @@ function getSimpleResponse(userMessage: string, context: ReturnType<typeof getFu
 
   // ─────────────────────────────────────────────────────────────
   // PATTERN 1: Start a timer with explicit duration
-  // Matches: "start 1h math", "start timer", "1h physics", "25min focus"
+  // Matches: "start 1h math", "begin 25min physics", "25min focus timer"
+  // NOTE: Bare "2h math" is handled by PATTERN 3 (log a session) below.
   // ─────────────────────────────────────────────────────────────
-  const explicitTimerMatch = userMessage.match(/(?:start|begin)?\s*(\d+)\s*(h|hour|min|minute)s?\s+(.+)/i);
+  const explicitTimerMatch =
+    userMessage.match(/^(?:start|begin)\s+(\d+)\s*(h|hour|min|minute)s?\s+(.+)$/i) ||
+    userMessage.match(/^(\d+)\s*(h|hour|min|minute)s?\s+(focus|timer|session)s?\s*$/i);
   if (explicitTimerMatch) {
     const durationNum = parseInt(explicitTimerMatch[1]);
     const unit = explicitTimerMatch[2][0].toLowerCase();
     const durationMinutes = unit === 'h' ? durationNum * 60 : durationNum;
-    const subject = explicitTimerMatch[3].replace(/(?:timer|focus|session)$/i, '').trim();
+    const subject = explicitTimerMatch[3] ? explicitTimerMatch[3].replace(/(?:timer|focus|session)$/i, '').trim() : '';
 
     return JSON.stringify({
       action: 'start_timer',

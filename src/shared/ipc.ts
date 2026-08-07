@@ -20,6 +20,8 @@ export interface IPCSession {
   date: string;
   duration_minutes: number;
   notes: string | null;
+  start_time?: string | null;
+  end_time?: string | null;
   created_at: string;
 }
 

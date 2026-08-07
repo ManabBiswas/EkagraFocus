@@ -212,7 +212,7 @@ async function generateNoteInsights(title: string, content: string): Promise<IPC
   }
 
   if (!raw) {
-    const ollamaRaw = await generateViaOllama(prompt, 'tinyllama');
+    const ollamaRaw = await generateViaOllama(prompt);
     raw = ollamaRaw || '';
   }
 
@@ -462,6 +462,10 @@ export function setupTaskHandlers(): void {
       try {
         const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         const today = todayIso();
+
+        if (typeof minutes !== 'number' || !Number.isFinite(minutes) || minutes <= 0) {
+          return { success: false, error: 'Invalid duration: minutes must be a positive number' } as IPCResponse;
+        }
 
         insertSession({
           id: sessionId,

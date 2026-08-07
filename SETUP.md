@@ -27,6 +27,7 @@
    Edit `.env` to configure optional settings for AI features:
    - **LLM_MODEL_PATH**: Path to a local GGUF model file
    - **OLLAMA_HOST**: Ollama server endpoint
+   - **OLLAMA_MODEL**: Ollama model tag, for example `qwen3.5:4b`
    
    **Note:** EkagraFocus works offline by default, but to enable full AI features, you should set up a local LLM model.
 
@@ -75,13 +76,14 @@ EkagraFocus can use local LLM models for completely offline AI features. There a
 
 3. In a new terminal, pull a model:
    ```bash
-   ollama pull mistral
-   # or other models like: neural-chat, openchat, etc.
+   ollama pull qwen3.5:4b
+   # smaller alternatives: phi, tinyllama
    ```
 
 4. Set in `.env`:
    ```bash
    OLLAMA_HOST=http://localhost:11434
+   OLLAMA_MODEL=qwen3.5:4b
    ```
 
 5. Restart the app - it will auto-detect Ollama

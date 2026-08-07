@@ -150,10 +150,12 @@ export function TimerPanel() {
     if (timerSeconds === 0) return;
     try {
       const durationMinutes = Math.round((timerSeconds / 60) * 4) / 4;
-      const result = await window.api.task.logSession(
+      await window.api.task.logSession(
         null,
         durationMinutes,
         `${currentSessionSubject} (${timerSeconds}s)`,
+        sessionStartTimeRef.current,
+        formatHHMM(new Date()),
       );
       await fetchBurnoutLiveRisk();
       sessionStartTimeRef.current = null;

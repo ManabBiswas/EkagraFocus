@@ -21,6 +21,8 @@ import type {
   IPCPlanTask,
   IPCWeeklyProgress,
   IPCUserState,
+  IPCChatSession,
+  IPCChatMessage,
 } from './shared/ipc';
 
 /**
@@ -40,13 +42,19 @@ interface IPCDB {
 
 interface IPCTaskOps {
   markDone: (taskId: string) => Promise<void>;
-  logSession: (taskId: string | null, minutes: number, notes?: string) => Promise<IPCSessionLogResult>;
+  logSession: (taskId: string | null, minutes: number, notes?: string, startTime?: string | null, endTime?: string | null) => Promise<IPCSessionLogResult>;
   updateStatus: (taskId: string, status: 'pending' | 'in_progress' | 'done') => Promise<void>;
 }
 
 interface IPCAgent {
-  sendMessage: (message: string) => Promise<IPCResponse<IPCAgentMessage>>;
+  sendMessage: (sessionId: string, message: string) => Promise<IPCResponse<IPCAgentMessage>>;
   getTodayContext: () => Promise<IPCDayContext>;
+}
+
+interface IPCChat {
+  getSessions: () => Promise<IPCResponse<IPCChatSession[]>>;
+  getMessages: (sessionId: string) => Promise<IPCResponse<IPCChatMessage[]>>;
+  createSession: (title: string) => Promise<IPCResponse<IPCChatSession>>;
 }
 
 interface IPCFile {
@@ -120,17 +128,25 @@ interface IPCRedistribution {
   getHoursForDate: (date: string) => Promise<unknown>;
   getAllPending: () => Promise<unknown>;
   markApplied: (date: string) => Promise<unknown>;
+  clear: (sourceDate: string) => Promise<unknown>;
+}
+
+interface IPCBurnout {
+  getReport: () => Promise<IPCResponse>;
+  getLiveRisk: () => Promise<IPCResponse>;
 }
 
 interface API {
   db: IPCDB;
   task: IPCTaskOps;
   agent: IPCAgent;
+  chat: IPCChat;
   file: IPCFile;
   notes: IPCNotes;
   plan: IPCPlan;
   events: IPCEvents;
   redistribution: IPCRedistribution;
+  burnout: IPCBurnout;
   window: IPCWindow;
 }
 

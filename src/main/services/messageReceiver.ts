@@ -1,5 +1,5 @@
 import type { IPCResponse, IPCAgentMessage, IPCDayContext } from '../../shared/ipc';
-import { getFullContext } from '../db/queries';
+import { getFullContext, todayIso } from '../db/queries';
 
 
 interface ValidatedMessage {
@@ -67,7 +67,7 @@ function validateMessage(message: string): {
  * Called by Context Builder in the agent pipeline
  */
 function getDayContext(): IPCDayContext {
-  const today = new Date().toISOString().split('T')[0];
+  const today = todayIso();
   return getFullContext(today);
 }
 

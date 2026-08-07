@@ -63,6 +63,7 @@ export interface NotificationItem {
   title: string;
   message: string;
   duration?: number;
+  timestamp?: string;
 }
 
 export interface WeeklyStats {

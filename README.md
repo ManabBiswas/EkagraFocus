@@ -1,6 +1,6 @@
 # 🎯 EkagraFocus
 
-> A local-first, privacy-first desktop study assistant with AI-powered planning, intelligent scheduling, and comprehensive analytics.
+> A local-first, privacy-first desktop study assistant with AI-powered planning, intelligent scheduling, and comprehensive analytics for study sessions with many interactive features.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Electron 41](https://img.shields.io/badge/Electron-41-9feaf0)](https://www.electronjs.org/)
@@ -415,7 +415,7 @@ Under the condition that you include a copy of the license and copyright notice.
 
 ## 🙏 Acknowledgments
 
-Built with amazing open-source projects:
+Built this open-source app with amazing open-source projects:
 
 - [Electron](https://www.electronjs.org/) - Desktop framework
 - [React](https://react.dev/) - UI framework
@@ -426,4 +426,5 @@ Built with amazing open-source projects:
 - [node-llama-cpp](https://github.com/withcatai/node-llama-cpp) - Local AI inference
 - [Electron Forge](https://www.electronforge.io/) - Build tooling
 
+Special thanks to all the contributors who have helped to improve this project over the time.
 ---

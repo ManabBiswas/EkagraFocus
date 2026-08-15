@@ -79,6 +79,19 @@ export function StatsPanel() {
   return (
     <div className="h-full space-y-4 overflow-y-auto p-4 pr-3">
 
+
+      <button
+        onClick={async () => {
+          const result = await window.api.file.exportData();
+
+          if (!result.success) {
+            console.error(result.error);
+          }
+        }}
+      >
+        Export Data
+      </button>
+
       {/* Summary Cards */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <div className="rounded-2xl border border-cyan-400/35 bg-cyan-400/20 p-4">

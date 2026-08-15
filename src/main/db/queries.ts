@@ -181,6 +181,30 @@ export function getNotes(params: NotesListParams = {}): IPCNote[] {
   return db.prepare(query).all(...values) as IPCNote[];
 }
 
+export function getAllNotesForExport(): IPCNote[] {
+  const db = getDatabase();
+  return db
+    .prepare(`
+      SELECT
+        id,
+        title,
+        content,
+        canvas_data,
+        tags,
+        linked_task_id,
+        linked_session_id,
+        attachments,
+        ai_summary,
+        ai_keywords,
+        is_pinned,
+        created_at,
+        updated_at
+      FROM notes
+      ORDER BY created_at ASC
+    `)
+    .all() as IPCNote[];
+}
+
 export function getNoteById(noteId: string): IPCNote | null {
   const db = getDatabase();
   return (db.prepare('SELECT * FROM notes WHERE id = ?').get(noteId) as IPCNote | undefined) || null;
@@ -273,6 +297,26 @@ export function getTodaySessions(date: string): IPCSession[] {
 export function getSessionsForTask(taskId: string): IPCSession[] {
   const db = getDatabase();
   return db.prepare('SELECT * FROM sessions WHERE task_id = ? ORDER BY created_at').all(taskId) as IPCSession[];
+}
+
+export function getAllSessionsForExport(): Array<IPCSession & { subject: string | null }> {
+  const db = getDatabase();
+  return db
+    .prepare(`
+      SELECT
+        s.id,
+        s.date,
+        t.name AS subject,
+        s.duration_minutes,
+        s.notes,
+        s.start_time,
+        s.end_time,
+        s.created_at
+      FROM sessions s
+      LEFT JOIN tasks t ON s.task_id = t.id
+      ORDER BY s.date ASC, s.start_time ASC
+    `)
+    .all() as Array<IPCSession & { subject: string | null }>;
 }
 
 export function getTotalMinutesToday(date: string): number {

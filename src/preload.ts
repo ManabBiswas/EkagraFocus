@@ -263,6 +263,10 @@ const api = {
     readPlanFile: async (filePath: string): Promise<IPCResponse<unknown>> => {
       return await ipcRenderer.invoke('read-plan-file', filePath);
     },
+
+    exportData: async (): Promise<IPCResponse<{ exported: boolean }>> => {
+      return await ipcRenderer.invoke('export:data');
+    },
   },
 
   // ─────────────────────────────────────────────────────────────

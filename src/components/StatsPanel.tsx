@@ -63,6 +63,7 @@ export function StatsPanel() {
     weeklyProgress,
     burnoutReport,
     fetchBurnoutReport,
+    addNotification,
   } = useStore();
 
   // Fetch burnout report when the Stats tab is opened
@@ -79,18 +80,49 @@ export function StatsPanel() {
   return (
     <div className="h-full space-y-4 overflow-y-auto p-4 pr-3">
 
+      <div className="flex justify-end">
+        <button
+          onClick={async () => {
+            const result = await window.api.file.exportData();
 
-      <button
-        onClick={async () => {
-          const result = await window.api.file.exportData();
-
-          if (!result.success) {
-            console.error(result.error);
-          }
-        }}
-      >
-        Export Data
-      </button>
+            if (result.success) {
+              addNotification({
+                id: `notif-export-${Date.now()}`,
+                type: 'success',
+                title: 'Export Complete',
+                message: 'Your sessions, notes, and goals were exported successfully.',
+                duration: 3000,
+              });
+            } else if (result.error !== 'Export cancelled') {
+              addNotification({
+                id: `notif-export-error-${Date.now()}`,
+                type: 'error',
+                title: 'Export Failed',
+                message: result.error || 'Failed to export data.',
+                duration: 3000,
+              });
+            }
+          }}
+          className="flex items-center gap-2 rounded-md border border-cyan-400/30 bg-cyan-400/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-cyan-200 transition-all duration-200 hover:border-cyan-400/60 hover:bg-cyan-400/20 hover:text-cyan-100"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            width="14"
+            height="14"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M12 3v12" />
+            <path d="m7 10 5 5 5-5" />
+            <path d="M5 21h14" />
+          </svg>
+          Export Data
+        </button>
+      </div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">

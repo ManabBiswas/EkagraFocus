@@ -289,6 +289,24 @@ export function getActiveGoals(date: string): IPCGoal[] {
   return db.prepare('SELECT * FROM goals WHERE date = ? AND active = 1').all(date) as IPCGoal[];
 }
 
+export function getAllGoalsForExport(): IPCGoal[] {
+  const db = getDatabase();
+
+  return db
+    .prepare(`
+      SELECT
+        id,
+        date,
+        description,
+        active,
+        created_at,
+        updated_at
+      FROM goals
+      ORDER BY date ASC, created_at ASC
+    `)
+    .all() as IPCGoal[];
+}
+
 export function getTodaySessions(date: string): IPCSession[] {
   const db = getDatabase();
   return db.prepare('SELECT * FROM sessions WHERE date = ? ORDER BY created_at').all(date) as IPCSession[];

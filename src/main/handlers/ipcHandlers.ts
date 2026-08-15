@@ -31,6 +31,8 @@ import {
   getChatMessages,
   createChatSession,
   getAllSessionsForExport,
+  getAllNotesForExport,
+  getAllGoalsForExport,
 } from '../db/queries';
 import { receiveMessage } from '../services/messageReceiver';
 import { processPlanFile } from '../services/planParser';
@@ -825,6 +827,25 @@ export function setupFileHandlers(): void {
   ipcMain.handle('export:data', async () => {
     try {
       const sessions = getAllSessionsForExport();
+      const notes = getAllNotesForExport();
+      const notesJson = JSON.stringify(notes, null, 2);
+      const goals = getAllGoalsForExport();
+
+      const goalsCsv = [
+        'id,date,description,active,created_at,updated_at',
+        ...goals.map((goal) =>
+          [
+            goal.id,
+            goal.date,
+            goal.description,
+            goal.active,
+            goal.created_at,
+            goal.updated_at,
+          ]
+            .map(escapeCsvValue)
+            .join(','),
+        ),
+      ].join('\n');
 
       const sessionCsv = [
         'date,subject,duration_minutes,notes,start_time,end_time',
@@ -842,20 +863,37 @@ export function setupFileHandlers(): void {
         ),
       ].join('\n');
 
-      const result = await dialog.showSaveDialog({
-        title: 'Export Study Sessions',
-        defaultPath: 'study-sessions.csv',
-        filters: [{ name: 'CSV Files', extensions: ['csv'] }],
+      const result = await dialog.showOpenDialog({
+        title: 'Choose Export Folder',
+        properties: ['openDirectory', 'createDirectory'],
       });
 
-      if (result.canceled || !result.filePath){
-        return{
+      if (result.canceled || result.filePaths.length === 0) {
+        return {
           success: false,
           error: 'Export cancelled',
         };
       }
 
-      fs.writeFileSync(result.filePath, sessionCsv, 'utf-8');
+      const exportDirectory = result.filePaths[0];
+
+      fs.writeFileSync(
+        path.join(exportDirectory, 'study-sessions.csv'),
+        sessionCsv,
+        'utf-8',
+      );
+
+      fs.writeFileSync(
+        path.join(exportDirectory, 'notes.json'),
+        notesJson,
+        'utf-8',
+      );
+
+      fs.writeFileSync(
+        path.join(exportDirectory, 'goals.csv'),
+        goalsCsv,
+        'utf-8',
+      );
 
       return {
         success: true,

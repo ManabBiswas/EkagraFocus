@@ -13,6 +13,31 @@ import { NotificationToast } from './components/NotificationToast';
 import { AmbientSoundPlayer } from './components/AmbientSoundPlayer';
 import { GOAL_CONFIG } from './shared/goalConfig';
 
+const QUOTES = [
+  "Small progress is still progress.",
+  "Focus on consistency, not perfection.",
+  "Discipline is choosing between what you want now and what you want most.",
+  "The secret of getting ahead is getting started.",
+  "It always seems impossible until it's done.",
+  "Push yourself, because no one else is going to do it for you.",
+  "Study hard what interests you the most in the most undisciplined way possible.",
+  "The beautiful thing about learning is that no one can take it away from you.",
+  "Success is the sum of small efforts repeated day in and day out.",
+  "Don't watch the clock; do what it does. Keep going.",
+];
+
+function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 17) return "Good afternoon";
+  if (hour < 21) return "Good evening";
+  return "Ready to focus tonight?";
+}
+
+function getRandomQuote(): string {
+  return QUOTES[Math.floor(Math.random() * QUOTES.length)];
+}
+
 function DashboardOverview() {
   
   const {
@@ -83,6 +108,12 @@ function DashboardOverview() {
         </div>
 
         <div className="mt-4 space-y-3">
+          <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/5 p-4">
+            <p className="text-lg font-bold text-white">{getGreeting()}</p>
+          </div>
+          <div className="rounded-2xl border border-amber-400/20 bg-amber-400/5 p-3">
+            <p className="text-sm italic text-amber-200/80">"{getRandomQuote()}"</p>
+          </div>
           <div className="rounded-2xl border border-white/15 bg-black/40 p-4">
             <div className="flex items-center justify-between gap-3">
               <div>

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useStore } from './store/useStore';
 import { TitleBar } from './components/TitleBar';
 import { GoalBanner } from './components/GoalBanner';
@@ -26,6 +26,23 @@ function DashboardOverview() {
     timerSeconds,
     isAgentThinking,
   } = useStore();
+
+  const hour = new Date().getHours();
+  let greeting = 'Good Evening 🌙';
+  if (hour < 12) greeting = 'Good Morning 🌞';
+  else if (hour < 18) greeting = 'Good Afternoon 👋';
+
+  const quotes = [
+    "Small progress is still progress.",
+    "Focus on consistency, not perfection.",
+    "The secret of getting ahead is getting started.",
+    "Don't stop until you're proud.",
+    "Success is the sum of small efforts repeated day in and day out."
+  ];
+  const [quote, setQuote] = useState('');
+  useEffect(() => {
+    setQuote(quotes[Math.floor(Math.random() * quotes.length)]);
+  }, []);
 
   const weeklyHours = weeklyStats.reduce((sum, entry) => sum + entry.hoursStudied, 0);
   const todayHours = todaySessions.reduce((sum, session) => sum + session.durationHours, 0);
@@ -71,10 +88,10 @@ function DashboardOverview() {
       <section className="panel-shell p-5">
         <div className="flex items-start justify-between gap-4 border-b border-white/20 pb-4">
           <div>
-            <p className="section-label text-cyan-400">Mission control</p>
+            <p className="section-label text-cyan-400">{greeting}</p>
             <h2 className="mt-3 text-2xl font-bold text-white">Operational dashboard</h2>
-            <p className="mt-2 max-w-sm text-sm text-slate-300">
-              Dark metallic surfaces, strong borders, and live focus telemetry in one place.
+            <p className="mt-2 max-w-sm text-sm text-slate-300 italic">
+              "{quote || 'Loading inspiration...'}"
             </p>
           </div>
           <div className="rounded-full border border-cyan-400/50 bg-cyan-400/15 px-3 py-1 text-xs uppercase tracking-[0.3em] text-cyan-100 font-semibold shadow-[0_0_12px_rgba(34,211,238,0.2)]">

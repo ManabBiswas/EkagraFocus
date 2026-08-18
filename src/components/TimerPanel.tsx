@@ -50,6 +50,8 @@ type ThemeKey = keyof typeof THEMES;
 export function TimerPanel() {
   const {
     timerRunning,
+    timerDurationMinutes,
+    setTimerDurationMinutes,
     timerSeconds,
     currentSessionSubject,
     setTimerSubject,
@@ -260,6 +262,23 @@ export function TimerPanel() {
           💡 {burnoutReport.recommendations[0]}
         </div>
       )}
+
+      {/* Quick Timer Presets */}
+      <div className="flex w-full max-w-md gap-2 justify-center mb-1">
+        {[15, 25, 45, 60].map(mins => (
+          <button
+            key={mins}
+            onClick={() => setTimerDurationMinutes && setTimerDurationMinutes(mins)}
+            className={`px-4 py-1.5 text-xs font-semibold rounded-full border transition-all duration-300 ${
+              timerDurationMinutes === mins 
+                ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300 shadow-[0_0_10px_rgba(34,211,238,0.2)]' 
+                : 'bg-black/20 border-white/10 text-slate-400 hover:border-cyan-500/40 hover:text-cyan-200'
+            }`}
+          >
+            {mins} min
+          </button>
+        ))}
+      </div>
 
       {/* Subject Input */}
       <div className="flex w-full max-w-md gap-2">

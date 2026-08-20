@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useStore } from './store/useStore';
 import { TitleBar } from './components/TitleBar';
 import { GoalBanner } from './components/GoalBanner';
@@ -12,6 +12,7 @@ import { NotesPanel } from './components/NotesPanel';
 import { NotificationToast } from './components/NotificationToast';
 import { AmbientSoundPlayer } from './components/AmbientSoundPlayer';
 import { GOAL_CONFIG } from './shared/goalConfig';
+import { ShortcutOverlay } from './components/ShortcutOverlay';
 
 function DashboardOverview() {
   
@@ -147,6 +148,7 @@ function DashboardOverview() {
 export function App() {
   const {
     activeTab,
+    setActiveTab,
     isInitialized,
     initializeStore,
     timerRunning,
@@ -169,6 +171,34 @@ export function App() {
   } = useStore();
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const isSavingRef = useRef(false);
+
+  const [showShortcuts, setShowShortcuts] = useState(false);
+
+  // Global Keyboard Shortcuts
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      // Ignore if user is typing in an input or textarea
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+      
+      if (e.ctrlKey) {
+        switch (e.key) {
+          case '1': e.preventDefault(); setActiveTab('chat'); break;
+          case '2': e.preventDefault(); setActiveTab('timer'); break;
+          case '3': e.preventDefault(); setActiveTab('logger'); break;
+          case '4': e.preventDefault(); setActiveTab('stats'); break;
+          case '5': e.preventDefault(); setActiveTab('plan'); break;
+          case '6': e.preventDefault(); setActiveTab('notes'); break;
+          case 'l': case 'L': e.preventDefault(); setActiveTab('logger'); break;
+          case 'n': case 'N': e.preventDefault(); setActiveTab('notes'); break;
+          case '/': e.preventDefault(); setShowShortcuts(prev => !prev); break;
+        }
+      }
+    };
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [setActiveTab]);
 
   const getTodayDate = () => {
     const now = new Date();
@@ -476,6 +506,7 @@ export function App() {
         </div>
       </div>
 
+      <ShortcutOverlay isOpen={showShortcuts} onClose={() => setShowShortcuts(false)} />
       <NotificationToast />
       <AmbientSoundPlayer />
     </div>

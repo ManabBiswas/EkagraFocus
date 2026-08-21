@@ -186,6 +186,22 @@ export function TimerPanel() {
     resetTimer();
   }, [resetTimer]);
 
+  // Spacebar shortcut for Start/Pause
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if user is typing in the subject input field
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+      if (e.code === 'Space') {
+        e.preventDefault();
+        handleStartStop();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleStartStop]);
+
   // Apply current theme safely
   const currentTheme = THEMES[activeTheme as ThemeKey] || THEMES.default;
 

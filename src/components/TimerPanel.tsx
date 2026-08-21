@@ -94,9 +94,22 @@ export function TimerPanel() {
     }
   }, [timerRunning, timerSeconds]);
 
-  const hours = Math.floor(timerSeconds / 3600);
-  const minutes = Math.floor((timerSeconds % 3600) / 60);
-  const seconds = timerSeconds % 60;
+  // Countdown logic for presets
+  const isCountdown = timerDurationMinutes > 0;
+  const displaySeconds = isCountdown 
+    ? Math.max(0, (timerDurationMinutes * 60) - timerSeconds)
+    : timerSeconds;
+
+  // Auto-stop when countdown reaches zero
+  useEffect(() => {
+    if (timerRunning && isCountdown && displaySeconds === 0) {
+      stopTimer();
+    }
+  }, [timerRunning, isCountdown, displaySeconds, stopTimer]);
+
+  const hours = Math.floor(displaySeconds / 3600);
+  const minutes = Math.floor((displaySeconds % 3600) / 60);
+  const seconds = displaySeconds % 60;
   const currentSessionMinutes = timerSeconds / 60;
   
   const inSessionWarnActive = timerRunning && currentSessionMinutes >= IN_SESSION_WARN_MINUTES;
@@ -134,7 +147,7 @@ export function TimerPanel() {
     } else {
       if (!sessionSubject.trim()) return;
       sessionStartTimeRef.current = formatHHMM(new Date());
-      startTimer(sessionSubject);
+      startTimer(sessionSubject, timerDurationMinutes);
       // Ambient sound scheduler — auto-start the remembered sound when the
       // user starts a session. The AmbientSoundPlayer watches `ambient.kind`
       // and starts/stops the right noise generator, so flipping it here is
@@ -146,7 +159,7 @@ export function TimerPanel() {
         setAmbientKind('rain');
       }
     }
-  }, [timerRunning, sessionSubject, startTimer, stopTimer, ambient.autoStart, ambient.kind, setAmbientKind]);
+  }, [timerRunning, sessionSubject, timerDurationMinutes, startTimer, stopTimer, ambient.autoStart, ambient.kind, setAmbientKind]);
 
   const handleSaveSession = useCallback(async () => {
     if (timerSeconds === 0) return;

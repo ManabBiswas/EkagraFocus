@@ -50,6 +50,8 @@ type ThemeKey = keyof typeof THEMES;
 export function TimerPanel() {
   const {
     timerRunning,
+    timerDurationMinutes,
+    setTimerDurationMinutes,
     timerSeconds,
     currentSessionSubject,
     setTimerSubject,
@@ -92,9 +94,22 @@ export function TimerPanel() {
     }
   }, [timerRunning, timerSeconds]);
 
-  const hours = Math.floor(timerSeconds / 3600);
-  const minutes = Math.floor((timerSeconds % 3600) / 60);
-  const seconds = timerSeconds % 60;
+  // Countdown logic for presets
+  const isCountdown = timerDurationMinutes > 0;
+  const displaySeconds = isCountdown 
+    ? Math.max(0, (timerDurationMinutes * 60) - timerSeconds)
+    : timerSeconds;
+
+  // Auto-stop when countdown reaches zero
+  useEffect(() => {
+    if (timerRunning && isCountdown && displaySeconds === 0) {
+      stopTimer();
+    }
+  }, [timerRunning, isCountdown, displaySeconds, stopTimer]);
+
+  const hours = Math.floor(displaySeconds / 3600);
+  const minutes = Math.floor((displaySeconds % 3600) / 60);
+  const seconds = displaySeconds % 60;
   const currentSessionMinutes = timerSeconds / 60;
   
   const inSessionWarnActive = timerRunning && currentSessionMinutes >= IN_SESSION_WARN_MINUTES;
@@ -132,7 +147,7 @@ export function TimerPanel() {
     } else {
       if (!sessionSubject.trim()) return;
       sessionStartTimeRef.current = formatHHMM(new Date());
-      startTimer(sessionSubject);
+      startTimer(sessionSubject, timerDurationMinutes);
       // Ambient sound scheduler — auto-start the remembered sound when the
       // user starts a session. The AmbientSoundPlayer watches `ambient.kind`
       // and starts/stops the right noise generator, so flipping it here is
@@ -144,7 +159,7 @@ export function TimerPanel() {
         setAmbientKind('rain');
       }
     }
-  }, [timerRunning, sessionSubject, startTimer, stopTimer, ambient.autoStart, ambient.kind, setAmbientKind]);
+  }, [timerRunning, sessionSubject, timerDurationMinutes, startTimer, stopTimer, ambient.autoStart, ambient.kind, setAmbientKind]);
 
   const handleSaveSession = useCallback(async () => {
     if (timerSeconds === 0) return;
@@ -276,6 +291,23 @@ export function TimerPanel() {
           💡 {burnoutReport.recommendations[0]}
         </div>
       )}
+
+      {/* Quick Timer Presets */}
+      <div className="flex w-full max-w-md gap-2 justify-center mb-1">
+        {[15, 25, 45, 60].map(mins => (
+          <button
+            key={mins}
+            onClick={() => setTimerDurationMinutes && setTimerDurationMinutes(mins)}
+            className={`px-4 py-1.5 text-xs font-semibold rounded-full border transition-all duration-300 ${
+              timerDurationMinutes === mins 
+                ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300 shadow-[0_0_10px_rgba(34,211,238,0.2)]' 
+                : 'bg-black/20 border-white/10 text-slate-400 hover:border-cyan-500/40 hover:text-cyan-200'
+            }`}
+          >
+            {mins} min
+          </button>
+        ))}
+      </div>
 
       {/* Subject Input */}
       <div className="flex w-full max-w-md gap-2">

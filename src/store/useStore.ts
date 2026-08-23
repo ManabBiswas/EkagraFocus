@@ -214,6 +214,7 @@ interface FocusAgentState {
   tickTimer: () => void;
   resetTimer: () => void;
   setTimerSubject: (subject: string) => void;
+  setTimerDurationMinutes: (minutes: number) => void;
 
   setTodaySessions: (sessions: StudySession[]) => void;
   addSession: (session: StudySession) => void;
@@ -442,6 +443,7 @@ export const useStore = create<FocusAgentState>((set, get) => ({
       currentSessionSubject: '',
     }),
   setTimerSubject: (subject) => set({ currentSessionSubject: subject }),
+  setTimerDurationMinutes: (minutes) => set({ timerDurationMinutes: minutes }),
 
   // Session actions
   setTodaySessions: (sessions) => set({ todaySessions: sessions }),

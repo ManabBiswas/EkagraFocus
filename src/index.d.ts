@@ -81,6 +81,7 @@ interface IPCFile {
     }>
   >;
   readPlanFile: (filePath: string) => Promise<IPCResponse<{ filePath: string; fileName: string; content: string }>>;
+  exportData: () => Promise<IPCResponse<{ exported: boolean }>>;
 }
 
 interface IPCNotes {

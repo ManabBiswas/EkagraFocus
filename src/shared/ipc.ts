@@ -264,6 +264,9 @@ export interface IPCHandlers {
   'notes:delete': (noteId: string) => Promise<{ deleted: boolean }>;
   'notes:generateInsights': (noteId: string) => Promise<IPCNote | null>;
 
+  // Data export
+  'export:data': () => Promise<IPCResponse<{ exported: boolean }>>;
+
   // Agent communication
   'agent:sendMessage': (sessionId: string, message: string) => Promise<IPCResponse<IPCAgentMessage>>;
   'agent:getTodayContext': () => Promise<IPCResponse<IPCDayContext>>;

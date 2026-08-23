@@ -30,6 +30,9 @@ import {
   getChatSessions,
   getChatMessages,
   createChatSession,
+  getAllSessionsForExport,
+  getAllNotesForExport,
+  getAllGoalsForExport,
 } from '../db/queries';
 import { receiveMessage } from '../services/messageReceiver';
 import { processPlanFile } from '../services/planParser';
@@ -810,6 +813,101 @@ export function setupFileHandlers(): void {
       return { success: false, error: 'Failed to read file' } as IPCResponse;
     }
   });
+
+  function escapeCsvValue(value: unknown): string {
+    const stringValue = value == null ? '' : String(value);
+
+    if (/[",\n]/.test(stringValue)) {
+      return `"${stringValue.replace(/"/g, '""')}"`;
+    }
+
+    return stringValue;
+  }
+
+  ipcMain.handle('export:data', async () => {
+    try {
+      const sessions = getAllSessionsForExport();
+      const notes = getAllNotesForExport();
+      const notesJson = JSON.stringify(notes, null, 2);
+      const goals = getAllGoalsForExport();
+
+      const goalsCsv = [
+        'id,date,description,active,created_at,updated_at',
+        ...goals.map((goal) =>
+          [
+            goal.id,
+            goal.date,
+            goal.description,
+            goal.active,
+            goal.created_at,
+            goal.updated_at,
+          ]
+            .map(escapeCsvValue)
+            .join(','),
+        ),
+      ].join('\n');
+
+      const sessionCsv = [
+        'date,subject,duration_minutes,notes,start_time,end_time',
+        ...sessions.map((session) =>
+          [
+            session.date,
+            session.subject,
+            session.duration_minutes,
+            session.notes,
+            session.start_time,
+            session.end_time,
+          ]
+            .map(escapeCsvValue)
+            .join(','),
+        ),
+      ].join('\n');
+
+      const result = await dialog.showOpenDialog({
+        title: 'Choose Export Folder',
+        properties: ['openDirectory', 'createDirectory'],
+      });
+
+      if (result.canceled || result.filePaths.length === 0) {
+        return {
+          success: false,
+          error: 'Export cancelled',
+        };
+      }
+
+      const exportDirectory = result.filePaths[0];
+
+      fs.writeFileSync(
+        path.join(exportDirectory, 'study-sessions.csv'),
+        sessionCsv,
+        'utf-8',
+      );
+
+      fs.writeFileSync(
+        path.join(exportDirectory, 'notes.json'),
+        notesJson,
+        'utf-8',
+      );
+
+      fs.writeFileSync(
+        path.join(exportDirectory, 'goals.csv'),
+        goalsCsv,
+        'utf-8',
+      );
+
+      return {
+        success: true,
+        data: { exported: true },
+      };
+    } catch (error) {
+      console.error('[FileHandler] Error exporting data:', error);
+      return {
+        success: false,
+        error: 'Failed to export data',
+      };
+    }
+  });
+
   console.log('[FileHandler] ✓ All file handlers registered');
 }
 
